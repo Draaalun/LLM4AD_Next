@@ -1,0 +1,8 @@
+.logo-text-svg {
+  filter: drop-shadow(0 0 8px rgba(0, 212, 255, 0.25));
+  transition: filter 0.3s ease;
+}
+
+.logo-text-svg:hover {
+  filter: drop-shadow(0 0 14px rgba(0, 212, 255, 0.45));
+}

@@ -1,0 +1,213 @@
+# LLM4AD Configuration for LunarLander with DyCA (Dynamic Clustering Algorithm)
+#
+# DyCA automatically clusters the 35 LunarLander instances based on algorithm
+# performance patterns and evolves specialist policies for each cluster while
+# maintaining cross-cluster diversity.
+#
+# Different seeds produce different initial conditions (position, velocity, angle),
+# and DyCA discovers which conditions require similar control strategies.
+
+project_name: "lunarlander_dyca"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve LunarLander policies with DyCA, auto-clustering instances and breeding specialist policies per cluster."
+description_zh: "使用 DyCA 进化 LunarLander 控制策略，自动聚类实例并为各类条件培育专用策略。"
+
+background: |
+  In this benchmark, we aim to evolve control policies for the LunarLander environment.
+  The goal is to create a policy that safely lands the lander at the target location (0, 0)
+  across multiple random initializations.
+
+  The dataset contains 35 instances with different random seeds, producing diverse
+  initial conditions. Different seeds may require different control strategies:
+  - Some seeds start near the pad with low velocity (easy)
+  - Some start far from pad or with high angular velocity (hard)
+  - Some start high with strong lateral drift (medium)
+  DyCA will automatically discover these groupings and evolve specialist policies.
+
+base_dir: "./runs"
+random_seed: 42
+
+# LLM Providers
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    # Use environment variables or set directly
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120.0
+
+# Evaluator — LunarLander policy evaluator
+evaluator:
+  type: "custom"
+  module: "lunarlander_evaluator.py:LunarLanderPolicyEvaluator"
+  timeout: 120
+  max_retries: 2
+  parallel: true
+  max_workers: 8
+  dataset:
+    mode: "directory"
+    path: "data/train"
+    recursive: false
+  metrics: ["episode_reward", "fuel_consumed", "success", "execution_time_ms"]
+
+# Evolution — DyCA orchestrator
+evolution:
+  type: "dyca"
+  background: |
+    We aim to evolve control policies for the LunarLander environment.
+    The dataset contains 35 instances with different random seeds producing diverse
+    initial conditions. Different seeds may require different control strategies
+    depending on starting position, velocity, and angle.
+
+  # General evolution parameters
+  max_generations: 10
+  population_size: 5
+  elite_ratio: 0.1
+  parent_selection_strategy: "tournament"
+  tournament_size: 3
+
+  # DyCA-specific parameters
+  n_clusters: 2               # Auto-select via elbow method
+  clustering_method: "kmeans"
+  recluster_interval: 5       # Check reclustering every 5 generations
+  ari_threshold: 0.8          # Stability threshold for cluster labels
+  n_anchors: 2                # Anchor algorithms for feature extraction (must <= population_size)
+
+  # Pool sizes
+  generalist_pool_size: 8
+  specialist_pool_size: 6
+  complementary_pool_size: 6
+  elite_archive_size: 3
+
+  # SOS (Save Our Specialist) — trigger after 3 stagnant generations
+  sos_stagnation_threshold: 3
+
+  # Resource allocation
+  base_complementary_ratio: 0.2
+  offspring_per_generation: 5
+
+  # Early stopping and checkpoints
+  early_stop_patience: 10
+  early_stop_threshold: 1e-6
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+# Planner — include DyCA samplers
+planner:
+  type: "llm_evolution"
+  provider: "default"
+  selection_strategy: "weighted"
+  samplers:
+    - name: "init_sampler"
+    - name: "e1_sampler"
+      config:
+        temperature: 0.7
+    - name: "e2_sampler"
+      config:
+        temperature: 0.9
+    - name: "m1_sampler"
+      config:
+        temperature: 0.5
+    - name: "m2_sampler"
+      config:
+        temperature: 1.0
+    - name: "summary_sampler"
+      config:
+        temperature: 0.7
+    - name: "complementary_cross_sampler"
+      config:
+        temperature: 0.8
+    # Standard samplers as fallbacks
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+# Coder configuration
+coder:
+  type: "custom"
+  provider: "default"
+  timeout: 180.0
+  max_retries: 2
+  temperature: 0.7
+  max_gen_tokens: 4096
+  prompt_template: |
+    You are tasked with implementing a control policy for the LunarLander environment.
+
+    Problem Description:
+    The LunarLander environment simulates a lander trying to land safely on a landing pad.
+    The landing pad is located at position (0, 0) with width from x=-2 to x=2.
+
+    At each time step, your policy function is called with:
+    - s (list): Current state vector with 8 elements:
+        * s[0]: Horizontal position (x-coordinate)
+        * s[1]: Vertical position (y-coordinate)
+        * s[2]: Horizontal velocity (vx)
+        * s[3]: Vertical velocity (vy)
+        * s[4]: Angle in radians (0 is upright)
+        * s[5]: Angular velocity
+        * s[6]: 1 if left leg is in contact with ground, else 0
+        * s[7]: 1 if right leg is in contact with ground, else 0
+
+    - last_action (int): The action taken in the previous step
+    - s_pre (list): The state vector before the last action was executed
+
+    Your policy must return an action:
+    - 0: Do nothing (coast)
+    - 1: Fire left orientation engine (rotate counter-clockwise)
+    - 2: Fire main engine (thrust upward, also consumes fuel)
+    - 3: Fire right orientation engine (rotate clockwise)
+
+    Your function signature should be:
+    ```python
+    def choose_action(s, last_action, s_pre):
+        """Selects an action for LunarLander to achieve safe landing."""
+        # Your policy logic here
+        return action  # Must be 0, 1, 2, or 3
+    ```
+
+    Success Criteria:
+    - Land on the pad (x between -2 and 2, y close to 0)
+    - Low vertical velocity (not crashing)
+    - Upright orientation (angle close to 0)
+    - Low angular velocity
+
+    Key Considerations:
+    1. Control angle to keep lander upright
+    2. Manage horizontal velocity to aim for center
+    3. Control vertical velocity for soft landing
+    4. Conserve fuel (action 2 consumes fuel)
+    5. Handle initial random positioning and velocities
+
+    Provide only the complete implementation of the choose_action function between EVOLVE_START and EVOLVE markers.
+
+# Memory configuration
+memory:
+  embedding_dim: 768
+  max_entries: 1000
+  similarity_threshold: 0.8
+  decay_factor: 0.99
+
+# Logging
+logging:
+  level: "INFO"
+  console: true
+  json_format: false
+
+# Version control
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "./policy"
+  auto_initialize: true
+  auto_cleanup: true
+
+# Repository analyzer
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include: ["*.py"]
+  exclude: [".git/**", "__pycache__/**", "*.pyc"]

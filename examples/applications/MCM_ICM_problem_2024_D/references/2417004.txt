@@ -1,0 +1,1142 @@
+Problem Chosen
+
+2024 MCM/ICM Summary Sheet
+
+Team Control Number
+
+Regulating the Water of Tomorrow: A Multi-Layer Optimization Model for the Great Lakes
+ Summary
+The Great Lake in the US and Canada faces water problems. The water level of the Great Lake
+ needs to be regulated to satisfy the interests of stakeholders and balance the ecosystem. It's challenging
+to control the flow of water due to its complex dynamics. Several organizations have been working on this problem for decades and released solutions such as Plan 2014. However, stakeholders are not
+ satisfied with the current situation and the ever-changing climate has raised uncertainties. In this project, a network model of the Great Lakes was built to optimize the water level at any time of the year. It employs a multi-layer modeling design, with both a basic network model for de-
+ scribing the major flow processes in the Great Lakes, and an advanced flow model to refine the com-
+plex factors affecting the flow. Compared with the previous plans, this scheme allows for increased
+ ls flexibility in lake water levels, accommodating fluctuations between high and low water levels. e The main steps are as follows:  d First, a basic network model connecting the five lakes was established to analyze the main water o processes. Combined with the analysis of the provided data, several equations were formed to describe  the flow of water in the network, which is the foundation of the model. With this model and the dataset, m the water level and the flow of water can be calculated.
+Then, an advanced flow model was built based on the basic model to better depict the sophisticated
+ H processes affecting the water flow. It is more comprehensive and precise since it analyzes wind, snow,
+ice jams, and other meteorological factors. This model focuses more on Lake Ontario and the St. Law-
+ T rence River to solve the sub-problem. The sensitivity analysis indicated that the model is sensitive to A precipitation and less sensitive to the melt of snow.
+To find a plan that satisfies the stakeholders, multiple benefit and cost functions are first created
+ M to form the objective functions, thus creating a multi-objective optimization model. The optimal water
+level is then solved using the NSGA-II algorithm with operations such as selection, crossover, and
+ mutation. In addition, by utilizing data from 2017, the high stability and accuracy of the model are verified
+ in terms of both water use extrapolation based on the multiple linear regression algorithm and compu tation of the new optimization algorithm.
+The study succeeded in effectively simulating and optimizing the water level in the Great Lakes
+ by building network models. It's promising, reliable and it's beneficial for all the stakeholders. More
+importantly, this new plan is also sustainable and will bring the Great Lakes Region towards a better future.
+
+Keywords: network, flow model, water resource management, water supply, NSGA-II, multiple linear regression
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 2 of 25
+
+Contents
+1 Introduction .................................................................................................... 3
+1.1 Problem Background .......................................................................................................3 1.2 Our Work..........................................................................................................................3
+ 2 Assumptions and Justifications ..................................................................... 4  3 Notations.......................................................................................................... 4  4 Part I: A Basic Network Model for the Great Lakes ................................... 4
+4.1 Analysis of the problem ...................................................................................................4 4.2 A basic network model.....................................................................................................6 4.3 Analyzing the flow of water.............................................................................................7
+ 5 Part II: An Advanced Model for Further Analysis ...................................... 9
+5.1 Background: the need for artificial regulation of dam discharge.....................................9
+ ls 5.2 Initial Establishment of Rule Curves .............................................................................10 e 5.3 Outflow Limitation Impact Factors ...............................................................................12  d 5.4 Impact of the Ottawa River on the Flow of St. Lawrence River ...................................13 o 6 Part III: Modeling to Determine the Optimal Water Levels .................... 14  m 6.1 Analysis..........................................................................................................................14
+6.2 The establishment of the multi-objective optimization model.......................................15
+ H 6.3 Optimal water-level determination model based on NSGA-II algorithm......................17  T 6.4 Tests of the model using 2017 data................................................................................18 A 7 Sensitivity Analysis ....................................................................................... 19
+7.1 Precipitation ...................................................................................................................19
+ M 7.2 Snowmelt .......................................................................................................................20  8 Model Evaluation.......................................................................................... 21  8.1 Strengths ........................................................................................................................21
+8.2 Weaknesses ....................................................................................................................21 8.3 Further discussion ..........................................................................................................21
+ 9 Conclusion ..................................................................................................... 21  10 Memo to IJC leadership ............................................................................. 23
+References......................................................................................................... 24 Appendix .......................................................................................................... 24
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 3 of 25
+
+1 Introduction
+1.1 Problem Background
+ The Great Lake which consists of five lakes and their connecting waterways is an im-
+portant drainage basin for the United States and Canada. Its water resource is used by various
+ stakeholders for many purposes (including power plants, recreation, fishing and shipping, etc.).
+Subtle changes in the water level will greatly affect stakeholders' benefits. Thus, the management of water is their main concern.
+The water level is determined by the amount of water that flows in and out of the lake. It's
+ affected by many physical conditions and their complex interactions, such as precipitation,
+wind, snow, etc. It's also influenced by seasons and some unexpected events like extreme weather.
+ To control the water levels in the Great Lake system, two main dams were built. They can
+manipulate the flow of water to some extent to better satisfy the demands of all stakeholders.
+ ls The International Joint Commission (IJC) has established many plans to control the dams in e the past decades to balance water levels. However, it's hard to satisfy the interests of all stake d holders, especially in the era of climate change where the likelihood of extreme water levels o increases.  m 1.2 Our Work  H In addressing the complex challenges of regulating the water levels in the Great Lakes,
+our study employed a multi-layer modeling approach, combining a fundamental network model
+ T with advanced flow models to enhance precision. The graph below shows the key components  MA of our work.
+  
+
+Figure 1: Our framework
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 4 of 25
+
+2 Assumptions and Justifications
+
+Assumption 1: The inflow between each lake is equal to the outflow from the next lake.
+
+Assumption 2: The Lake Ontario-St. Lawrence River advanced model is generalizable
+
+ across the Great Lakes system. Assumption 3: Lake Ontario water levels are approximately the same as those of the St.
+
+Lawrence. Assumption 4: The outflow from the Moses-Saunders Dam follows a simple mechani-
+ cal release principle. Assumption 5: Water use is somewhat indicative of the neighborhood's population, eco-
+ nomic conditions, and water levels. Assumption 6: High water levels can lead to increased costs of channel maintenance and potential flood damage.
+
+ ls 3 Notations
+
+e The key mathematical notations used in this paper are listed in Table 1.  d Table 1: Notations used in this paper
+
+MATHmo Symbol
+
+Description Water level Water flow Precipitation Evapotranspiration Net basin supply Net total supply The rate of flow adjustment to pre-project flows The rate of flow adjustment The number of baffles located above the water surface
+Runoff The amount of outflow added to the dam
+
+Unit () () () () () () -- -- (Each) () ()
+
+The total distance traveled of wind
+
+(k )
+
+ 4 Part I: A Basic Network Model for the Great Lakes
+
+4.1 Analysis of the problem
+
+The Great Lakes consists of five connected lakes. Lake Michigan and Lake Huron have approximately the same water level and are often considered integral. Water in this drainage
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 5 of 25
+
+system starts from Lake Superior, goes through Lake Huron, Lake Erie, Lake Ontario, and ultimately flows into the Atlantic Ocean. (Figure 2)
+
+    Figure 2: A map of the Great Lake Basin  ls Several waterways which have connected these lakes control the inflow and outflow of
+water. The water flows from one lake to the next lake, which is a one-way flow. It is affected
+e by many natural factors, such as precipitation, wind, ice jams, etc. Since these physical factors  d change with time, the waterflow has its annual, monthly and daily patterns. o The two main control mechanisms of the waterflow is the Soo Locks and the Moses Saunders Dam. They can be controlled in order to gain better water levels to satisfy the stakem holders in this area.  H To find a suitable way of adjusting the water levels, it's important to build a basic network
+model that describes the waterflow. The changing pattern of water level and water flow in
+ T different period of time is the foundation of this model. Based on this network, it's possible to A figure out the relationship between water level and waterflow, which is essential for regulating  M the water level of the Great Lake.
+  
+
+Figure 3: The Great Lake system and the water level of Lake Ontario
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 6 of 25
+
+The water level and the flow of water have changing patterns under different scales of time. They are affected by factors such as wind, precipitation and snow etc. Take Lake Ontario as an example. The graph above shows that the water level changes annually. (Figure 3)
+
+ 4.2 A basic network model The Great Lake system can be abstracted by a simple network system that connects lakes
+
+ with rivers. The nodes in the graph below symbolize different lakes, while the edges are the
+rivers that connect these lakes. All the edges in this graph have only one direction, which is
+
+from a relatively high lake to a relatively low lake.
+
+
+
+ ls Figure 4: The network model of the Great Lake
+
+ de The directed graph below is the mathematical model of this network. The nodes
+
+o stands for the lakes or ocean, while the edges
+
+stand for
+
+ rivers.
+
+m a
+
+b
+
+d
+
+e
+
+f
+
+ H c  T Figure 5: The directed graph of the model
+
+A The source of this model is node , which represents Lake Superior. The sink of this
+
+ M model is node , which represents the Atlantic Ocean.
+
+The amount of water that flows in the edges can be described by the weight of each edge.
+
+ is the inflow of water from the previous lake and
+
+is the outflow of water.
+
+ Thus, the change between inflow and outflow is
+
+ The supply of the lake also comes from precipitation, evaporation, and runoff from the
+
+basin. These three parts comprise the net basin supply
+
+.
+
+ In the equation above,
+
+stands for the amount of water inflow caused by pre-
+
+cipitation, and
+
+stands for the amount of water outflow caused by evaporation. The
+
+runoff
+
+of a basin is the portion of precipitation on the land that ultimately reaches streams
+
+and lakes.
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 7 of 25
+
+Net Basin Supply
+
+Run-off
+
+Over-lake Precipitation
+
+Evaporation
+
+R
+
+P
+
+E
+
+Qin Inflow
+
+Lake
+
+Qout Outflow
+
+
+
+ Figure 6: A basic model of lake water
+When the water comes into the water, it leads the water level to rise. The amount of rise
+
+is related to the surface area of the lake
+
+and the amount of water that goes into the
+
+lake. Thus, the rise or fall of the water level caused by any conditions can be calculated.
+
+ For example, the water rise caused ONLY by runoff is
+
+ ls where
+
+is a specific period of time.
+
+e Since the monthly precipitation
+
+and evaporation
+
+are usually recorded in units
+
+ d of meter, the water supply caused by precipitation
+
+should be
+
+ Hmo As is mentioned above in Equation[1], net basin supply (NBS) is the net amount of water  T entering one of the Great Lakes. The net basin supply does not include inflow from another
+local and runoff from its local basin.
+A The net total supply (NTS) is the net basin supply (NBS) plus the inflow from another  M lake. That is,
+
+4.3 Analyzing the flow of water
+ As the water flows between the lakes, there are two different situations. In the first case,
+the water flows naturally. And in another case, the water is controlled by dams. Specifically,
+ the water at Soo Locks and Moses-Saunders Dam is controlled manually. And water in other
+
+ rivers such as St. Clair River flows naturally. Therefore, it's essential to discuss the difference
+between the two situations and build up their own model.
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 8 of 25
+
+Lake A
+QA_out
+
+River
+
+Lake B
+QB_in
+
+(a) Natural flow
+
+(b) Controlled by dam
+
+
+
+Figure 7: Two types of flow in the river
+ When there are not any dams on the river, the water flows naturally from one to another.  We assume that the outflow of a lake is equivalent to the inflow of the next lake. That is
+
+When there's a dam on the river, the flow of the lake is affected by both human control
+and its natural pattern. We still assume that the outflow of a lake is equivalent to the inflow of
+ the next lake. However, the amount of water has changed since the control of the dam. It is the
+previous flow added by the change of flow.
+ els could be controlled by many factors since the flow of water is very sensitive to  d its environment. It can be affected by wind, temperature, policies, etc. The factors will be furo ther investigated in the next chapter.  The water level of the lake is
+
+ THm where
+
+is the previous height and
+
+ MA rise of the water level.
+
+is the amount of flow that caused the
+
+
+
+Figure 8: An example of the water level calculation
+
+ With the equations above in this chapter, a basic model of the Great Lake is established.
+This model characterized the flow of water and its effect on water levels. It's the foundation of
+
+further analysis. In the next chapter, some other factors (such as wind, ice, snow, etc.) will be
+
+taken into account to further this model.
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 9 of 25
+
+5 Part II: An Advanced Model for Further Analysis
+5.1 Background: the need for artificial regulation of dam discharge
+There are two primary control mechanisms within the flow of water in the Great Lakes system - Compensating Works at Sault Ste. and the Moses-Saunders Dam at Cornwall. Among
+ them, the Moses-Saunders Dam manages the outflows from Lake Ontario into the St. Lawrence
+River. The proper regulation of the dam's discharge has a critical impact on regulating the level
+ of Lake Ontario and the downstream flow and water levels in the St. Lawrence River.
+5.1.1 Lake Ontario water level control advanced model
+ In the model we designed, natural factors such as ice jams, precipitation, and wind are
+taken into account, with the expectation that the upstream and downstream water levels will be adjusted to meet the optimal levels for each stakeholder by setting the dam outflow. (The opti-
+ mal water level that integrates all stakeholders is described in detail later.)  ls 5.1.2 Spotlight on Lake Ontario-St. Lawrence River
+As there is more recent concern for the management of the water level for the Ontario in
+e recent years. We take Lake Ontario-St. Lawrence River advanced model and analyze it in depth,  d assuming that the outflow from Lake Ontario approximates the outflow from the Moses-Sauno ders Dam. (Figure 9) As water supplies trend above normal or St. Lawrence River flows de crease, lake releases are increased. As supplies trend below normal or St. Lawrence River flows  MATHm increase, lake releases are decreased.
+  
+
+Figure 9: The Moses-Saunders Dam sketch[2]
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 10 of 25
+
+5.2 Initial Establishment of Rule Curves
+
+Lake releases are primarily a function of a sliding rule curve based on the pre-project
+
+stage-discharge relationship adjusted to recent supply conditions. The flow computed with this
+
+ equation is then adjusted depending on the recent supply conditions. The newly developed
+Lake-River model can be applied to other sites in the Great Lakes system except Lake Erie.
+
+
+
+In the equation above, pre-project outflow.
+
+ is the value of the change in outflow,
+
+represents the
+
+5.2.1 Model of a dam with baffles
+ This model will demonstrate how the Moses-Saunders Dam is used to help control water
+levels downstream (Figure 10). We assume that it contains 50 gates that can be raised or low-
+ ls ered to help control water levels downstream. This is accomplished by reducing the number of
+baffles above the water surface when less outflow is needed.
+MATHmode Figure 10: Model of a dam with baffles
+
+ The variable determine the rate of flow adjustment to pre-project flows and also depend
+on the long-term trend in supply. The variable represents the number of baffles located
+
+ above the water surface, and the constant
+dam for each baffle opened.
+
+indicates the amount of outflow added to the
+
+ 5.2.2 Impact of NTS in Lake Ontario basin on outflow from dams
+
+To simplify the model, we assume that the water level of Lake Ontario is the same as that
+
+of Lake St. Louis. Dam control outflows are largely determined by total basin supply, and to
+
+adapt to long-term climate change, the change in outflows should satisfy the following equation:
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 11 of 25
+
+Table 2: Rule curve parameter values based on historical NTS of Lake Ontario[3]
+
+Plan
+
+Climate
+
+A _ NTSmax
+
+A _ NTSavg
+
+A _ NTSmin
+
+Plan2014
+
+Historical (1900-2000)
+
+8552 m3/s
+
+7011 m3/s
+
+5717 m3/s
+
+Our Plan
+
+Historical (1900-2023)
+
+9042 m3/s
+
+7067 m3/s
+
+ 5717 m3/s
+
+ For supplies above normal (the index is greater than or equal to 7067 m3/s), the lake re-
+lease is determined by:
+
+ Qout1
+
+=
+
+W
+
+ 
+
+A
+
+_ _
+
+NTS now NTS max
+
+- -
+
+A A
+
+_ _
+
+NTS avg NTS avg
+
+ M1  
+
+× Z1
+
+For supplies below normal (the index is less than 7067 m3/s), the lake release is deter-
+
+ mined by:
+
+ ls Qout1
+
+=
+
+A_
+
+- 
+
+A
+
+_
+
+NTS avg NTS avg
+
+-W -W
+
+_ _
+
+NTS now NTS min
+
+M2  
+
+× Z2
+
+e In the above equations, W_NTS is a supply index based on net total supply over the past
+
+ d 12 weeks. A_NTS indicates the maximum, minimum, and average statistics of the total annual
+
+o net supply series. The indices M serve to accelerate or decelerate the rate of flow adjustment.
+
+ 5.2.3 Effect of Lake Ontario water levels on outflows from dams m When the water level of Lake Ontario is high, the likelihood of flooding increases, which  H causes a great deal of disruption to the lives of the people living along the shoreline, so in order
+to prevent catastrophes from occurring, the factor of the change in the water level of Lake
+ T Ontario over time should also be taken into account in the equation for the change in outflow.
+
+A Table 3: Rule curve parameter values based on historical water levels of Lake Ontario[4]
+
+ M Climate  Historical (1900-2023)
+
+75.37 m
+
+74.77 m
+
+74.00 m
+
+ For water levels above normal (the index is greater than or equal to 74.77 m), the lake
+
+release is determined by:
+
+ Qout2
+
+=
+
+  
+
+H now H max
+
+- -
+
+H avg H avg
+
+M3  
+
+× Z3
+
+ For water levels below normal (the index is lower than 74.77 m), the lake release is deter-
+
+mined by:
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 12 of 25
+
+Qout2
+
+=
+
+ -
+
+
+H H
+
+avg avg
+
+- -
+
+H H
+
+now min
+
+  
+
+M
+
+4
+
+× Z4
+
+In the above equations, H indicates the maximum, minimum, and average statistics of the
+
+annual of Lake Ontario water levels.
+ 5.3 Outflow Limitation Impact Factors
+In addition to the effects of total basin supply and water levels, other weather variations
+ and meteorological conditions can limit outflow from dams, with the main considerations in
+our outflow model being rainfall over the coming period of time, a dramatic increase in the
+ flow of the Ottawa River due to winter snowpack melt in the spring and ice jams on the river
+in the winter, as well as natural factors such as winds on the lake.
+ 5.3.1 Short-term precipitation forecasts In the previous model we mainly considered the effect of long-term climate change on the
+ ls outflow from the control dam, however, short-term weather changes such as rainfall cannot be
+ignored in the complete model, and by predicting future short-term rainfall, we can refine the
+e model more finely to mitigate the effects of sudden storms on water surface heights through  d the following equation:  mo Variability of releases from one week to the next is smoothed by taking the average of H short-term forecasts4 of releases four weeks (or quarter-months) into the future.  T 5.3.2 Modeling of synthetic winds on lakes A The wind direction of the prevailing winds on an open lake has an important effect on the  distribution of water levels, as shown in the figure 11, where the wind blows water from one M shore of the lake surface to the other, resulting in higher water levels on the opposite shore.
+  
+
+Figure 11: Simplified Lake Ontario synthetic wind model
+
+We consider Lake Ontario as a rectangle, with the lake surface as a rectangle with long
+
+
+2
+
+MATHmodels
+
+
+
+Team # 2417004
+
+Page 13 of 25
+
+side L1 (East-West Direction) and short side L2 (North-South Direction). Due to the Narrow
+
+Tube Effect, the wind along the lake surface is significantly greater in the east-west direction
+
+than in the north-south direction, so a synthetic wind model is used to synthesize the winds
+
+from different stations on the lake surface into two directions (E and N), We believe that the
+
+ amount of water transmitted by the wind factor can be replaced by the wind range, and a greater
+wind range in the due east or due west direction indicates a higher water level on the eastern
+
+ shore of the lake, which needs to be regulated by increasing the outflow from the control dam. The wind range is calculated using the following formula:
+
+ N = VN  FN , NNE = VNNE  FNNE , NE = VNE  FNE
+Calculate the synthesized wind direction by breaking down the travel in each direction
+
+into travel in the due north and due east directions:
+CN = N - S + (NNE + NNW - SSE - SSW )cos 22.5°
+ + (NW + NE - SW - SE)cos 45°
++ (ENE +WNW - ESE -WSW )cos 67.5°
+
+ els CE = E -W + (ENE + ESE -WNW -WSW )cos22.5°  + (NE + SE - NW - SW )cos 45° d + (NNE + SSW -WNW - SSW )cos 67.5°
+
+ mo Qout4
+
+=
+
+  
+
+L1
+
+L1 + L2
+
+CE
+
++
+
+L2 L1 + L2
+
+CN
+
+M6  
+
+×
+
+Z6
+
+ H And then calculate synthetic direction and wind speed:
+
+ T tan = CN A CE
+
+,  = tan-1 CN CE
+
+, C=
+
+CN 2 + CE2
+
+, v=C f
+
+In the above formulas, v is the synthetic wind speed, f is the number of observation , and
+ M C is the total distance traveled of wind.
+
+ 5.4 Impact of the Ottawa River on the Flow of St. Lawrence River The flow of the Ottawa River, an important tributary to the St. Lawrence River, has a
+
+ profound effect on regulating outflow from the control dams (in order to maintain a relatively
+stable water level in the lower St. Lawrence River), Due to the high latitude of the St. Lawrence
+
+ River and the long ice age in winter, ice jams result in a decrease in the flow of the St. Lawrence
+River, and then a dramatic increase in the flow of the St. Lawrence River as a result of ice melt water from the return of warmer temperatures the following spring.
+
+5.4.1 Spring flooding from winter snowpack melt
+
+Spring ice melt leads to increased flows in the Ottawa River, which feeds into the St.
+
+Lawrence River, so controlled dam discharges are needed to balance water levels and flows in
+
+2
+
+MATHmodels
+
+
+
+Team # 2417004
+
+Page 14 of 25
+
+the lower St. Lawrence River. The change in outflows should satisfy the following equation: Table 4: Rule curve parameter values based on historical flows of the St. Lawrence River[5]
+
+Climate Historical (1900-2023)
+
+A _ Qmax
+3553 m3/s
+
+A _ Qavg
+2968 m3/s
+
+A _ Qmin
+2176 m3/s
+
+
+
+ For supplies above normal (the index is greater than or equal to 2968 m3/s), the lake re-
+
+lease is determined by:
+
+ Qout5
+
+=
+
+W
+
+- 
+
+A
+
+_ Qnow _ Qmax
+
+- -
+
+A_ A_
+
+Qavg Qavg
+
+M7  
+
+× Z7
+
+For water levels below normal (the index is lower than 2968 m3/s), the lake release is
+
+ determined by:
+
+ ls Qout5
+
+=
+
+  
+
+A _ Qavg A _ Qavg
+
+-W -A
+
+_ _
+
+Qnow Qmin
+
+  
+
+M
+
+7
+
+× Z7
+
+ e In the above equations,
+
+is a supply index based on net total supply over the
+
+d past 12 weeks. A_NTS indicates the maximum, minimum, and average statistics of the total
+
+o annual net supply series.
+
+ m 5.4.2 Impact of ice jams on dam outflows  Ice jams result in a reduction in the amount of water in the Ottawa River that feeds into H the St. Lawrence River, and it can be assumed that the amount of ice on the river surface can  T be indirectly expressed as a reduction in the flow of the river, resulting in the need to compenA sate for the reduction in the level of the downstream St. Lawrence River water by increasing
+discharge from the upstream dams. The calculation formula is similar to the modeling of spring
+ M flood flow increases and will not be repeated here due to space limitations.
+
+6 Part III: Modeling to Determine the Optimal Water Levels
+ 6.1 Analysis  Establishing the optimum water level for the Great Lakes at any given time of the year
+
+ requires consideration of a number of factors. Since there has been more recent interest in the
+management of Lake Ontario, in this paper we will focus on the desires of the six categories of Lake Ontario stakeholders as a means of obtaining the optimal water level for Lake Ontario.
+
+This method will also be used to calculate the optimal water level for the other four lakes in
+
+the same way, so as to find the optimal water level for the whole basin.
+
+No single critical low or high water level has `adverse impacts' on the system. The level
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 15 of 25
+
+of harm experienced by a user of the system greatly depends on the location and the usage and sometimes the time of the year, since stormy weather and high winds may cause crashing waves, damaging shorelines at any high water level.
+In this paper six categories of stakeholders will be considered: shipping companies, people
+ who manage shipping docks or live near the Montreal harbor, environmentalists, property own-
+ers on the shores of Lake Ontario, recreational boaters and fishing boats on Lake Ontario, and
+ hydro-power generation companies. Their relationship with the water level is shown in the
+figure.
+  els Figure 12: (a)Effect of high and low water levels (b)Effect of water flow stability  d Their benefit and cost functions are first established to find the corresponding objective o functions. Since the multi-objective optimization model is able to consider multiple objectives  at the same time, it is more suitable for this question scenario. Genetic algorithms are highly m robust and suitable for dealing with complex optimization problems and are able to optimize  H even when the optimization objectives are unclear or uncertain. Therefore, we establish a multi-
+objective optimization model and use the genetic algorithm NSGA-II to solve the model.
+ AT 6.2 The establishment of the multi-objective optimization model  First, setting the decision variable as follows:
+M H: The current water level Q: The current water flow  Then building the objective function, we're here to predict optimal water levels using Lake
+Ontario's January data:
+  This is the yield function of the shipping companies, which require high and still water in the
+St. Lawrence River. : Minimum water level required for shipping
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 16 of 25
+
+: Benefits from rising water levels per unit
+
+: Lake Ontario Container Through-
+
+put for January [6]
+
+: Additional cost increase per unit increase in flow rate
+
+
+
+ This is the cost function of the shipping companies. is the ideal water level for ship-
+ping, and is the contractor's coefficient resulting from excessive water levels.
+
+From this we can model the satisfaction of this stakeholder:
+
+
+
+simmilarly, we can model other stakeholders.
+
+ This is the yield function of people who manage shipping docks or live near the Montreal
+
+ ls harbor.
+
+is the steady water level one would expect, is a measure of the sensitivity of
+
+the water level to deviation from the steady water level, and is the contribution of the flow
+
+e rate to the wind speed.
+
+ od This is the yield function of environmentalists.
+
+is the average annual water level,
+
+m and is a measure of population size predicted from water use.[7]
+
+ TH This is the yield function of property owners on the shores of Lake Ontario.
+
+and
+
+A are the owner's desired water level and flow rate. and are composite coefficients
+
+combining the number of owners with the revenue brought in by the owners, predicting water
+
+ M use.[7]
+
+This is the yield function of recreational boaters and fishing boats on Lake Ontario.
+ and are composite coefficients combining the number of them with the revenue brought  in by them, predicting water use.[7]
+
+ This is the yield function of hydro-power generation companies.
+capacity of the generation system, predicting water use.[7]
+
+is a measure of the
+
+On this basis, we also need to establish the constraints that the water levels and flow rates
+
+we seek will not exceed or fall below the previous year's maximums. From this, we build the
+
+multi-objective optimization model:
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 17 of 25
+
+ 6.3 Optimal water-level determination model based on NSGA-II algorithm
+NSGA-II (Non-dominated Sorting Genetic Algorithm II) is a genetic algorithm for solving
+ multi-objective optimization problems. It finds the Pareto optimal solution by iterating.  1. Coding and initializing populations
+First, the solution to the problem is encoded by using the binary operation. Each individual in the population represents a set of possible solutions, i.e., a set of values for water level (H)
+ and water flow (Q). For each individual, the values of water level (H) and water flow (Q) can
+be generated randomly within a given constraint. Combined with the complexity of this prob-
+ ls lem, we chose an initial population size of 100 individuals. e 2. Calculating Adaptation  d NSGA-II is a minimization problem solver, so we take the negative of these objective o functions as the fitness function.  m 3. Undominated sorting and congestion calculation
+The NSGA-II algorithm will rank and select individuals in the population based on non-
+ H dominated ordering and crowding. Undominated ordering divides the population into multiple  T ranked frontiers, each containing individuals who are not dominated by each other.
+The crowding degree comparison is used to differentiate between individuals within the
+A same frontier, giving preference to individuals with lower crowding degrees (i.e., fewer neigh bors around them) in order to maintain the diversity of the solution. M 4. Selection, crossover, and mutation  The selection operation is based on the tournament selection method, where parent indi-
+viduals are selected for crossover and mutation to produce a new generation of individuals.
+ 5. Generation of new populations
+Combining parents and offspring, new populations are selected by non-dominated sorting
+ and crowding calculations. 6. Iterating until the termination condition is met The above steps are repeated until a predetermined number of iterations is reached or the quality of the solution is no longer significantly improved.
+Based on the above calculation process, R studio is used to solve equation (34) and used
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 18 of 25
+
+such an algorithm as well as network flow graphs to solve for the optimal water levels of the Great Lakes from January to December. The results are shown below.
+
+Table 5: Optimal Water Level of the Great Lakes
+
+   MATHmodels    Figure 13: Comparison of optimum water level and average water level in recent years
+6.4 Tests of the model using 2017 data
+
+In order to give a range of optimal water levels for subsequent testing, we divided the 12
+
+months into seasons (March, April, and May for spring, and so on). The water level is said to
+
+
+2
+
+MATHmodels
+
+
+
+Team # 2417004
+
+Page 19 of 25
+
+be optimal if it is within the range of the corresponding quarter.
+On one hand, we first substitute 2017 data into the above formula 34, By calculations we
+find that the actual recorded water levels for the year are satisfactory, and are all within the
+range of the optimum level we are seeking.
+    dels Figure 14: The 2017 data under the new algorithm  o On the other hand, by using the previous relationship between average annual water levels m in the Great Lakes and water use, we can model multiple linear regressions.  H Y is the amount of water used in the watershed, is the average annual water level in  T Lake Superior, is the average annual water level in Lake Michigan and Lake Huron, is
+the average annual water level in Lake Erie, is the average annual water level in Lake On-
+A tario.  M By substituting the data of 2017, we finally deduced that his water consumption is 130,860
+million L, thus we can see that the water level is still within the optimal water level range, so
+ we verified the accuracy of our model from another angle.  In short, from both perspectives, we can argue that for the various stakeholders, my new
+control method will indeed result in better actual recorded water levels for that year.
+ 7 Sensitivity Analysis  7.1 Precipitation
+The optimal water level is used in Lake Ontario in January as an example to verify the
+accuracy of the model.
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 20 of 25
+
+  
+Figure 15: The relationships between water Level and precipitation
+ As shown in the figure, the satisfaction gradually decreases with the increase of precipi-
+tation and at a faster rate, while the optimal water level keeps fluctuating, indicating that the
+ ls optimal water level is more sensitive to the precipitation. e 7.2 Snowmelt  d As shown in the figure, the satisfaction level gradually decreased with the increase of o snowmelt, but the rate of decrease was not fast, and the satisfaction level was always above  0.97. Meanwhile the optimal water level keeps fluctuating. Therefore, it can be considered that  MATHm the optimal water level is relatively insensitive to snowmelt and has strong robustness.
+  Figure 16: The relationships between water level and snowmelt
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 21 of 25
+
+8 Model Evaluation
+
+8.1 Strengths
+
+ 1. The effects of water level, precipitation, ice jams, wind, and many other factors are
+considered in the advanced model.
+
+ 2. Innovatively analyzing a synthetic model of wind on the lake and a baffle model of the
+dam.
+
+3. Using NSGA-II genetic algorithm when solving multi-objective optimization, which combines neural network and symbolic reasoning with good robustness
+ 4. The superiority of the model for solving the optimal water level has been verified in
+multiple ways, both in terms of water consumption and the new algorithm.
+ 8.2 Weaknesses  ls 1. The role of hydroelectric power stations and reservoirs on the Ottawa River in regulat-
+ing flow and the effect of groundwater level on lake level were not considered.
+e 2. The training process of LSTM is relatively slow due to the complex gating mechanism  d and multiple weighting parameters. o 3. Inadequate consideration of costs to hydroelectric utilities.  4. The algorithm fails to adequately consider whether sensitivity to ice plugs  Hm 8.3 Further discussion  T Optimal water levels are in everyone's interest, and it is important to establish and main-
+tain optimal water levels that are appropriate to the location. The model used in this paper to
+A establish and maintain optimal water levels for the Great Lakes can be generalized, with the  appropriate parameter modifications, to a variety of areas other than those mentioned in this M paper.  For example, it can be used to help planners to better design urban water systems, hydrau-
+
+ lic facilities and flood control projects to improve the flood resilience and water utilization
+efficiency of cities. In addition, scientific water level management can protect wetland ecosys-
+
+ tems, maintain habitats for aquatic plants and animals, and promote biodiversity conservation.
+
+9
+
+ Conclusion
+This study aims to address the challenge of control mechanisms for water levels in the
+
+Great Lakes region of North America, working to find an optimal solution between meeting
+
+stakeholder needs and protecting the ecological balance. By building a multi-layer model de-
+
+sign including a base network model and an advanced flow model and its sub-models, this
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 22 of 25
+
+study successfully simulates and optimizes the water levels of the Great Lakes, and proposes practical management and control strategies, especially for the sub-problems of Lake Ontario and the St. Lawrence River.
+First, by constructing a base network model connecting the Great Lakes, we analyze the
+ major streamflow processes and develop equations describing the streamflow and water avail-
+ability in the network with the provided data, which is the basis of the model. Subsequently, based on the base model, we develop a more complex advanced flow model to more accurately depict the complex factors that affect water flow, such as wind, snow, ice jams, and other me-
+ teorological factors. Sensitivity analysis of the advanced model shows that the model was ex-
+tremely sensitive to rainfall and less sensitive to snowmelt.
+ In order to identify a solution that would satisfy all stakeholders, we first create multiple
+benefit and cost functions, form an objective function, and construct a multi-objective optimization model. The model is then solved using the NSGA-II algorithm by initializing the popu-
+ lation and operations such as selection, crossover, and mutation. Combined with the previous
+advanced flow model, the optimal water level is finally determined.
+ ls In addition, by utilizing 2017 data, this study verifies the high stability and accuracy of e the model in terms of water use projection and computation of the new optimization algorithm.  d This not only reflects the effectiveness of the model in dealing with practical problems but also
+demonstrates its adaptability to possible future changes.
+o In conclusion, this study effectively simulates and optimizes water levels in the Great  m Lakes by constructing a complex and detailed model framework. It is our sincere hope that the
+management and control strategies proposed in this study will be adopted by the International
+ H Joint Commission (IJC) for the benefit of a sustainable future for the Great Lakes region. Look T ing forward, we believe that further research should focus on expanding the dataset, improving
+model accuracy, and enhancing interactions with stakeholders to ensure that our strategies
+A maintain their effectiveness and relevance in a changing environment. In this way, we can not  only protect this valuable natural resource, but also ensure that it continues to provide essential M ecological, economic, and social benefits to people in the region and beyond.
+  
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 23 of 25
+
+10 Memo to IJC leadership
+
+Date: February 6, 2024
+
+To: Leadership, IJC
+
+From: ICM Team #2417004 Subject: A Multi-Layer Optimization Model for the Great Lakes
+
+
+
+Dear IJC leadership:
+ In response to your inquiry regarding the historical data utilized in our model and consid-
+ering the key features of Plan 2014, I would like to highlight the incorporation of the strengths
+ of Plan 2014 into our proposal, along with targeted enhancements to address its identified
+
+shortcomings.
+ ·Inheritance of Plan 2014's Strengths:
+1 Ecological and Environmental Focus: Our model maintains a strong emphasis on
+ ls restoring lake and coastal ecosystems, contributing to overall ecological balance. e 2 Optimized Water Level Management: Our model allows for increased flexibility in  lake water levels, accommodating fluctuations between high and low water levels. od ·Addressing Plan 2014's Shortcomings:  m 1 Controversy and Dissatisfaction: Some stakeholders expressed reservations about
+the new water level ranges and ecological goals.
+ H 2 High Water Events: Concerns were raised regarding potential impacts on shoreline
+properties and infrastructure during periods of high water levels.
+ T 3 Complexity due to Multiple Variables: The intricate interplay of meteorological, A hydrological, and ecological factors complicated predictions and management strategies.  M ·Our Solutions and Advantages:  1 Multi-Objective Optimization Model: We advocate for the implementation of a
+
+ multi-objective optimization model utilizing genetic algorithms. This model aims to determine
+water levels, achieving Pareto solutions that maximize the interests of various stakeholders.
+
+2 Control Algorithm-based Flood Mitigation: Employing a sophisticated control algorithm within a dynamic flow model, we intend to minimize the occurrence of high water
+ events by regulating dam discharges effectively. 3 Comprehensive Impact Consideration: Our model takes into account the influence
+ of multiple factors, including precipitation, water levels, net total supply, wind, ice jams, snow
+
+accumulation, and more, addressing the complexity associated with Plan 2014.
+
+Sincerely, Team #2417004
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 24 of 25
+
+References
+
+[1] GLAM Committee, Great Lakes ­ St. Lawrence River Adaptive Management (GLAM) Committee
+
+Report for 2017, 2018
+
+[2]
+
+ Current Perspectives on Lake Ontario-St. Lawrence River: Water Levels. (2023). Retrieved from In-
+ternational Lake Ontario - St. Lawrence River Board, https://ijc.org/en/loslrb/library/modules, Febru-
+
+[3]
+
+ ary 3, 2024
+Historic Water Levels and Hydrologic Data such as flows, forecasts, wind, ice, and temperatures:
+
+Great Lakes Water Data and Related Information. (2023). Retrieved from Environment and Climate Change Canada, https://www.canada.ca/en/environment-climate-change/services/water over-
+ view/quantity/great-lakes-levels-related-data.html, February 4, 2024
+[4] Reports on Great Lakes including water levels, forecasts, basin conditions and outflows: Great Lakes Information. (2023). Retrieved from US Corps of Engineers Detroit District,
+ https://www.lre.usace.army.mil/Missions/Great-Lakes-Information/, February 3, 2024
+[5] Historic Perspectives specific to Ottawa River: Ottawa River at Carillon Station. (2023). Re-
+ ls trieved from Ottawa River Regulational Planning Board, https://ottawariver.ca/information/hise torical-waterlevel-streamflow-summary/ottawa-river-at-carillon/, February 6, 2024  d [6] China Science Communication Science Encyclopedia, minimum navigable stage of channel, 2015 o [7] Historic Water Use Data such as withdrawals, diversions and consumption: Great Lakes Re gional Water Use Database. (2023). Retrieved from Great Lakes Commission, m https://www.gic.org-Water Use Sector Definitions, February 5, 2024  H Appendix  MAT Note: To avoid copyright infringement, all the contents in the essay are written on our own.
+
+
+
+
+
+
+
+2
+MATHmodels
+
+ 
+
+Team # 2417004
+
+Page 25 of 25
+
+ MATHmodels 
+
+2
+MATHmodels
+
+ 
+
+

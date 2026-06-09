@@ -1,0 +1,16 @@
+# data/profiles/profile_a.yaml
+
+name: "a"
+age: 30
+current_role: "软件工程师"
+aspirations:
+  - "在5年内成为一名技术负责人或架构师"
+  - "学习弹吉他，并能演奏喜欢的歌曲"
+  - "每年至少去一个没有去过的国家旅行"
+  - "提高公开演讲能力"
+values:
+  - "持续学习与成长"
+  - "工作与生活的平衡"
+  - "创造有价值的产品"
+  - "探索世界"
+time_horizon_years: 5

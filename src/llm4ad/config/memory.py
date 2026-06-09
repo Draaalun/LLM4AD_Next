@@ -1,0 +1,238 @@
+"""Memory configuration schemas.
+
+Defines configuration classes for the memory system including
+static memory cards, auto-extraction settings, and prompt integration.
+"""
+
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+from llm4ad.config.ui import ui
+
+
+class MemoryCardConfig(BaseModel):
+    """Static memory card defined inline in YAML config.
+
+    Allows users to inject domain knowledge, hints, or constraints
+    directly into the memory system via the configuration file.
+    """
+
+    type: str = Field(
+        ...,
+        description="Memory type: good_algorithm, error_reflection, domain_knowledge, general_insight",
+        json_schema_extra=ui(
+            user_required=True,
+            label_zh="记忆类型", label_en="Memory Type",
+            desc_zh="记忆卡片类型：good_algorithm、error_reflection、domain_knowledge 或 general_insight",
+            desc_en="Memory card type: good_algorithm, error_reflection, domain_knowledge, or general_insight",
+        ),
+    )
+    title: str = Field(
+        ..., description="Short human-readable title for this memory card",
+        json_schema_extra=ui(
+            user_required=True,
+            label_zh="标题", label_en="Title",
+            desc_zh="记忆卡片的简短标题，便于检索和展示",
+            desc_en="Short title for retrieval and display",
+        ),
+    )
+    content: str = Field(
+        ..., description="Main textual content of the memory card",
+        json_schema_extra=ui(
+            user_required=True,
+            label_zh="内容", label_en="Content",
+            desc_zh="记忆卡片的主要文本内容", desc_en="Main textual content of the memory card",
+            multiline=True,
+        ),
+    )
+    tags: list[str] = Field(
+        default_factory=list, description="Tags for filtering and retrieval",
+        json_schema_extra=ui(
+            label_zh="标签", label_en="Tags",
+            desc_zh="用于过滤和检索的标签列表", desc_en="Tags for filtering and retrieval",
+        ),
+    )
+    score: float | None = Field(
+        default=None, description="Optional associated score",
+        json_schema_extra=ui(
+            label_zh="评分", label_en="Score",
+            desc_zh="可选的关联评分值", desc_en="Optional associated score value",
+        ),
+    )
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata",
+        json_schema_extra=ui(
+            hidden=True,
+            label_zh="元数据", label_en="Metadata",
+            desc_zh="附加的键值对元数据", desc_en="Additional key-value metadata",
+        ),
+    )
+
+
+class AutoExtractionConfig(BaseModel):
+    """Configuration for LLM-based auto-extraction of memory cards.
+
+    Controls when and how the system automatically extracts insights
+    from evaluated algorithms. Supports two extraction paths:
+    - Good algorithms: capture what worked and why
+    - Bad algorithms: capture what to avoid
+    """
+
+    enabled: bool = Field(
+        default=True, description="Enable auto-extraction after evaluation",
+        json_schema_extra=ui(
+            label_zh="启用", label_en="Enabled",
+            desc_zh="是否在评估后自动提取记忆卡片", desc_en="Whether to auto-extract memory cards after evaluation",
+        ),
+    )
+    max_cards_per_generation: int = Field(
+        default=3, ge=0, description="Maximum cards to auto-extract per generation",
+        json_schema_extra=ui(
+            label_zh="每代最大卡片数", label_en="Max Cards Per Generation",
+            desc_zh="每代进化后自动提取的最大记忆卡片数量",
+            desc_en="Max memory cards auto-extracted per generation",
+        ),
+    )
+    extraction_temperature: float = Field(
+        default=0.3, ge=0.0, le=2.0, description="Temperature for extraction LLM calls",
+        json_schema_extra=ui(
+            label_zh="提取温度", label_en="Extraction Temperature",
+            desc_zh="提取记忆时 LLM 调用的采样温度（0.0-2.0）",
+            desc_en="LLM sampling temperature for memory extraction (0.0-2.0)",
+        ),
+    )
+
+    # Good algorithm extraction
+    extract_good: bool = Field(
+        default=True, description="Extract insights from well-performing algorithms",
+        json_schema_extra=ui(
+            label_zh="提取优秀算法", label_en="Extract Good",
+            desc_zh="是否从表现优秀的算法中提取经验", desc_en="Whether to extract insights from well-performing algorithms",
+        ),
+    )
+    good_score_threshold: float | None = Field(
+        default=None, description="Absolute score threshold for good extraction (None = use relative)",
+        json_schema_extra=ui(
+            label_zh="优秀评分阈值", label_en="Good Score Threshold",
+            desc_zh="优秀算法的绝对评分阈值，留空则使用相对百分位阈值",
+            desc_en="Absolute score threshold for good algorithms; empty uses percentile",
+        ),
+    )
+    good_relative_threshold: float = Field(
+        default=0.8,
+        ge=0.0,
+        le=1.0,
+        description="Percentile threshold: extract from algorithms scoring above this percentile",
+        json_schema_extra=ui(
+            label_zh="优秀相对阈值", label_en="Good Relative Threshold",
+            desc_zh="百分位阈值：从评分高于此百分位的算法中提取（0.0-1.0）",
+            desc_en="Extract from algorithms above this percentile (0.0-1.0)",
+        ),
+    )
+
+    # Bad algorithm extraction
+    extract_bad: bool = Field(
+        default=True, description="Extract avoidance lessons from poorly-performing algorithms",
+        json_schema_extra=ui(
+            label_zh="提取失败算法", label_en="Extract Bad",
+            desc_zh="是否从表现差的算法中提取教训",
+            desc_en="Whether to extract lessons from poorly-performing algorithms",
+        ),
+    )
+    bad_score_threshold: float | None = Field(
+        default=None, description="Absolute score threshold for bad extraction (None = use relative)",
+        json_schema_extra=ui(
+            label_zh="失败评分阈值", label_en="Bad Score Threshold",
+            desc_zh="失败算法的绝对评分阈值，留空则使用相对百分位阈值",
+            desc_en="Absolute score threshold for bad algorithms; empty uses percentile",
+        ),
+    )
+    bad_relative_threshold: float = Field(
+        default=0.2,
+        ge=0.0,
+        le=1.0,
+        description="Percentile threshold: extract from algorithms scoring below this percentile",
+        json_schema_extra=ui(
+            label_zh="失败相对阈值", label_en="Bad Relative Threshold",
+            desc_zh="百分位阈值：从评分低于此百分位的算法中提取（0.0-1.0）",
+            desc_en="Extract from algorithms below this percentile (0.0-1.0)",
+        ),
+    )
+    extract_on_failure: bool = Field(
+        default=True, description="Extract error reflections from evaluation failures",
+        json_schema_extra=ui(
+            label_zh="失败时提取", label_en="Extract on Failure",
+            desc_zh="评估失败时是否提取错误反思记忆",
+            desc_en="Whether to extract error reflections when evaluation fails",
+        ),
+    )
+
+
+class MemoryConfig(BaseModel):
+    """Memory system configuration."""
+
+    max_entries: int = Field(
+        default=10000, ge=1, description="Maximum entries",
+        json_schema_extra=ui(
+            label_zh="最大条目数", label_en="Max Entries",
+            desc_zh="记忆系统中允许存储的最大条目数量", desc_en="Maximum number of entries allowed in the memory system",
+        ),
+    )
+    similarity_threshold: float = Field(
+        default=0.8, ge=0.0, le=1.0, description="Similarity threshold",
+        json_schema_extra=ui(
+            label_zh="相似度阈值", label_en="Similarity Threshold",
+            desc_zh="去重时的相似度阈值，超过此值的记忆将被视为重复（0.0-1.0）",
+            desc_en="Dedup threshold; memories above this are duplicates (0.0-1.0)",
+        ),
+    )
+    decay_factor: float = Field(
+        default=0.99, ge=0.0, le=1.0, description="Memory decay factor",
+        json_schema_extra=ui(
+            label_zh="衰减因子", label_en="Decay Factor",
+            desc_zh="记忆随时间衰减的因子，值越小衰减越快（0.0-1.0）",
+            desc_en="Temporal decay factor; lower values decay faster (0.0-1.0)",
+        ),
+    )
+
+    # Static memory cards
+    static_cards: list[MemoryCardConfig] = Field(
+        default_factory=list,
+        description="Static memory cards defined inline in config",
+        json_schema_extra=ui(
+            label_zh="静态记忆卡片", label_en="Static Cards",
+            desc_zh="在配置文件中直接定义的静态记忆卡片，用于注入领域知识或约束",
+            desc_en="Static memory cards defined inline for domain knowledge or constraints",
+        ),
+    )
+
+    # Auto-extraction settings
+    auto_extraction: AutoExtractionConfig = Field(
+        default_factory=AutoExtractionConfig,
+        description="Auto-extraction settings for learning from evaluated algorithms",
+        json_schema_extra=ui(
+            label_zh="自动提取", label_en="Auto Extraction",
+            desc_zh="配置从评估结果中自动提取记忆卡片的行为",
+            desc_en="Configure automatic memory card extraction from evaluations",
+        ),
+    )
+
+    # Prompt integration
+    max_prompt_cards: int = Field(
+        default=5, ge=0, description="Maximum number of memory cards to inject into sampler prompts",
+        json_schema_extra=ui(
+            label_zh="提示词最大卡片数", label_en="Max Prompt Cards",
+            desc_zh="注入采样器提示词的最大记忆卡片数量", desc_en="Maximum number of memory cards injected into sampler prompts",
+        ),
+    )
+
+    # Persistence
+    persist: bool = Field(
+        default=True, description="Persist auto-extracted cards to the memory/ directory",
+        json_schema_extra=ui(
+            label_zh="持久化", label_en="Persist",
+            desc_zh="是否将自动提取的记忆卡片持久化到 memory/ 目录",
+            desc_en="Whether to persist auto-extracted cards to the memory/ directory",
+        ),
+    )

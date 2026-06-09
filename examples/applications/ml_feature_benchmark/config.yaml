@@ -1,0 +1,347 @@
+# ==============================================================================
+# LLM4AD Configuration for ML Feature Benchmark
+# ==============================================================================
+
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "ml_feature_benchmark"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve feature transformation pipelines feeding a fixed weighted-KNN classifier on small 3-class CSV datasets."
+description_zh: "为固定的加权 KNN 分类器进化特征变换流水线，在小样本三分类 CSV 数据集上提升精度与 F1。"
+
+# Background description of the task, passed to LLM for context
+background: |
+  # Task Overview
+  The downstream model is fixed: XGBRegressor in classifier.py (train/predict are fixed and must not be changed).
+  Evolution may only modify code between EVOLVE_START and EVOLVE_END by implementing:
+  fit_features(x_train, y_train) and transform_features(x, state).
+  fit_features must use training data only (no test leakage). transform_features must return a 2D float
+  array with the same number of rows as x and finite values. Do not modify train(), predict(), or any code
+  outside the EVOLVE region. The evaluator loads the Kaggle House Prices dataset (CSV with categorical
+  columns, missing values, and continuous target SalePrice). The sole optimization objective is
+  test-set RMSE (lower is better). The reported evolution score is -RMSE so that higher score means
+  lower error, consistent with the framework default.
+  The target y_train is continuous (house sale prices ranging ~35k-755k).
+  The input features include ~79 columns (numeric + label-encoded categoricals).
+
+  Optimization goal: LLM-evolved fit_features/transform_features should achieve a strictly
+  higher evaluator score than the unmodified template (i.e. lower RMSE).
+
+  Reference template baseline (unmodified EVOLVE region, default evaluator 70/30 split,
+  shuffle seed 42, on data/dataset.csv):
+  RMSE = 26352.50, evolution score = -26352.50. Other dataset files or seeds will
+  change these numbers.
+
+  # Domain Knowledge for House Price Prediction
+
+  ## Key Feature Categories (by importance)
+  1. **Quality Indicators** (Highest Impact):
+     - OverallQual: Overall material and finish quality (1-10 scale) - STRONGEST predictor
+     - OverallCond: Overall condition rating (1-10 scale)
+     - ExterQual, ExterCond: External quality/condition
+     - KitchenQual, BsmtQual: Kitchen and basement quality
+
+  2. **Area/Size Features** (High Impact):
+     - GrLivArea: Above ground living area (square feet) - TOP predictor
+     - TotalBsmtSF: Total basement square footage
+     - 1stFlrSF, 2ndFlrSF: First and second floor area
+     - GarageArea: Garage area
+     - LotArea: Lot size
+
+  3. **Location & Neighborhood**:
+     - Neighborhood: Physical locations within Ames city limits (categorical)
+     - MSZoning: Zoning classification (categorical)
+     - Condition1, Condition2: Proximity to various conditions
+
+  4. **Temporal Features**:
+     - YearBuilt: Original construction year
+     - YearRemodAdd: Remodel date (same as YearBuilt if no remodeling)
+     - GarageYrBlt: Year garage was built
+
+  5. **Room & Facility Counts**:
+     - FullBath, HalfBath: Bathroom counts
+     - TotRmsAbvGrd: Total rooms above grade (excluding bathrooms)
+     - BedroomAbvGr, KitchenAbvGr: Bedroom and kitchen counts
+     - GarageCars: Garage capacity in cars
+
+  ## Effective Feature Engineering Strategies
+
+  1. **Total Area Aggregation**:
+     - TotalArea = GrLivArea + TotalBsmtSF (total living space)
+     - TotalPorchSF = OpenPorchSF + EnclosedPorch + 3SsnPorch + ScreenPorch
+
+  2. **Quality-Area Interaction**:
+     - QualityScore = OverallQual * OverallCond
+     - QualityAdjustedArea = GrLivArea * OverallQual / 5
+
+  3. **Age and Renovation Features**:
+     - HouseAge = CurrentYear - YearBuilt
+     - IsNew = 1 if YearBuilt >= 2000 else 0
+     - HasRemodeled = 1 if YearRemodAdd > YearBuilt else 0
+     - YearsSinceRemodel = CurrentYear - YearRemodAdd
+
+  4. **Price-Per-Area Proxies**:
+     - ValueDensity = OverallQual / LotArea
+     - LivingEfficiency = GrLivArea / TotRmsAbvGrd
+
+  5. **Missing Value Patterns** (indicates absence of feature):
+     - PoolQC missing = No pool
+     - GarageType missing = No garage
+     - FireplaceQu missing = No fireplace
+     - Fence missing = No fence
+
+  6. **Non-linear Transformations** (target and features are right-skewed):
+     - Log transform for area features: log1p(GrLivArea)
+     - Log transform for price-related aggregations
+
+  ## Common Pitfalls to Avoid
+
+  1. **Data Leakage**: Do NOT use y_train statistics in transform_features
+  2. **Shape Mismatch**: transform_features must preserve row count
+  3. **Infinite/NaN Values**: Always check for finite values after transformations
+  4. **Overfitting**: Avoid too many polynomial features with small training sets
+  5. **Categorical Encoding**: Features are already label-encoded; focus on numeric transformations
+
+  ## Successful Patterns from Similar Competitions
+
+  - Feature selection based on correlation with target (mutual information)
+  - PCA on highly correlated area features
+  - Clustering neighborhoods by price levels
+  - Polynomial features for top correlated numeric features
+  - Ratio features (quality/area combinations)
+# Random seed for reproducibility across all components
+random_seed: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"
+
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  auto_create: true
+  subdirs:
+    output: "output"
+    logs: "logs"
+    checkpoints: "checkpoints"
+    generated: "generated"
+    cache: "cache"
+    temp: "temp"
+
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.3
+    max_tokens: 8192
+    timeout: 120.0
+
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"
+
+  # --- LLM Connection ---
+  base_url: ${LLM_BASE_URL}
+  api_key: ${LLM_API_KEY}
+  model: ${LLM_MODEL}
+
+  # --- Generation Parameters ---
+  timeout: 300.0
+  max_retries: 3
+  temperature: 0.3
+  max_gen_tokens: 8192
+  context_max_tokens: 8192
+  default_extension: "py"
+  log_to_console: false
+
+  # --- Prompt Template ---
+  prompt_template: |
+    You are an expert Python engineer specialized in feature engineering for house price prediction.
+
+    Follow the task spec and base file shown below.
+
+    {insight}
+
+    Hard constraints (MUST follow):
+    - Output exactly ONE fenced code block: ```python:src/classifier.py ...```
+    - Do NOT output any other files.
+    - Modify ONLY the code between `# EVOLVE_START` and `# EVOLVE_END`.
+    - Keep everything outside the EVOLVE region identical to the base file in {insight}.
+    - The evolvable region MUST define exactly these two functions (same names/signatures):
+      - fit_features(x_train: np.ndarray, y_train: np.ndarray)
+      - transform_features(x: np.ndarray, state) -> np.ndarray
+    - `transform_features` must return a 2D float array with the same number of rows as `x`
+      and all finite values.
+    - You may use numpy only (no sklearn or pandas).
+    - CRITICAL: The baseline RMSE is 25178.23. Your goal is to achieve a STRICTLY LOWER RMSE.
+    - CRITICAL: Ensure all variables used are defined. Do NOT reference undefined variables.
+    - CRITICAL: Avoid direct eigen-decomposition/PCA unless you sanitize all inputs and catch np.linalg.LinAlgError.
+    - CRITICAL: Always use np.nan_to_num before divisions, logs, correlations, and matrix decompositions.
+
+    Feature engineering guidance (proven strategies for this dataset):
+    1. Create aggregated area features: TotalArea = GrLivArea + TotalBsmtSF
+    2. Create quality-area interactions: QualityScore = OverallQual * OverallCond
+    3. Log-transform right-skewed area features (use np.log1p)
+    4. Create age features: HouseAge = 2024 - YearBuilt
+    5. Create ratio features: LivingEfficiency = GrLivArea / TotRmsAbvGrd
+    6. Consider polynomial features for top correlated variables
+    7. Select features based on correlation with target
+
+    Reference context (read-only; EVOLVE blocks are masked here):
+    {project_context}
+
+
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"
+
+  # Selection strategies
+  selection_strategy: "weighted"
+  parent_selection_strategy: "tournament"
+
+  # Build configuration
+  build:
+    script: {}
+
+  # Samplers
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  type: "custom"
+
+  # Custom evaluator module path
+  module: "ml_feature_benchmark_evaluator.py:MLFeatureBenchmarkEvaluator"
+
+  # --- Execution Settings ---
+  timeout: 60.0
+  max_retries: 2
+  parallel: true
+  batch_size: 5
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "files"
+    files:
+      - "data/dataset.csv"
+
+  # --- Metrics ---
+  metrics:
+    - "rmse"
+
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"
+
+  # --- Common Parameters ---
+  max_generations: 10
+  planner_provider: "default"
+  coder_provider: "default"
+  early_stop_patience: 5
+  early_stop_threshold: 0.000001
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+  # --- Island GA Parameters ---
+  elite_ratio: 0.1
+  mutation_rate: 0.5
+  crossover_rate: 0.4
+  parent_selection_strategy: "tournament"
+  survival_selection_strategy: "truncation"
+  tournament_size: 3
+
+  # Island-specific
+  num_islands: 2
+  island_population_size: 5
+  migration_interval: 3
+  migration_rate: 0.1
+  migration_strategy: "random"
+  migration_topology: "full"
+  parallel_islands: true
+
+  # --- Display ---
+  human_readable_timing: true
+
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: false
+  max_images_per_prompt: 3
+  image_max_size_kb: 512
+  include_observation_text: true
+  two_step_refinement: false
+  behavior_storage: "rendered"
+
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"
+  format: null
+  file: null
+  console: true
+  json_format: false
+
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "ml_feature_algorithm"
+  remote_url: null
+  revision: null
+  auto_initialize: true
+  auto_cleanup: true
+  max_worktree_age_days: 7
+  max_worktrees: 100
+  default_branch: "main"
+  commit_message_template: "Algorithm {algorithm_id}: {description}"
+
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include:
+    - "*.py"
+  exclude:
+    - ".git/**"
+    - "__pycache__/**"
+    - "build/**"
+    - "*.pyc"

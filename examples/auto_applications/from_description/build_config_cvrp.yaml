@@ -1,0 +1,65 @@
+# ============================================================
+# LLM4AD Auto Build Configuration
+# ============================================================
+# This is a pre-filled example simulating a user who has already
+# configured their LLM credentials and problem description.
+#
+# To test with a real LLM:
+#   1. Set the environment variables below (or replace with your keys)
+#   2. Run: python run_build.py
+#
+# To test without a real LLM (mock mode):
+#   Run: python test_build_mock.py
+# ============================================================
+
+# --- Builder LLM Configuration ---
+builder:
+  type: "openai_compatible"
+  base_url: "${LLM4AD_BUILD_BASE_URL}"
+  api_key: "${LLM4AD_BUILD_API_KEY}"
+  model: "claude-opus-4-6"
+  max_repair_attempts: 6
+
+# --- Task Specification ---
+task:
+  description: |
+    We want to evolve efficient heuristic or metaheuristic algorithms to solve the 
+    Capacitated Vehicle Routing Problem (CVRP).
+
+    Problem Definition:
+    - A set of customers must be served by a homogeneous fleet of vehicles from a single depot.
+    - Each customer 'i' has a specific demand 'd_i'.
+    - Each vehicle has a maximum capacity 'Q'.
+    - The objective is to minimize the total Euclidean distance traveled by all vehicles.
+
+    Constraints:
+    1. Every customer must be visited exactly once.
+    2. All routes must start and end at the depot (index 0).
+    3. The sum of demands in any single route must not exceed the vehicle capacity 'Q'.
+
+    Input Format:
+    - nodes: List of (x, y) coordinates (index 0 is the depot).
+    - demands: List of integers (index 0 is 0).
+    - capacity: Integer Q.
+
+    Output Format:
+    - routes: A list of lists, where each sub-list is a route starting and ending with 0.
+    - total_distance: Float.
+    - metadata: Dictionary containing comparison counts, swap counts, or iteration counts.
+
+  evaluation_criteria:
+    - Feasibility: 100% compliance with capacity and visitation constraints.
+    - Optimality: Minimization of the total travel distance (shorter is better).
+    - Efficiency: Computational time and number of iterations required to find the solution.
+    - Scalability: Ability to handle instances from 20 to 100 nodes within reasonable time.
+
+  output_dir: "./examples/cvrp_evolution_output"
+  project_name: "cvrp_algorithm_evolution"
+  
+  multimodal: true
+  visualization_hint: |
+    - Generate a 2D scatter plot of the nodes.
+    - Draw the routes using lines with different colors for each vehicle.
+    - Represent the depot as a larger red square and customers as blue circles.
+    - Annotate each customer node with its demand value for clarity.
+    - Display the total distance and the number of routes in the plot title.

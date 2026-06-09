@@ -1,0 +1,79 @@
+project_name: "life_planning_code_based"
+background: |
+  This project evolves the prompt engineering strategy for an LLM-based life plan generator.
+  A Python script reads a user profile and calls an LLM API to generate a personalized
+  Markdown life plan. The EVOLVE block contains the prompt construction logic.
+base_dir: "./runs"
+random_seed: 42
+
+providers:
+  - name: "planner_llm"
+    type: "openai_compatible"
+    # base_url: "${LLM_BASE_URL}"
+    # api_key: "${LLM_API_KEY}"
+    # model: "${LLM_MODEL}"
+    base_url: "${LLM4AD_BASE_URL}"
+    api_key: "${LLM4AD_API_KEY}"
+    model: "DeepSeek-V3.2"
+    temperature: 0.8
+    max_tokens: 4096
+    timeout: 300.0
+
+evaluator:
+  type: "custom"
+  module: "examples/applications/life_planning/life_evaluator.py:LifePlanningEvaluator"
+  timeout: 300.0
+  max_retries: 2
+  parallel: true
+  batch_size: 4
+  api_config:
+    # base_url: "${LLM_BASE_URL}"
+    # api_key: "${LLM_API_KEY}"
+    # model: "${LLM_MODEL}"
+    base_url: "${LLM4AD_BASE_URL}"
+    api_key: "${LLM4AD_API_KEY}"
+    model: "DeepSeek-V3.2"
+  dataset:
+    mode: "directory"
+    path: "examples/applications/life_planning/data"
+    context_variable: "profile"
+  metrics:
+    - actionability
+    - alignment
+    - comprehensiveness
+
+evolution:
+  type: "island_ga"
+  max_generations: 3
+  num_islands: 2
+  island_population_size: 2
+  elite_ratio: 0.1
+  mutation_rate: 0.4
+  crossover_rate: 0.5
+  selection_strategy: "tournament"
+  tournament_size: 2
+  planner_provider: "planner_llm"
+  coder_provider: "planner_llm"
+
+planner:
+  type: "llm_evolution"
+  samplers:
+    - name: "init_sampler"
+      config: {}
+
+version_control:
+  local_path: "examples/applications/life_planning/workspace"
+
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include: ["*.py"]
+
+coder:
+  type: "custom"
+  timeout: 300.0
+  max_retries: 2
+
+logging:
+  level: "INFO"

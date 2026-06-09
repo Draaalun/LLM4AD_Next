@@ -1,0 +1,278 @@
+# ==============================================================================
+# LLM4AD Configuration for TSP Benchmark (Python Multimodal)
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "tsp_benchmark_python_multimodal"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve Python TSP solvers with tour visualizations in prompts so the LLM can visually diagnose solution quality."
+description_zh: "在提示中加入路径可视化图，让 LLM 可视化诊断 TSP 解的质量并改进算法。"
+
+# Background description of the task, passed to LLM for context
+background: |
+  In this benchmark, we aim to evolve efficient algorithms for the Traveling Salesman Problem (TSP)
+  in Python. The goal is to minimize the total tour length while visiting all cities exactly once
+  and returning to the starting city. The evolved algorithms will be evaluated on multiple TSP
+  instances of varying sizes, measuring tour length and execution time. The multimodal version
+  includes tour visualizations in LLM prompts to help the model visually diagnose solution quality.
+
+# Random seed for reproducibility across all components
+random_seed: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  auto_create: true
+  subdirs:
+    output: "output"
+    logs: "logs"
+    checkpoints: "checkpoints"
+    generated: "generated"
+    cache: "cache"
+    temp: "temp"
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120.0
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"
+  provider: "default"
+
+  # --- Generation Parameters ---
+  timeout: 300.0
+  max_retries: 3
+  temperature: 0.7
+  max_gen_tokens: 4096
+  context_max_tokens: 4096
+  default_extension: "py"
+  log_to_console: false
+
+  # --- Prompt Template ---
+  prompt_template: |
+    You are tasked with implementing a TSP (Traveling Salesman Problem) solver in Python.
+
+    Problem Description:
+    Given a set of cities with their (x, y) coordinates, find the shortest possible tour that visits each city exactly once and returns to the starting city.
+
+    Your task is to implement the function signature below:
+
+    ```python
+    import sys
+    import json
+    import numpy as np
+
+    # Your TSP solver function should be between EVOLVE_START and EVOLVE_END markers
+    # EVOLVE_START
+    def nearest_neighbor_tsp(nodes):
+        '''Solve TSP and return tour as list of node indices'''
+        pass
+    # EVOLVE_END
+
+    def calculate_tour_length(nodes, tour):
+        '''Calculate total tour length (including return to start)'''
+        if len(tour) < 2:
+            return 0.0
+        total = 0.0
+        nodes = np.array(nodes)
+        for i in range(len(tour) - 1):
+            total += np.linalg.norm(nodes[tour[i]] - nodes[tour[i + 1]])
+        total += np.linalg.norm(nodes[tour[-1]] - nodes[tour[0]])
+        return total
+
+    def solve(nodes):
+        tour = nearest_neighbor_tsp(nodes)
+        tour_length = calculate_tour_length(nodes, tour)
+        return {
+            "tour": tour,
+            "tour_length": tour_length,
+        }
+
+    def main():
+        if len(sys.argv) < 2:
+            sys.exit(1)
+        input_data = json.loads(sys.argv[1])
+        nodes = input_data.get("nodes", [])
+        result = solve(nodes)
+        print(json.dumps(result))
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    Requirements:
+    1. The function must return a valid tour: a list of all node indices [0, 1, 2, ..., n-1] in some order
+    2. Each city must be visited exactly once (no duplicates, no missing cities)
+    3. The tour implicitly returns to the starting city (tour is a Hamiltonian cycle)
+    4. Minimize the total Euclidean distance traveled
+
+    Input format:
+    - nodes: List of (x, y) coordinate tuples, e.g., [(0.0, 0.0), (1.0, 2.0), (3.0, 1.0), ...]
+
+    Output format:
+    - tour: List of node indices in visitation order, e.g., [0, 3, 1, 2, ...]
+    - tour_length: Total length of the tour (including return to start)
+
+    Your goal is to find shorter tours than the baseline Nearest Neighbor heuristic.
+    Consider approaches like:
+    - 2-opt local search improvements
+    - Multi-start constructions
+    - Smart initialization strategies
+    - Hybrid approaches combining multiple heuristics
+
+    Provide only the complete implementation of the nearest_neighbor_tsp function between EVOLVE_START and EVOLVE_END markers.
+
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"
+  provider: "default"
+
+  # Selection strategies
+  selection_strategy: "weighted"
+  parent_selection_strategy: "tournament"
+
+  # Build configuration
+  build:
+    script: {}
+
+  # Samplers (multimodal operators for visual grounding)
+  samplers:
+    - name: "init_sampler"
+    - name: "multimodal_mutation_sampler"
+    - name: "multimodal_crossover_sampler"
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  type: "custom"
+
+  # Custom evaluator module path (multimodal version generates tour images)
+  module: "tsp_evaluator.py:PythonTSPEvaluatorMultimodal"
+
+  # --- Execution Settings ---
+  timeout: 60.0
+  max_retries: 2
+  parallel: true
+  batch_size: 5
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "directory"
+    path: "data/small"
+    recursive: false
+
+  # --- Metrics ---
+  metrics:
+    - "tour_length"
+    - "execution_time_ms"
+    - "valid_tour"
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"
+
+  # --- Common Parameters ---
+  max_generations: 5
+  early_stop_patience: 10
+  early_stop_threshold: 0.000001
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+  # --- Island GA Parameters ---
+  elite_ratio: 0.1
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+  parent_selection_strategy: "tournament"
+  survival_selection_strategy: "truncation"
+  tournament_size: 3
+
+  # Island-specific
+  num_islands: 2
+  island_population_size: 3
+  migration_interval: 5
+  migration_rate: 0.1
+  migration_strategy: "random"
+  migration_topology: "full"
+  parallel_islands: true
+
+  # --- Display ---
+  human_readable_timing: true
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: true
+  max_images_per_prompt: 3
+  image_max_size_kb: 512
+  include_observation_text: true
+  two_step_refinement: false
+  behavior_storage: "raw"
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"
+  format: null
+  file: null
+  console: true
+  json_format: false
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "tsp_algorithm"
+  remote_url: null
+  revision: null
+  auto_initialize: true
+  auto_cleanup: true
+  max_worktree_age_days: 7
+  max_worktrees: 100
+  default_branch: "main"
+  commit_message_template: "Algorithm {algorithm_id}: {description}"
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include:
+    - "*.py"
+  exclude:
+    - ".git/**"
+    - "__pycache__/**"
+    - "*.pyc"

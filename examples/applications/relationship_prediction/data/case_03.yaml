@@ -1,0 +1,25 @@
+case_id: "case_003_workplace_power_dynamics"
+relationship_type: "职场关系（上级和下级，交往2年）"
+
+person_a:
+  mbti: "ESTJ"
+  attachment_style: "权力导向-控制型"
+  core_traits: ["工作至上", "高标准高要求", "习惯性微观管理", "难以接受不同意见"]
+  trigger_points: "下属质疑决策、项目延期、工作质量不达预期"
+  typical_behavior: "会突然变得很冷淡，进行工作上的'惩罚'（取消福利、增加任务负载）"
+
+person_b:
+  mbti: "INFP"
+  attachment_style: "敏感-不安全依赖型"
+  core_traits: ["追求工作意义感", "极度在乎上司评价", "容易自我怀疑", "害怕权力压制"]
+  trigger_points: "被公开批评、感觉工作成果不被认可、上司语气变冷"
+  typical_behavior: "会过度解读上司的每一个举动，频繁自责，考虑辞职来'逃离'"
+
+current_crisis:
+  event: "B在一次团队会议上针对A的项目方案提出了不同想法。A当众反驳了B，说'你还没有资格提意见'。会后A给B分配了三个紧急项目，截止日期是两天。"
+  current_state: "B感到被羞辱和压制，开始频繁加班到深夜试图证明自己。但越是努力，A的要求就越高。B现在已经开始准备简历，打算离职。同时，A察觉到B的消极态度，变得更加失望和冷漠。"
+
+evaluator_focus: |
+  关键预测：这是A权力滥用导致的一个转折点吗？B真的会离职吗？如果B离职，对双方职业发展意味着什么？
+  有没有可能通过某种干预来修复这种权力失衡的关系？还是已经到了无法挽回的地步？
+

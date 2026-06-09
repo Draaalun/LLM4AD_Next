@@ -1,0 +1,20 @@
+{
+  "project_name": "cvrp_multimodal",
+  "task_description": "The Capacitated Vehicle Routing Problem (CVRP) requires finding minimum-cost routes for a fleet of vehicles to serve all customers from a central depot, subject to vehicle capacity constraints. Each customer has a known demand and must be visited exactly once. The algorithm constructs solutions greedily by selecting the next node to visit at each step, and the goal is to minimize total route distance relative to known baselines.",
+  "evaluator_class_name": "CVRPMultimodalEvaluator",
+  "evaluator_file_name": "cvrp_multimodal_evaluator.py",
+  "algorithm_dir_name": "algorithm",
+  "algorithm_file_name": "evaluation.py",
+  "function_to_evolve": "select_next_node",
+  "metrics": [
+    {
+      "name": "normalized_gap",
+      "type": "maximize",
+      "weight": 1.0,
+      "description": "Negative normalized gap to baseline: -(LLM_distance - baseline) / baseline. Higher (closer to 0) is better. A value of 0 means matching the baseline; positive values mean beating it."
+    }
+  ],
+  "validation_status": "passed",
+  "validation_errors": [],
+  "repair_attempts": 4
+}

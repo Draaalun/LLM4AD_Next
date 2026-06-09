@@ -1,0 +1,359 @@
+# ==============================================================================
+# LLM4AD Configuration for ML Hyperparameter Benchmark
+# ==============================================================================
+
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "ml_hyperpara_benchmark"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve numeric hyperparameters of a fixed weighted-KNN classifier for 3-class small-sample CSV tasks."
+description_zh: "进化固定加权 KNN 分类器的数值超参数，提升小样本三分类 CSV 任务的精度与 F1。"
+
+# Background description of the task, passed to LLM for context
+background: |
+  # Task Overview
+  The downstream model is fixed: XGBRegressor in classifier.py (train/predict are fixed and must not be changed).
+  Evolution may only modify numeric values in the HYPERPARAMS dict between EVOLVE_START and EVOLVE_END.
+  Keys in HYPERPARAMS must stay the same; only their numeric values may change.
+  The evaluator loads the Kaggle House Prices dataset (CSV with categorical
+  columns, missing values, and continuous target SalePrice). The sole optimization objective is
+  test-set RMSE (lower is better). The reported evolution score is -RMSE so that higher score means
+  lower error, consistent with the framework default.
+  The target y_train is continuous (house sale prices ranging ~35k-755k).
+  The input features include ~79 columns (numeric + label-encoded categoricals).
+
+  Optimization goal: LLM-evolved HYPERPARAMS should achieve a strictly
+  higher evaluator score than the default values (i.e. lower RMSE).
+
+  Reference template baseline (default HYPERPARAMS, default evaluator 70/30 split,
+  shuffle seed 42, on data/dataset.csv):
+  RMSE ~ 26000-30000, evolution score ~ -26000 to -30000.
+
+  # HYPERPARAMS Description
+
+  Current hyperparameters with default values:
+  1. **n_estimators** (default: 200):
+     - Number of gradient boosted trees
+     - Higher = more complex model, risk of overfitting
+     - Lower = simpler model, may underfit
+     - Typical range: 50-1000
+
+  2. **max_depth** (default: 6):
+     - Maximum depth of a tree
+     - Higher = more complex, captures more patterns, overfits easily
+     - Lower = simpler, generalizes better
+     - Typical range: 3-12
+
+  3. **learning_rate** (default: 0.1):
+     - Step size shrinkage used in update
+     - Lower = slower learning, needs more trees, better generalization
+     - Higher = faster learning, may overshoot optimal
+     - Typical range: 0.01-0.3
+
+  4. **subsample** (default: 0.9):
+     - Fraction of samples used for fitting trees
+     - Lower = more randomness, prevents overfitting
+     - Higher = less randomness, may overfit
+     - Typical range: 0.5-1.0
+
+  5. **colsample_bytree** (default: 0.9):
+     - Fraction of features used for each tree
+     - Lower = more randomness, prevents overfitting
+     - Higher = uses more features per tree
+     - Typical range: 0.5-1.0
+
+  6. **reg_lambda** (default: 1.0):
+     - L2 regularization term on weights
+     - Higher = stronger regularization, prevents overfitting
+     - Lower = less regularization, model can be more complex
+     - Typical range: 0.0-10.0
+
+  7. **min_child_weight** (default: 1.0):
+     - Minimum sum of instance weight needed in a child
+     - Higher = more conservative, prevents overfitting
+     - Lower = less conservative, can capture finer patterns
+     - Typical range: 0.0-10.0
+
+  8. **gamma** (default: 0.0):
+     - Minimum loss reduction required to make a further partition
+     - Higher = more conservative (pruning), prevents overfitting
+     - Lower = less pruning, grows deeper trees
+     - Typical range: 0.0-5.0
+
+  ## Hyperparameter Tuning Strategies
+
+  1. **Overfitting Control**:
+     - Increase reg_lambda or min_child_weight
+     - Decrease max_depth
+     - Increase gamma
+     - Decrease n_estimators
+
+  2. **Underfitting Remedy**:
+     - Increase n_estimators
+     - Increase max_depth
+     - Decrease reg_lambda
+     - Decrease gamma
+
+  3. **Learning Rate vs n_estimators Trade-off**:
+     - Lower learning_rate needs higher n_estimators
+     - Common: learning_rate=0.05 with n_estimators=400-500
+     - Or: learning_rate=0.1 with n_estimators=200
+
+  4. **Subsampling for Regularization**:
+     - subsample < 1.0 and colsample_bytree < 1.0 add randomness
+     - Both at 0.8 is a common regularization strategy
+
+  ## Common Pitfalls to Avoid
+
+  1. **Extreme Values**: Keep values within reasonable ranges
+  2. **Learning Rate Too High**: Values > 0.5 rarely work well
+  3. **Too Many Trees**: n_estimators > 2000 is usually wasteful
+  4. **Too Deep**: max_depth > 15 often leads to overfitting on this dataset
+  5. **Invalid Combinations**: Very low learning_rate + few trees = underfitting
+
+  ## Successful Patterns from Similar Competitions
+
+  - Start conservative (low max_depth, high regularization), then increase complexity
+  - subsample and colsample_bytree at 0.8-0.9 often work better than 1.0
+  - reg_lambda around 1-3 helps on noisy tabular data
+  - Try learning_rate=0.05 with n_estimators=300-500 for better convergence
+
+# Random seed for reproducibility across all components
+random_seed: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"
+
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  auto_create: true
+  subdirs:
+    output: "output"
+    logs: "logs"
+    checkpoints: "checkpoints"
+    generated: "generated"
+    cache: "cache"
+    temp: "temp"
+
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.3
+    max_tokens: 8192
+    timeout: 120.0
+
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"
+
+  # --- LLM Connection ---
+  base_url: ${LLM_BASE_URL}
+  api_key: ${LLM_API_KEY}
+  model: ${LLM_MODEL}
+
+  # --- Generation Parameters ---
+  timeout: 300.0
+  max_retries: 3
+  temperature: 0.3
+  max_gen_tokens: 8192
+  context_max_tokens: 8192
+  default_extension: "py"
+  log_to_console: false
+
+  # --- Prompt Template ---
+  prompt_template: |
+    You are an expert Python engineer specialized in XGBoost hyperparameter optimization for house price prediction.
+
+    Follow the task spec and base file shown below.
+
+    {insight}
+
+    Hard constraints (MUST follow):
+    - Output exactly ONE fenced code block: ```python:src/classifier.py ...```
+    - Do NOT output any other files.
+    - Modify ONLY the code between `# EVOLVE_START` and `# EVOLVE_END`.
+    - Keep everything outside the EVOLVE region identical to the base file in {insight}.
+    - The EVOLVE region MUST contain exactly one assignment to `HYPERPARAMS = {{...}}`.
+    - CRITICAL: Keep ALL existing keys in HYPERPARAMS unchanged: n_estimators, max_depth, learning_rate, subsample, colsample_bytree, reg_lambda, min_child_weight, gamma.
+    - ONLY change the numeric VALUES, never remove or rename keys.
+    - All values must be positive numbers (integers or floats).
+    - CRITICAL: The baseline RMSE is ~26000-30000. Your goal is to achieve a STRICTLY LOWER RMSE.
+    - CRITICAL: Ensure all values are within reasonable ranges (see background for ranges).
+    - Before outputting, mentally verify the code has no syntax issues.
+
+    Hyperparameter tuning guidance (proven strategies for XGBoost on this dataset):
+    1. n_estimators: 100-500 (balance with learning_rate)
+    2. max_depth: 3-10 (higher = more complex, risk overfitting)
+    3. learning_rate: 0.01-0.3 (lower needs more trees)
+    4. subsample: 0.6-1.0 (lower adds regularization)
+    5. colsample_bytree: 0.6-1.0 (lower adds regularization)
+    6. reg_lambda: 0.1-5.0 (L2 regularization, higher = stronger)
+    7. min_child_weight: 0.5-10.0 (higher = more conservative)
+    8. gamma: 0.0-3.0 (pruning threshold, higher = more pruning)
+
+    Key trade-offs:
+    - If increasing max_depth, consider increasing reg_lambda to prevent overfitting
+    - If decreasing learning_rate, increase n_estimators proportionally
+    - subsample and colsample_bytree at 0.8 often work better than 1.0
+
+    Reference context (read-only; HYPERPARAMS block is masked here):
+    {project_context}
+
+
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"
+
+  # Selection strategies
+  selection_strategy: "weighted"
+  parent_selection_strategy: "tournament"
+
+  # Build configuration
+  build:
+    script: {}
+
+  # Samplers
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  type: "custom"
+
+  # Custom evaluator module path
+  module: "ml_hyperpara_benchmark_evaluator.py:MLHyperparaBenchmarkEvaluator"
+
+  # --- Execution Settings ---
+  timeout: 60.0
+  max_retries: 2
+  parallel: true
+  batch_size: 5
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "files"
+    files:
+      - "data/dataset.csv"
+
+  # --- Metrics ---
+  metrics:
+    - "rmse"
+
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"
+
+  # --- Common Parameters ---
+  max_generations: 10
+  planner_provider: "default"
+  coder_provider: "default"
+  early_stop_patience: 5
+  early_stop_threshold: 0.000001
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+  # --- Island GA Parameters ---
+  elite_ratio: 0.1
+  mutation_rate: 0.5
+  crossover_rate: 0.4
+  parent_selection_strategy: "tournament"
+  survival_selection_strategy: "truncation"
+  tournament_size: 3
+
+  # Island-specific
+  num_islands: 2
+  island_population_size: 5
+  migration_interval: 3
+  migration_rate: 0.1
+  migration_strategy: "random"
+  migration_topology: "full"
+  parallel_islands: true
+
+  # --- Display ---
+  human_readable_timing: true
+
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: false
+  max_images_per_prompt: 3
+  image_max_size_kb: 512
+  include_observation_text: true
+  two_step_refinement: false
+  behavior_storage: "rendered"
+
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"
+  format: null
+  file: null
+  console: true
+  json_format: false
+
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "ml_hyperpara_algorithm"
+  remote_url: null
+  revision: null
+  auto_initialize: true
+  auto_cleanup: true
+  max_worktree_age_days: 7
+  max_worktrees: 100
+  default_branch: "main"
+  commit_message_template: "Algorithm {algorithm_id}: {description}"
+
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include:
+    - "*.py"
+  exclude:
+    - ".git/**"
+    - "__pycache__/**"
+    - "build/**"
+    - "*.pyc"

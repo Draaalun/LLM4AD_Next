@@ -1,0 +1,118 @@
+# Privacy Policy draft
+
+Applies to the LLM4AD public showcase website and documentation site. If you deploy the LLM4AD backend yourself and enable an account system, task management, file uploads, or other server-side capabilities, you should establish a separate privacy policy according to your actual deployment.
+
+Last updated: May 22, 2026.
+
+LLM4AD (hereinafter "we") respects and protects user privacy. We process information related to website visits, documentation browsing, and local CLI usage in accordance with the principles of legality, legitimacy, necessity, and data minimization. This policy explains what we will not do, what we collect, how Cookies are used, how local CLI data is stored, and how you can contact us.
+
+## 1. Scope
+
+This policy applies to:
+
+- Visiting the LLM4AD public showcase website, documentation site, example pages, and related static resources.
+- Downloading, reading, or using LLM4AD open-source code and documentation through website links.
+- Privacy considerations related to local configuration and third-party LLM Provider calls when running the `llm4ad` CLI.
+
+This policy does not apply to:
+
+- Data processing activities arising when you visit GitHub, LLM Providers, package management platforms, or other third-party websites, APIs, or model services.
+- LLM4AD servers, databases, admin backends, account systems, or logging systems that you or third parties deploy yourselves.
+- Task data, code, configurations, evaluation results, and run logs that you store and process on your local machine, private servers, corporate intranet, or cloud resources.
+
+## 2. What We Do Not Do
+
+- The website does not perform cross-site tracking, does not build user profiles, and does not deliver personalized advertising based on browsing behavior.
+- We do not sell, rent, or otherwise transactionally provide any personally identifiable data to third parties.
+- The repository's default frontend does not bundle third-party traffic analytics or error-tracking scripts such as Google Analytics, Plausible, Sentry, or Baidu Tongji.
+
+## 3. What We Collect
+
+To ensure website availability, security, and basic error diagnosis, the website server may automatically record the following anonymous or low-identifiability access logs:
+
+- Network request information: IP address, access time, access path, HTTP status code, and source page (`Referer`, if provided by the browser).
+- Client information: `User-Agent`, browser type, operating system type, and language settings.
+- Diagnostic information: static resource loading failures, service unavailability, abnormal status codes, and other information related to site maintenance.
+
+The above logs are used only to:
+
+- Ensure stable website operation and troubleshoot access errors and security anomalies.
+- Compile statistics on overall site availability and resource access.
+- Guard against malicious requests, crawler abuse, attacks, or other behaviors affecting service availability.
+
+## 4. Cookies and Local Storage
+
+The website uses only necessary Cookies or browser local storage to save preference settings that do not involve identification, such as:
+
+- Theme color and light/dark mode.
+- Language switching.
+- Documentation UI expand/collapse state or similar display preferences.
+
+We do not use any third-party advertising Cookies, cross-site tracking Cookies, or marketing tracking pixels. You can clear or disable Cookies through your browser settings; after disabling them, some preference settings may not be retained, but this does not affect documentation browsing or code downloads.
+
+## 5. Local CLI Data Notice
+
+The `llm4ad` CLI runs on the user's local machine. Unless you configure a remote service or third-party Provider yourself, LLM4AD does not receive your local task data.
+
+- An API Key may be stored in plaintext in the local file `~/.llm4ad/settings.yaml`, to be safeguarded by the user.
+- We recommend writing it in the form `api_key: ${OPENAI_API_KEY}` or `auth_token: ${ANTHROPIC_API_KEY}`, reading it from environment variables to avoid persisting plaintext keys to disk.
+- Task descriptions, configuration files, generated code, evaluation results, logs, `checkpoint`, and `best` directories produced by local runs are saved by default in the local workspace you specify.
+- LLM4AD does not transmit API Keys, task descriptions, business data, generated code, or evaluation results back to any remote server.
+- When calling OpenAI, Anthropic, DeepSeek, Azure OpenAI, or other OpenAI-compatible Providers, the relevant requests are sent to the Provider endpoint you configured and are subject to that Provider's terms of service, privacy policy, data retention policy, and pricing rules.
+- Fees, quota consumption, data processing, and compliance responsibilities arising from calling third-party LLM Providers are borne by the user.
+
+If your task descriptions, data files, code repositories, or evaluation inputs contain personal information, trade secrets, regulated data, or third-party data, please confirm before running that you have a lawful basis for processing, and take measures such as desensitization, anonymization, access control, or private deployment as needed.
+
+## 6. Data Sharing, Transfer, and Public Disclosure
+
+Except in the following circumstances, we will not share, transfer, or publicly disclose information obtained through website access logs:
+
+- When required to provide it under the lawful requests of laws and regulations, judicial authorities, administrative authorities, or regulatory bodies.
+- When necessary to handle security incidents, attacks, service abuse, illegal or non-compliant behavior, or rights disputes.
+- When compiling aggregate statistics on traffic, error rates, availability, etc., without identifying specific individuals.
+- When obtaining your explicit authorization or when provided publicly by you on your own initiative.
+
+If an organizational merger, project transfer, change of operating entity, or service migration occurs in the future and involves a substantial change in the data processing described under this policy, we will update the notice within a reasonable scope through website announcements, repository notes, or other reachable means.
+
+## 7. Data Retention and Security
+
+We adopt reasonable security measures commensurate with the maintenance of a static website and an open-source project to reduce the risk of access logs being subject to unauthorized access, leakage, tampering, or loss, including but not limited to access permission control, minimized retention, log retention period limits, and basic security monitoring.
+
+Please understand that internet transmission and open-source software usage environments cannot guarantee absolute security. You should properly safeguard your own API Keys, local configuration files, run directories, code repository permissions, and third-party Provider accounts, and avoid committing keys to public repositories, screenshots, logs, or issues.
+
+## 8. Your Rights
+
+To the extent permitted by applicable law, you may submit requests related to personal information to us through the channels listed in the "Contact Us" section of this policy, including:
+
+- Inquiring whether we have stored access logs related to you.
+- Requesting correction, deletion, or anonymization of identifiable information related to you.
+- Requesting an explanation of the purpose, scope, retention period, or security measures of data processing.
+- Withdrawing information or authorization you previously provided on your own initiative.
+
+To ensure security, we may need you to provide necessary information to verify the association between the request and the relevant data. For situations where identity cannot be verified, data cannot be located, or requests are clearly repetitive or beyond a reasonable scope, we may be unable to respond or may respond only within a reasonable scope.
+
+## 9. Cross-Border Transfer
+
+The public website and documentation site themselves do not actively transmit user-submitted personal information to overseas third parties. Because the infrastructure of website hosting, CDN, GitHub, package management platforms, or third-party Providers may be located in different countries or regions, the data transmission arising when you access these third-party services will be subject to the corresponding third-party terms.
+
+When you use the local CLI to call overseas LLM Providers or cloud services, the relevant requests, input content, and response content may be transmitted across borders. Please judge for yourself whether it is appropriate to use the corresponding Provider, based on the laws and regulations of your jurisdiction, your organization's policies, and the sensitivity of the data.
+
+## 10. Open Source and Licensing
+
+- The LLM4AD source code is open-sourced under the BSD license; see `LICENSE` in the repository for details.
+- Unless otherwise stated on a page, the website documentation content is licensed under CC-BY 4.0.
+- Third-party assets, icons, badges, dependencies, and tools follow their respective licenses or terms of service, including but not limited to `mkdocs-material`, `shields.io`, and related open-source dependencies.
+- All third-party trademarks, product names, service names, and project names belong to their respective rights holders; references in this document are used solely to indicate compatibility, dependencies, or acknowledgments.
+
+## 11. Policy Updates
+
+We may update this policy based on project features, website deployment methods, laws and regulations, or community maintenance needs. The updated policy will be published on this page and will take effect as of the update date noted on the page.
+
+If an update involves a substantial change to the scope of data collection, purpose of use, sharing methods, retention period, or user rights, we will try to provide notice through website announcements, repository notes, or release notes. If you do not agree with the updated policy, you may stop visiting the website or using the relevant online pages; this does not affect your continued use of code and documentation you have already obtained within the scope of the open-source license.
+
+## 12. Contact Us
+
+- Bug reports, feature suggestions, privacy questions, or data deletion requests: open them via GitHub Issues.
+- Other questions: start a discussion via GitHub Issues, and indicate `privacy` or 隐私 in the title.
+
+Please do not paste API Keys, access tokens, personally identifiable information, trade secrets, undesensitized logs, or regulated data in public issues. If you genuinely need to provide sensitive materials, please first describe the situation in the issue and wait for a maintainer to confirm a secure communication channel.

@@ -1,0 +1,29 @@
+# ============================================================
+# LLM4AD Auto Build Configuration — from_code with EVOLVE markers
+# ============================================================
+# This example demonstrates the enhanced from_code mode:
+# the builder detects EVOLVE markers in the provided code,
+# reuses the algorithm verbatim, and only generates the
+# evaluator, config, debug runner, test, and sample data.
+# ============================================================
+
+# --- Builder LLM Configuration ---
+builder:
+  type: "openai_compatible"
+  base_url: "https://api.bltcy.ai/v1/"
+  api_key: "${LLM4AD_BUILD_API_KEY}"
+  model: "claude-opus-4-6"
+  max_repair_attempts: 6
+
+# --- Task Specification ---
+task:
+  description: |
+    Evolve efficient CVRP (Capacitated Vehicle Routing Problem) solvers in Python.
+    The goal is to minimize the total route length while serving all customer nodes exactly once,
+    respecting vehicle capacity constraints, and returning each vehicle to the depot.
+    The evolved algorithms will be evaluated on multiple CVRP instances of varying sizes.
+  code_path: "./cvrp_construct_set"
+  project_name: "cvrp_multimodal"
+  multimodal: true
+  output_dir: "../../auto_applications_output"
+  visualization_hint: 'The visualization of solution'

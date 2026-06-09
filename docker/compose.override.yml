@@ -1,0 +1,50 @@
+services:
+
+  # 基础设施：暴露端口供宿主机开发使用
+  db:
+    restart: "no"
+    ports:
+      - "5432:5432"
+
+  redis:
+    restart: "no"
+    ports:
+      - "6379:6379"
+
+  rustfs:
+    restart: "no"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  adminer:
+    restart: "no"
+    ports:
+      - "8080:8080"
+
+  code_server_proxy:
+    restart: "no"
+    ports:
+      - "8083:80"
+
+  mailcatcher:
+    restart: "no"
+    ports:
+      - "1081:1080"
+      - "1025:1025"
+
+  # 应用服务：开发时禁用，在宿主机上运行
+  prestart:
+    profiles: ["disabled"]
+
+  backend:
+    profiles: ["disabled"]
+
+  worker:
+    profiles: ["disabled"]
+
+  flower:
+    profiles: ["disabled"]
+
+  frontend:
+    profiles: ["disabled"]

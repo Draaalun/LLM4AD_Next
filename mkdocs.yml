@@ -1,0 +1,257 @@
+# MkDocs configuration for LLM4AD documentation
+# https://www.mkdocs.org/user-guide/configuration/
+
+site_name: LLM4AD
+site_description: LLM for Algorithm Design - Automated Algorithm Design powered by Large Language Models and Evolutionary Computation
+site_author: LLM4AD Contributors
+site_url: https://llm4ad.readthedocs.io
+
+copyright: Copyright &copy; 2026 LLM4AD Contributors
+
+# Repository
+repo_name: llm4ad/llm4ad
+repo_url: https://github.com/zhufangzhou/LLM4AD
+edit_uri: edit/main/docs/
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - navigation.indexes
+    - search.suggest
+    - search.highlight
+    - search.share
+    - content.action.edit
+    - content.action.view
+    - content.code.copy
+    - content.code.annotate
+    - content.tooltips
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# Extra configuration
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/zhufangzhou/LLM4AD
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/llm4ad
+  version:
+    provider: mike
+    default: latest
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+      pipeline:
+        - stemmer
+        - stopWordFilter
+  - minify:
+      minify_html: true
+      minify_js: true
+      minify_css: true
+      htmlmin_opts:
+        remove_comments: true
+  - git-revision-date-localized:
+      enabled: true
+      type: date
+      fallback_to_build_date: true
+  - git-committers:
+      repository: llm4ad/llm4ad
+      branch: main
+
+# Extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      title: Table of contents
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.magiclink:
+      repo_url_shorthand: true
+      user: llm4ad
+      repo: llm4ad
+  - pymdownx.mark
+  - pymdownx.progressbar
+  - pymdownx.smartsymbols
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      combine_header_slug: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Validation
+validation:
+  omitted_files: warn
+  absolute_links: warn
+  unrecognized_links: warn
+
+# Page tree - English (default)
+nav:
+  - Home: en/index.md
+  - Getting Started:
+      - Installation: en/guides/installation.md
+      - Quick Start: en/guides/quickstart.md
+      - Configuration: en/guides/configuration.md
+  - Architecture:
+      - Overview: en/architecture/overview.md
+      - Data Flow: en/architecture/data-flow.md
+      - Orchestration Methods: en/guides/orchestration.md
+  - CLI & Tools:
+      - CLI Reference: en/guides/cli.md
+      - Auto Builder: en/guides/auto-builder.md
+      - Advisor: en/guides/advisor.md
+      - Recommender: en/guides/recommender.md
+  - Examples:
+      - Overview: en/examples/index.md
+      - Sorting: en/examples/sorting.md
+      - TSP: en/examples/tsp.md
+      - LunarLander: en/examples/lunarlander.md
+      - Symbolic Regression: en/examples/symbolic-regression.md
+      - ML Hyperparameter: en/examples/ml-hyperpara.md
+  - Advanced:
+      - Component Customization:
+          - Providers: en/guides/providers.md
+          - Evaluators: en/guides/evaluators.md
+          - Multimodal: en/guides/multimodal.md
+          - Embeddings & Trajectory: en/guides/embeddings.md
+          - Timing & Metrics: en/guides/timing-metrics.md
+      - Orchestrator Deep Dive:
+          - Island GA: en/guides/island-ga.md
+          - DyCA: en/guides/dyca.md
+          - MEoH: en/guides/meoh.md
+      - Other Topics: en/guides/advanced.md
+  - Web UI:
+      - Overview & Deployment: en/web-ui/overview.md
+      - Frontend Integration: en/web-ui/frontend-integration.md
+  - API Reference:
+      - Overview: en/api/index.md
+      - Config: en/api/config.md
+      - Provider: en/api/provider.md
+      - Planner: en/api/planner.md
+      - Coder: en/api/coder.md
+      - Evaluator: en/api/evaluator.md
+      - Orchestrator: en/api/orchestrator.md
+      - Infrastructure: en/api/infra.md
+      - Utilities: en/api/utils.md
+  - Contributing:
+      - Guidelines: en/contributing/guidelines.md
+      - Development Setup: en/contributing/development.md
+      - Code Style: en/contributing/style.md
+  - Changelog: en/changelog.md
+  - License: en/license.md
+  - 中文:
+      - 主页: zh/index.md
+      - 入门指南:
+          - 安装: zh/guides/installation.md
+          - 快速开始: zh/guides/quickstart.md
+          - 配置: zh/guides/configuration.md
+      - 架构:
+          - 概览: zh/architecture/overview.md
+          - 数据流: zh/architecture/data-flow.md
+          - 编排方法: zh/guides/orchestration.md
+      - 命令行与工具:
+          - CLI 参考: zh/guides/cli.md
+          - 自动构建: zh/guides/auto-builder.md
+          - 顾问: zh/guides/advisor.md
+          - 推荐器: zh/guides/recommender.md
+      - 示例:
+          - 概览: zh/examples/index.md
+          - 排序: zh/examples/sorting.md
+          - TSP: zh/examples/tsp.md
+          - LunarLander: zh/examples/lunarlander.md
+          - 符号回归: zh/examples/symbolic-regression.md
+          - ML 超参数: zh/examples/ml-hyperpara.md
+      - 进阶:
+          - 组件定制:
+              - 模型供应商: zh/guides/providers.md
+              - 评估器: zh/guides/evaluators.md
+              - 多模态: zh/guides/multimodal.md
+              - 嵌入与轨迹: zh/guides/embeddings.md
+              - 计时与指标: zh/guides/timing-metrics.md
+          - 编排算法深入:
+              - Island GA: zh/guides/island-ga.md
+              - DyCA: zh/guides/dyca.md
+              - MEoH: zh/guides/meoh.md
+          - 其他高级用法: zh/guides/advanced.md
+      - Web UI:
+          - 概览与部署: zh/web-ui/overview.md
+          - 前端集成: zh/web-ui/frontend-integration.md
+      - API 参考:
+          - 概览: zh/api/index.md
+          - 配置: zh/api/config.md
+          - 供应商: zh/api/provider.md
+          - 规划器: zh/api/planner.md
+          - 编码器: zh/api/coder.md
+          - 评估器: zh/api/evaluator.md
+          - 编排器: zh/api/orchestrator.md
+          - 基础设施: zh/api/infra.md
+          - 工具: zh/api/utils.md
+      - 贡献指南:
+          - 规范: zh/contributing/guidelines.md
+          - 开发: zh/contributing/development.md
+          - 代码风格: zh/contributing/style.md
+      - 更新日志: zh/changelog.md
+      - 许可证: zh/license.md

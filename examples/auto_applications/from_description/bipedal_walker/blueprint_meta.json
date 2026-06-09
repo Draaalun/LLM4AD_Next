@@ -1,0 +1,20 @@
+{
+  "project_name": "bipedal_walker",
+  "task_description": "The BipedalWalker-v3 environment from Gymnasium requires a controller to keep a bipedal robot walking and moving forward. The goal is to design a heuristic control algorithm that can achieve a total reward exceeding 300 within a maximum of 1600 simulation steps. The controller receives continuous observations (24 values) and must output continuous actions (4 torques).",
+  "evaluator_class_name": "BipedalWalkerEvaluator",
+  "evaluator_file_name": "bipedal_walker_evaluator.py",
+  "algorithm_dir_name": "bipedal_walker_algorithm",
+  "algorithm_file_name": "controller.py",
+  "function_to_evolve": "walker_controller",
+  "metrics": [
+    {
+      "name": "mean_score",
+      "type": "maximize",
+      "weight": 1.0,
+      "description": "Average total reward accumulated over a fixed number of evaluation episodes (each truncated at 1600 steps). Higher scores indicate better walking performance."
+    }
+  ],
+  "validation_status": "passed",
+  "validation_errors": [],
+  "repair_attempts": 1
+}

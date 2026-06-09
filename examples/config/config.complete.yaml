@@ -1,0 +1,322 @@
+# ==============================================================================
+# LLM4AD Configuration Full Reference (配置全集)
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "my-project"  # type: str, required
+
+# Background description of the task, passed to LLM for context
+background: |  # type: str, optional
+  Describe the problem domain, constraints, and goals here.
+  This text is included in LLM prompts to provide context.
+
+# Random seed for reproducibility across all components
+random_seed: 42  # type: int, default: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"  # type: str, default: "./runs"
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  # Create task directory structure automatically at startup
+  # Structure: {base_dir}/{project_name}/{run_id}/
+  auto_create: true  # type: bool, default: true
+
+  # Subdirectory names within the task directory
+  subdirs:
+    output: "output"          # Final results and best algorithms
+    logs: "logs"              # Log files
+    checkpoints: "checkpoints"  # Evolution checkpoints
+    generated: "generated"    # Generated code files
+    cache: "cache"            # Cached LLM responses
+    temp: "temp"              # Temporary files
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+# Multiple providers can be defined and referenced by name elsewhere.
+# Global settings file (~/.llm4ad/settings.yaml) can define shared providers.
+# Supports ${ENV_VAR} expansion for sensitive values.
+providers:
+  - name: "default"
+    type: "openai_compatible"  # type: enum [openai_compatible, anthropic, openai]
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 8192
+    timeout: 120.0
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"  # type: enum [custom, claude_code, opencode]
+  provider: "default"
+
+  provider_name: ""              # type: str, only needed for type: "opencode"
+
+  # --- Generation Parameters ---
+  timeout: 300.0          # type: float, seconds
+  max_retries: 3          # type: int
+  temperature: 0.7        # type: float
+  max_gen_tokens: 4096    # type: int, max tokens for code generation
+  context_max_tokens: 4096  # type: int
+  default_extension: "py" # type: str, file extension for generated code
+  log_to_console: false   # type: bool
+
+  # --- Prompt Template ---
+  # Multi-line template sent to LLM. Supports placeholders:
+  #   {insight} — planner output / evolution context
+  #   {project_context} — repo analyzer output
+  prompt_template: |  # type: str, optional todo
+    You are tasked with implementing an algorithm...
+
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"  # type: str
+  provider: "default"
+
+  # Selection strategies
+  selection_strategy: "weighted"  # type: str
+  parent_selection_strategy: "tournament"  # type: str
+
+  # Build configuration (for compiled languages like C++)
+  build:
+    timeout: 120.0  # type: float, seconds
+    script:
+      linux: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build -j$(nproc)
+      darwin: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build -j$(sysctl -n hw.ncpu)
+      windows: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+        cmake --build build --config Release
+
+  # Samplers — define which operators are available
+  # Standard samplers: init_sampler, mutation_sampler, crossover_sampler
+  # Multimodal samplers: multimodal_mutation_sampler, multimodal_crossover_sampler
+  # DyCA samplers: e1_sampler, e2_sampler, m1_sampler, m2_sampler,
+  #                summary_sampler, complementary_cross_sampler
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+    # DyCA samplers with per-sampler config:
+    - name: "e1_sampler"
+      config:
+        temperature: 0.7
+    - name: "e2_sampler"
+      config:
+        temperature: 0.9
+    - name: "m1_sampler"
+      config:
+        temperature: 0.5
+    - name: "m2_sampler"
+      config:
+        temperature: 1.0
+    - name: "summary_sampler"
+      config:
+        temperature: 0.7
+    - name: "complementary_cross_sampler"
+      config:
+        temperature: 0.8
+    # Multimodal samplers:
+    - name: "multimodal_mutation_sampler"
+    - name: "multimodal_crossover_sampler"
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  # Built-in: "python", "executable", "benchmark"
+  # Custom: "custom" (requires module field)
+  type: "custom"  # type: enum [python, executable, benchmark, custom]
+
+  # Custom evaluator module path (for type: "custom")
+  # Format: "path/to/module.py:ClassName"
+  module: "my_evaluator.py:MyEvaluator"  # type: str, optional
+
+  # --- Execution Settings ---
+  timeout: 60.0       # type: float, seconds per evaluation
+  max_retries: 3      # type: int, retry failed evaluations
+  parallel: true      # type: bool, enable parallel evaluation
+  batch_size: 10      # type: int, batch size for parallel eval
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "directory"  # type: enum [files, directory, glob]
+
+    # Mode: "directory" — traverse all files in a directory
+    path: "./data/train"  # type: str, for mode "directory"
+    recursive: false      # type: bool, search subdirectories
+
+    # Mode: "files"  # type: enum [files, directory, glob]
+#    files:             # type: list[str], for mode "files"
+#      - "./data/instance_001.json"
+#      - "./data/instance_002.json"
+
+    # Mode: "glob"  # type: enum [files, directory, glob]
+#    pattern: "*.json"  # type: str, for mode "glob"
+
+  # --- Metrics ---
+  # List of metric names to compute. Evaluator-specific.
+#  metrics:  # type: list[str] or str
+#    - "tour_length"
+#    - "execution_time_ms"
+#    - "valid_tour"
+
+  # --- Timing Metrics (MEoH-specific) ---
+#  timing_metrics:
+#    enabled: true              # type: bool
+#    include_in_score: false    # type: bool
+#    score_components:          # type: list[str]
+#      - "candidate_runtime_ms"
+#    aggregation: "sum"         # type: str
+#    weights:                   # type: dict[str, float]
+#      candidate_runtime_ms: 0.1
+
+  # --- Executable Evaluator Fields (type: "executable") ---
+#  executable: "build/sorting_benchmark"  # type: str, path to executable
+#  command: "{executable} {data_file}"    # type: str, command template
+#  metric_patterns:  # type: list[dict], regex patterns to extract metrics
+#    - name: "execution_time_ms"
+#      pattern: "execution_time_ms:\\s*([\\d.]+)"
+#      type: "minimize"       # type: enum [minimize, maximize]
+#      weight: 1.0            # type: float
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"  # type: enum [island_ga, meoh, dyca]
+
+  # --- Common Parameters (all types) ---
+  max_generations: 3       # type: int
+  early_stop_patience: 20    # type: int, generations without improvement
+  early_stop_threshold: 1e-6 # type: float, minimum improvement
+  checkpoint_interval: 5    # type: int, generations between saves
+  max_checkpoints: 3         # type: int, max checkpoints to keep
+  max_llm_concurrency: 4     # type: int, max concurrent LLM calls
+
+  # --- Island GA Parameters (type: "island_ga") ---
+  elite_ratio: 0.1           # type: float, range [0.0, 1.0]
+  mutation_rate: 0.3         # type: float, range [0.0, 1.0]
+  crossover_rate: 0.5        # type: float, range [0.0, 1.0]
+  parent_selection_strategy: "tournament"  # type: enum [tournament, roulette, rank, random]
+  survival_selection_strategy: "truncation"  # type: enum [truncation, tournament, roulette, rank, random]
+  selection_strategy: "tournament"  # type: str (alias)
+  tournament_size: 3         # type: int
+
+  # Island-specific
+  num_islands: 2             # type: int, number of parallel islands
+  island_population_size: 4  # type: int, population per island
+  migration_interval: 5      # type: int, generations between migrations
+  migration_rate: 0.1        # type: float
+  migration_strategy: "random"  # type: str
+  migration_topology: "full"    # type: str
+  parallel_islands: true     # type: bool
+
+  # --- MEoH Parameters (type: "meoh") ---
+  planner_type: "meoh_evolution"  # type: str
+  pop_size: 10               # type: int, MEoH population size
+  selection_num: 2           # type: int, parents selected per generation
+  num_samplers: 1            # type: int
+  max_sample_nums: 800       # type: int, total samples budget
+  objective_metrics:         # type: list[str], multi-objective metrics
+    - "tour_length"
+    - "candidate_runtime_ms"
+  use_e2_operator: true      # type: bool, enable E2 evolution operator
+  use_m1_operator: true      # type: bool, enable M1 mutation operator
+  use_m2_operator: true      # type: bool, enable M2 mutation operator
+  generation_mode: "survival"  # type: str
+  batch_per_operator: true   # type: bool
+  code_generation_mode: "reuse_coder"  # type: str
+  active_population_ratio: 0.25  # type: float
+
+  # --- DyCA Parameters (type: "dyca") ---
+  background: ""             # type: str, DyCA-specific background
+  n_clusters: 0              # type: int, 0 = auto-select via elbow method
+  clustering_method: "kmeans"  # type: str
+  recluster_interval: 5     # type: int, generations between reclustering
+  ari_threshold: 0.8         # type: float, cluster stability threshold
+  n_anchors: 2              # type: int, anchor algorithms for feature extraction
+  generalist_pool_size: 8    # type: int
+  specialist_pool_size: 6    # type: int
+  complementary_pool_size: 6 # type: int
+  elite_archive_size: 3      # type: int
+  sos_stagnation_threshold: 3  # type: int, stagnant generations before SOS
+  base_complementary_ratio: 0.2  # type: float
+  offspring_per_generation: 5    # type: int
+
+  # --- Display ---
+  human_readable_timing: true  # type: bool
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: true                    # type: bool, default: false
+  max_images_per_prompt: 3         # type: int
+  image_max_size_kb: 512           # type: int, compress images beyond this
+  include_observation_text: true   # type: bool, include text alongside images
+  two_step_refinement: false       # type: bool
+  behavior_storage: "rendered"     # type: enum [rendered, raw, none]
+    # "rendered" = save PNG images (largest, fastest to display)
+    # "raw"      = save data, render on demand (smaller disk)
+    # "none"     = no behavior saved
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"  # type: enum [TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL]
+  format: null  # type: str, use null for loguru default format
+  file: null     # type: str, optional (auto-set by workspace)
+  console: true  # type: bool
+  json_format: false  # type: bool, structured JSON logging
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true              # type: bool
+  type: "git_worktree"       # type: str
+  local_path: "./algorithm"  # type: str, path to code repository
+  remote_url: null           # type: str, optional, clone from remote
+  revision: null             # type: str, optional, branch/tag to checkout
+  auto_initialize: true      # type: bool, init git if not present
+  auto_cleanup: true         # type: bool, cleanup worktrees after completion
+  max_worktree_age_days: 7   # type: int
+  max_worktrees: 100         # type: int
+  default_branch: "main"     # type: str
+  commit_message_template: "Algorithm {algorithm_id}: {description}"  # type: str
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"    # type: str, detect EVOLVE markers
+  context_lines_before: 5    # type: int, lines before EVOLVE marker
+  context_lines_after: 5     # type: int, lines after EVOLVE marker (up to 50 for MEoH)
+  include:                   # type: list[str], file patterns to scan
+    - "*.py"
+    - "*.cpp"
+    - "*.h"
+  exclude:                   # type: list[str], patterns to skip
+    - ".git/**"
+    - "__pycache__/**"
+    - "build/**"
+    - "*.pyc"

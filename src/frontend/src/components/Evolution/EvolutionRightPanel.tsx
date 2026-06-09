@@ -1,0 +1,1588 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useVirtualizer } from "@tanstack/react-virtual"
+import {
+  Bot,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
+  Code,
+  Crosshair,
+  Eye,
+  FileText,
+  GitBranch,
+  History,
+  Info,
+  Loader2,
+  MousePointerClick,
+  Network,
+  Play,
+  Search,
+  Settings2,
+  Square,
+  X,
+} from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TaskResponse } from "@/client"
+import { Llm4AdTasksService } from "@/client"
+import { Button } from "@/components/ui/button"
+import PanelErrorBoundary from "@/components/Common/PanelErrorBoundary"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { useCopyBeforeRun } from "@/hooks/useCopyBeforeRun"
+import { useEvolution } from "@/hooks/useEvolution"
+import { useTaskLogsList } from "@/hooks/useTaskLogs"
+import { INPUT_LIMITS } from "@/lib/inputLimits"
+import { resetTaskCaches, taskKeys } from "@/lib/task-queries"
+import { cn, formatDateTime, formatScore } from "@/lib/utils"
+import { type GANode, ISLAND_COLORS } from "./TaskDetail/island-ga-mock-data"
+import {
+  LOG_LEVELS,
+  type LogLevel,
+  matchesLogLevels,
+  renderEntry,
+} from "./TaskDetail/log-renderers"
+import { computeNodeClassifications } from "./TaskDetail/node-classification"
+import TaskVersionTree from "./TaskVersionTree"
+
+function getStatusMap(t: (key: string) => string) {
+  return {
+    uninitialized: {
+      label: t("evolution.taskStatus.uninitialized"),
+      color: "#6b7280",
+    },
+    pending: { label: t("evolution.taskStatus.pending"), color: "#f59e0b" },
+    running: { label: t("evolution.taskStatus.running"), color: "#00d4ff" },
+    completed: { label: t("evolution.taskStatus.completed"), color: "#10b981" },
+    failed: { label: t("evolution.taskStatus.failed"), color: "#ef4444" },
+  } as Record<string, { label: string; color: string }>
+}
+
+function SectionHeader({
+  icon: Icon,
+  title,
+  isOpen,
+  onToggle,
+  summary,
+}: {
+  icon: typeof Info
+  title: string
+  isOpen: boolean
+  onToggle: () => void
+  summary?: React.ReactNode
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex items-center gap-2 w-full h-10 px-4 text-left shrink-0
+        border-b border-border/60 hover:bg-accent/40 transition-colors"
+    >
+      <Icon className="size-3.5 text-primary shrink-0" />
+      <span className="text-xs font-semibold text-primary tracking-wider uppercase leading-none flex-1 truncate">
+        {title}
+      </span>
+      {!isOpen && summary && (
+        <span className="shrink-0 max-w-[55%] inline-flex items-center truncate leading-none">
+          {summary}
+        </span>
+      )}
+      {isOpen ? (
+        <ChevronDown className="size-3.5 text-muted-foreground shrink-0" />
+      ) : (
+        <ChevronRight className="size-3.5 text-muted-foreground shrink-0" />
+      )}
+    </button>
+  )
+}
+
+function TaskInfoSection({
+  task,
+  isOpen,
+  onToggle,
+}: {
+  task: TaskResponse
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const {
+    projectId,
+    effectiveTaskId,
+    resetTaskData,
+    isConfiguring,
+    setIsConfiguring,
+    setIsViewingParams,
+    setIsViewingAiBuildHistory,
+    setForceManualConfigTaskId,
+  } = useEvolution()
+  const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const statusMap = getStatusMap(t)
+
+  const { data: effectiveTask } = useQuery({
+    queryKey: taskKeys.detail(effectiveTaskId!),
+    queryFn: () => Llm4AdTasksService.getTask({ taskId: effectiveTaskId! }),
+    enabled: !!effectiveTaskId,
+  })
+
+  const displayTask = effectiveTask ?? task
+
+  const status = statusMap[displayTask.status] ?? {
+    label: displayTask.status,
+    color: "#6b7280",
+  }
+
+  const { withCopyIfNeeded, isCopying } = useCopyBeforeRun(displayTask)
+
+  const { data: treeData, isLoading: treeLoading } = useQuery({
+    queryKey: ["taskDataTree", displayTask.id],
+    queryFn: () =>
+      Llm4AdTasksService.getTaskDataTree({ taskId: displayTask.id }),
+    enabled: !!displayTask.id,
+  })
+  const hasFile = (
+    nodes: { type: string; children?: unknown[] | null }[],
+  ): boolean =>
+    nodes.some(
+      (n) =>
+        n.type === "file" ||
+        (n.children && hasFile(n.children as typeof nodes)),
+    )
+  const dataEmpty = !treeLoading && !hasFile(treeData?.tree ?? [])
+
+  const refreshTask = () => {
+    resetTaskCaches(queryClient, displayTask.id, projectId)
+  }
+
+  const stopMutation = useMutation({
+    mutationFn: () => Llm4AdTasksService.stopTask({ taskId: displayTask.id }),
+    onSuccess: refreshTask,
+  })
+
+  const runMutation = useMutation({
+    mutationFn: () => Llm4AdTasksService.runTask({ taskId: displayTask.id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: taskKeys.detail(displayTask.id),
+      })
+      setIsConfiguring(false)
+      setIsViewingParams(false)
+      resetTaskData()
+    },
+  })
+
+  const copyAndRunMutation = useMutation({
+    mutationFn: () =>
+      withCopyIfNeeded(async (effectiveId) => {
+        await Llm4AdTasksService.runTask({ taskId: effectiveId })
+        queryClient.invalidateQueries({
+          queryKey: taskKeys.detail(effectiveId),
+        })
+        setIsConfiguring(false)
+        setIsViewingParams(false)
+        resetTaskData()
+      }),
+  })
+
+  const copyAndConfigMutation = useMutation({
+    mutationFn: () =>
+      withCopyIfNeeded(async (effectiveId) => {
+        // Re-tuning a built task must stay in the manual panel even though the
+        // copied child inherits ai_built — tag it so TaskDetail routes to manual.
+        setForceManualConfigTaskId(effectiveId)
+        setIsViewingParams(false)
+        setIsConfiguring(true)
+      }),
+  })
+
+  const isRunning =
+    displayTask.status === "running" || displayTask.status === "pending"
+  const isUninitialized = displayTask.status === "uninitialized"
+  const canRerun =
+    displayTask.status === "completed" || displayTask.status === "failed"
+  const isActionPending =
+    runMutation.isPending ||
+    copyAndRunMutation.isPending ||
+    copyAndConfigMutation.isPending ||
+    isCopying
+
+  const [confirmAction, setConfirmAction] = useState<
+    "run" | "copyRun" | "copyConfig" | "adjustChoice" | null
+  >(null)
+
+  const handleConfirm = () => {
+    if (confirmAction === "run") runMutation.mutate()
+    else if (confirmAction === "copyRun") copyAndRunMutation.mutate()
+    else if (confirmAction === "copyConfig") copyAndConfigMutation.mutate()
+    setConfirmAction(null)
+  }
+
+  const confirmMessages: Record<string, { title: string; desc: string }> = {
+    run: {
+      title: t("evolution.confirm.runTitle"),
+      desc: t("evolution.confirm.runDesc"),
+    },
+    copyRun: {
+      title: t("evolution.confirm.copyRunTitle"),
+      desc: t("evolution.confirm.copyRunDesc"),
+    },
+    copyConfig: {
+      title: t("evolution.confirm.copyConfigTitle"),
+      desc: t("evolution.confirm.copyConfigDesc"),
+    },
+  }
+
+  return (
+    <div className="flex flex-col min-h-0 shrink-0">
+      <SectionHeader
+        icon={Info}
+        title={t("evolution.taskInfo")}
+        isOpen={isOpen}
+        onToggle={onToggle}
+        summary={
+          <span
+            className="inline-flex items-center gap-1 text-[10px] font-medium"
+            style={{ color: status.color }}
+          >
+            <span
+              className="size-1.5 rounded-full shrink-0"
+              style={{ backgroundColor: status.color }}
+            />
+            <span className="truncate">{status.label}</span>
+          </span>
+        }
+      />
+      {isOpen && (
+        <div className="px-4 py-3 space-y-3 border-b border-border/30 overflow-y-auto max-h-[60vh]">
+          {/* Status — first thing user wants to know */}
+          <div className="flex items-center gap-2">
+            <span
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border"
+              style={{
+                color: status.color,
+                borderColor: `${status.color}40`,
+                backgroundColor: `${status.color}15`,
+              }}
+            >
+              <span
+                className="size-1.5 rounded-full"
+                style={{ backgroundColor: status.color }}
+              />
+              {status.label}
+            </span>
+            {displayTask.ai_built && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex items-center justify-center size-5 rounded border border-primary/30 bg-primary/10 text-primary shrink-0">
+                    <Bot className="size-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" sideOffset={4}>
+                  {t("evolution.buildModeAi")}
+                </TooltipContent>
+              </Tooltip>
+            )}
+            <span
+              className="text-[10px] text-muted-foreground/70 ml-auto truncate"
+              title={`${t("evolution.taskInfoLabel.createdTime")}: ${formatDateTime(displayTask.created_time)}\n${t("evolution.taskInfoLabel.updatedTime")}: ${formatDateTime(displayTask.updated_time)}`}
+            >
+              {formatDateTime(displayTask.updated_time)}
+            </span>
+          </div>
+
+          {/* Version tree — visually grouped */}
+          <div className="rounded-md border border-border/30 bg-muted/20 p-2">
+            <TaskVersionTree />
+          </div>
+
+          {displayTask.description && (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                {t("evolution.taskInfoLabel.description")}
+              </span>
+              <span className="text-xs text-foreground/80 break-words whitespace-pre-wrap">
+                {displayTask.description}
+              </span>
+            </div>
+          )}
+
+          {/* Action buttons */}
+          <div data-tour="task-actions" className="flex flex-col gap-2 pt-1">
+            {/* Secondary config-access actions (placed first for quick access) */}
+            {(() => {
+              // Adjust params: uninitialized → edit directly; otherwise prompt
+              // the user to pick between editing the current task or cloning a
+              // child task. Running/pending tasks expose only "view".
+              const showAdjust = (isUninitialized || canRerun) && !isConfiguring
+              const showViewParams = !isConfiguring
+              const showAiBuildHistory =
+                !!displayTask.ai_built && !isConfiguring
+              const count = Number(showAdjust) + Number(showViewParams)
+              if (count === 0 && !showAiBuildHistory) return null
+              return (
+                <>
+                  {count > 0 && (
+                    <div
+                      className={cn(
+                        "grid gap-2",
+                        count === 1 ? "grid-cols-1" : "grid-cols-2",
+                      )}
+                    >
+                      {showViewParams && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          onClick={() => {
+                            setIsConfiguring(false)
+                            setIsViewingParams(true)
+                          }}
+                        >
+                          <Eye className="size-3.5" />
+                          {t("evolution.viewParams")}
+                        </Button>
+                      )}
+                      {showAdjust && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1.5 text-xs"
+                          disabled={isActionPending}
+                          onClick={() => {
+                            if (isUninitialized) {
+                              setIsViewingParams(false)
+                              setIsConfiguring(true)
+                            } else {
+                              setConfirmAction("adjustChoice")
+                            }
+                          }}
+                        >
+                          {copyAndConfigMutation.isPending ? (
+                            <Loader2 className="size-3.5 animate-spin" />
+                          ) : (
+                            <Settings2 className="size-3.5" />
+                          )}
+                          {t("evolution.adjustParams")}
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {showAiBuildHistory && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-1.5 text-xs border-primary/30 text-primary bg-primary/5
+                        hover:bg-primary/10 hover:border-primary/50"
+                      onClick={() => {
+                        setIsConfiguring(false)
+                        setIsViewingParams(false)
+                        setIsViewingAiBuildHistory(true)
+                      }}
+                    >
+                      <History className="size-3.5" />
+                      {t("evolution.aiBuildHistory")}
+                    </Button>
+                  )}
+                </>
+              )
+            })()}
+
+            {/* Primary action (full width, prominent) */}
+            {isRunning && (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="w-full gap-1.5 text-xs"
+                disabled={stopMutation.isPending}
+                onClick={() => stopMutation.mutate()}
+              >
+                {stopMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Square className="size-3.5" />
+                )}
+                {t("evolution.stopTask")}
+              </Button>
+            )}
+            {canRerun && (
+              <Button
+                size="sm"
+                className="w-full gap-1.5 text-xs"
+                disabled={isActionPending}
+                onClick={() => setConfirmAction("copyRun")}
+              >
+                {copyAndRunMutation.isPending || isCopying ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Play className="size-3.5" />
+                )}
+                {isCopying
+                  ? t("evolution.versionTree.copyingAsChild")
+                  : t("evolution.startTask")}
+              </Button>
+            )}
+            {isUninitialized && !isConfiguring && (
+              <Button
+                size="sm"
+                className="w-full gap-1.5 text-xs"
+                disabled={runMutation.isPending || dataEmpty}
+                onClick={() => runMutation.mutate()}
+              >
+                {runMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Play className="size-3.5" />
+                )}
+                {t("evolution.startTask")}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <AlertDialog
+        open={!!confirmAction && confirmAction !== "adjustChoice"}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction && confirmMessages[confirmAction]?.title}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction && confirmMessages[confirmAction]?.desc}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirm}>
+              {t("common.confirm")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Adjust params: two-choice dialog. Lets the user pick between editing
+       * the current task in place vs. cloning a child task to tune. */}
+      <AlertDialog
+        open={confirmAction === "adjustChoice"}
+        onOpenChange={(open) => {
+          if (!open) setConfirmAction(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t("evolution.confirm.adjustChoiceTitle")}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("evolution.confirm.adjustChoiceDesc")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex flex-col gap-2 py-1">
+            <button
+              type="button"
+              disabled={isActionPending}
+              onClick={() => {
+                setConfirmAction(null)
+                setIsViewingParams(false)
+                setIsConfiguring(true)
+              }}
+              className="flex flex-col items-start gap-1 rounded-lg border-2 border-border/60 hover:border-primary/60 hover:bg-accent/40 p-3 text-left transition-colors disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                <Settings2 className="size-4 text-primary shrink-0" />
+                {t("evolution.confirm.adjustCurrentTitle")}
+              </span>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t("evolution.confirm.adjustCurrentDesc")}
+              </p>
+            </button>
+            <button
+              type="button"
+              disabled={isActionPending}
+              onClick={() => {
+                setConfirmAction(null)
+                copyAndConfigMutation.mutate()
+              }}
+              className="flex flex-col items-start gap-1 rounded-lg border-2 border-border/60 hover:border-primary/60 hover:bg-accent/40 p-3 text-left transition-colors disabled:opacity-50"
+            >
+              <span className="flex items-center gap-2 text-sm font-medium text-foreground">
+                {copyAndConfigMutation.isPending ? (
+                  <Loader2 className="size-4 animate-spin text-primary shrink-0" />
+                ) : (
+                  <GitBranch className="size-4 text-primary shrink-0" />
+                )}
+                {t("evolution.confirm.adjustChildTitle")}
+              </span>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {t("evolution.confirm.adjustChildDesc")}
+              </p>
+            </button>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  )
+}
+
+function NodeLink({
+  nodeId,
+  currentIsland,
+  nodeMap,
+  onClick,
+  onLocate,
+  crossIslandLabel,
+  locateLabel,
+}: {
+  nodeId: string
+  currentIsland: number
+  nodeMap: Map<string, GANode>
+  onClick: () => void
+  onLocate: () => void
+  crossIslandLabel: string
+  locateLabel: string
+}) {
+  const node = nodeMap.get(nodeId)
+  const nodeIsland = node?.island ?? -1
+  const isCrossIsland = nodeIsland !== currentIsland && nodeIsland >= 0
+  const ariaLabel = node ? `${node.name} (${formatScore(node.rawScore)})` : nodeId
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      aria-label={ariaLabel}
+      className="flex items-center gap-2 w-full px-2 py-1.5 rounded cursor-pointer
+        bg-muted/60 border border-border/30
+        hover:border-primary/30 hover:bg-accent/60
+        transition-all duration-200 text-left group"
+    >
+      {nodeIsland >= 0 && (
+        <span
+          className="size-1.5 rounded-full shrink-0"
+          style={{
+            backgroundColor: ISLAND_COLORS[nodeIsland % ISLAND_COLORS.length],
+          }}
+        />
+      )}
+      <span className="font-mono text-[10px] text-muted-foreground group-hover:text-primary transition-colors flex-1 truncate">
+        {node ? node.name : nodeId}
+      </span>
+      {node && (
+        <span className="font-mono text-[9px] text-muted-foreground/70 shrink-0">
+          {formatScore(node.rawScore)}
+        </span>
+      )}
+      <span className="font-mono text-[9px] text-muted-foreground/50 shrink-0">
+        {nodeId.slice(0, 8)}
+      </span>
+      {isCrossIsland && (
+        <span
+          className="text-[9px] px-1.5 py-0.5 rounded border shrink-0"
+          style={{
+            color: "#ffa500",
+            borderColor: "rgba(255,165,0,0.3)",
+            backgroundColor: "rgba(255,165,0,0.08)",
+          }}
+        >
+          {crossIslandLabel}
+        </span>
+      )}
+      {node && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onLocate()
+          }}
+          className="shrink-0 p-0.5 rounded text-muted-foreground/50
+            opacity-0 group-hover:opacity-100
+            hover:text-primary hover:bg-primary/10 transition-all"
+          title={locateLabel}
+          aria-label={locateLabel}
+        >
+          <Crosshair className="size-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
+function NodeInfoSection({
+  isOpen,
+  onToggle,
+}: {
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const {
+    selectedNodes,
+    setSelectedNodes,
+    evolutionData,
+    setActiveTab,
+    activeTab,
+    requestFocusNode,
+  } = useEvolution()
+  const { t } = useTranslation()
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  const nodeMap = useMemo(() => {
+    const m = new Map<string, GANode>()
+    for (const n of evolutionData.nodes) m.set(n.id, n)
+    return m
+  }, [evolutionData])
+
+  const childrenMap = useMemo(() => {
+    const m = new Map<string, string[]>()
+    for (const n of evolutionData.nodes) {
+      for (const pid of n.parentIds) {
+        if (!m.has(pid)) m.set(pid, [])
+        m.get(pid)!.push(n.id)
+      }
+    }
+    return m
+  }, [evolutionData])
+
+  const classificationMap = useMemo(
+    () => computeNodeClassifications(evolutionData),
+    [evolutionData],
+  )
+
+  const selectedNode = selectedNodes.length === 1 ? selectedNodes[0] : null
+
+  // Sort children by score desc — most relevant first
+  const sortedChildIds = useMemo(() => {
+    if (!selectedNode) return []
+    const ids = childrenMap.get(selectedNode.id) || []
+    return [...ids].sort((a, b) => {
+      const na = nodeMap.get(a)
+      const nb = nodeMap.get(b)
+      return (nb?.rawScore ?? 0) - (na?.rawScore ?? 0)
+    })
+  }, [selectedNode, childrenMap, nodeMap])
+
+  // Sort parents by score desc
+  const sortedParentIds = useMemo(() => {
+    if (!selectedNode) return []
+    return [...selectedNode.parentIds].sort((a, b) => {
+      const na = nodeMap.get(a)
+      const nb = nodeMap.get(b)
+      return (nb?.rawScore ?? 0) - (na?.rawScore ?? 0)
+    })
+  }, [selectedNode, nodeMap])
+
+  // Show-more toggles for parent / children lists
+  const PREVIEW_COUNT = 5
+  const [showAllParents, setShowAllParents] = useState(false)
+  const [showAllChildren, setShowAllChildren] = useState(false)
+
+  // Scroll to top + reset show-all when selection changes
+  // biome-ignore lint/correctness/useExhaustiveDependencies: react to node id change
+  useEffect(() => {
+    setShowAllParents(false)
+    setShowAllChildren(false)
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = 0
+    }
+  }, [selectedNode?.id, selectedNodes.length])
+
+  const navigateToNode = (nodeId: string) => {
+    const node = nodeMap.get(nodeId)
+    if (node) {
+      setSelectedNodes([
+        {
+          id: node.id,
+          generation: node.generation,
+          island: node.island,
+          islandId: node.islandId,
+          name: node.name,
+          fileName: node.fileName,
+          score: node.score,
+          rawScore: node.rawScore,
+          parentIds: node.parentIds,
+        },
+      ])
+    }
+  }
+
+  const removeNode = (nodeId: string) => {
+    setSelectedNodes(selectedNodes.filter((n) => n.id !== nodeId))
+  }
+
+  // Multi-select stats
+  const multiStats = useMemo(() => {
+    if (selectedNodes.length < 2) return null
+    const scores = selectedNodes.map((n) => n.rawScore)
+    const gens = selectedNodes.map((n) => n.generation)
+    const islands = new Set(selectedNodes.map((n) => n.island))
+    const max = Math.max(...scores)
+    const min = Math.min(...scores)
+    const avg = scores.reduce((s, v) => s + v, 0) / scores.length
+    return {
+      max,
+      min,
+      avg,
+      genMin: Math.min(...gens),
+      genMax: Math.max(...gens),
+      islandCount: islands.size,
+    }
+  }, [selectedNodes])
+
+  // Sort multi-select list by score desc
+  const sortedMultiNodes = useMemo(() => {
+    return [...selectedNodes].sort((a, b) => b.rawScore - a.rawScore)
+  }, [selectedNodes])
+
+  // Collapsed summary
+  const summary = (() => {
+    if (selectedNodes.length === 0) return null
+    if (selectedNodes.length === 1 && selectedNode) {
+      return (
+        <span className="text-[10px] text-muted-foreground truncate">
+          {selectedNode.name}
+        </span>
+      )
+    }
+    return (
+      <span className="text-[10px] text-primary">
+        {t("evolution.selectedNodesCount", { count: selectedNodes.length })}
+      </span>
+    )
+  })()
+
+  return (
+    <div className={`flex flex-col min-h-0 ${isOpen ? "flex-1" : "shrink-0"}`}>
+      <SectionHeader
+        icon={Network}
+        title={t("evolution.nodeInfo")}
+        isOpen={isOpen}
+        onToggle={onToggle}
+        summary={summary}
+      />
+      {isOpen && (
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 overflow-y-auto px-4 py-3 border-b border-border/30"
+        >
+          {selectedNodes.length === 0 ? (
+            /* ===== No selection — minimal hint ===== */
+            <div className="flex flex-col items-center justify-center py-12 gap-3">
+              <div
+                className="p-4 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(circle, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 70%)",
+                }}
+              >
+                <MousePointerClick className="size-7 text-muted-foreground/50" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {t("evolution.clickNodeHint")}
+                </p>
+                <p className="text-[10px] text-muted-foreground/50">
+                  {t("evolution.multiSelectHint")}
+                </p>
+              </div>
+            </div>
+          ) : selectedNodes.length === 1 && selectedNode ? (
+            /* ===== Single node selected ===== */
+            <div className="space-y-3">
+              {/* Node header */}
+              <div
+                className="px-3 py-2 rounded-lg border"
+                style={{
+                  borderColor: `${ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]}30`,
+                  backgroundColor: `${ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]}08`,
+                }}
+              >
+                <div className="flex items-center gap-2 mb-1">
+                  <div
+                    className="size-2.5 rounded-full shrink-0"
+                    style={{
+                      backgroundColor:
+                        ISLAND_COLORS[
+                          selectedNode.island % ISLAND_COLORS.length
+                        ],
+                      boxShadow: `0 0 6px ${ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]}60`,
+                    }}
+                  />
+                  <span className="text-sm font-semibold text-foreground truncate flex-1">
+                    {selectedNode.name}
+                  </span>
+                  {activeTab !== "ide" && (
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab("ide")}
+                      title={t("evolution.nodeActions.openIDE")}
+                      aria-label={t("evolution.nodeActions.openIDE")}
+                      className="shrink-0 inline-flex items-center justify-center size-6 rounded
+                        text-muted-foreground hover:text-primary hover:bg-primary/10
+                        border border-border/40 hover:border-primary/40 transition-colors"
+                    >
+                      <Code className="size-3.5" />
+                    </button>
+                  )}
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {selectedNode.id}
+                </span>
+              </div>
+
+              {/* Classification badges */}
+              {(() => {
+                const cls = classificationMap.get(selectedNode.id)
+                if (!cls) return null
+                const islandColor =
+                  ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]
+                const badges: { label: string; color: string }[] = []
+                if (cls.isGlobalBest)
+                  badges.push({
+                    label: t("evolution.globalBest"),
+                    color: "#ffbf00",
+                  })
+                if (cls.isGlobalGenBest)
+                  badges.push({
+                    label: t("evolution.globalGenBest"),
+                    color: islandColor,
+                  })
+                if (cls.isIslandOverallBest)
+                  badges.push({
+                    label: t("evolution.islandBest"),
+                    color: islandColor,
+                  })
+                if (cls.isIslandGenBest)
+                  badges.push({
+                    label: t("evolution.generationBest"),
+                    color: islandColor,
+                  })
+                if (cls.isElite)
+                  badges.push({
+                    label: t("evolution.eliteRetained"),
+                    color: "#8ca0bc",
+                  })
+                if (badges.length === 0) return null
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {badges.map((b) => (
+                      <span
+                        key={b.label}
+                        className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border"
+                        style={{
+                          color: b.color,
+                          borderColor: `${b.color}40`,
+                          backgroundColor: `${b.color}15`,
+                        }}
+                      >
+                        {b.label}
+                      </span>
+                    ))}
+                  </div>
+                )
+              })()}
+
+              {/* Score */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    {t("evolution.fitnessScore")}
+                  </span>
+                  <span
+                    className="text-[9px] text-muted-foreground/60"
+                    title={t("evolution.scoreNormalizedHint", {
+                      defaultValue:
+                        "Bar shows score normalized within current population",
+                    })}
+                  >
+                    {(selectedNode.score * 100).toFixed(4)}%
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${selectedNode.score * 100}%`,
+                        background: `linear-gradient(90deg, #004466, ${ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]})`,
+                        boxShadow: `0 0 6px ${ISLAND_COLORS[selectedNode.island % ISLAND_COLORS.length]}40`,
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm font-mono font-bold text-primary min-w-[48px] text-right">
+                    {formatScore(selectedNode.rawScore)}
+                  </span>
+                </div>
+              </div>
+
+              <InfoRow
+                label={t("evolution.generation")}
+                value={t("evolution.generationValue", {
+                  gen: selectedNode.generation,
+                })}
+              />
+              <InfoRow label={t("evolution.belongIsland")}>
+                <span className="flex items-center gap-1.5">
+                  <span
+                    className="size-2 rounded-full"
+                    style={{
+                      backgroundColor:
+                        ISLAND_COLORS[
+                          selectedNode.island % ISLAND_COLORS.length
+                        ],
+                    }}
+                  />
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      color:
+                        ISLAND_COLORS[
+                          selectedNode.island % ISLAND_COLORS.length
+                        ],
+                    }}
+                  >
+                    {selectedNode.islandId || `Island ${selectedNode.island}`}
+                  </span>
+                </span>
+              </InfoRow>
+
+              {/* Parents — sorted by score, truncated */}
+              <div className="space-y-1">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {t("evolution.parentNodes")} ({sortedParentIds.length})
+                </span>
+                {sortedParentIds.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">
+                    {t("evolution.initialPopulation")}
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(showAllParents
+                      ? sortedParentIds
+                      : sortedParentIds.slice(0, PREVIEW_COUNT)
+                    ).map((pid) => (
+                      <NodeLink
+                        key={pid}
+                        nodeId={pid}
+                        currentIsland={selectedNode.island}
+                        nodeMap={nodeMap}
+                        onClick={() => navigateToNode(pid)}
+                        onLocate={() => requestFocusNode(pid, false)}
+                        crossIslandLabel={t("evolution.crossIsland")}
+                        locateLabel={t("evolution.locateNode")}
+                      />
+                    ))}
+                    {sortedParentIds.length > PREVIEW_COUNT && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllParents((v) => !v)}
+                        className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showAllParents
+                          ? t("evolution.showLess", {
+                              defaultValue: "收起",
+                            })
+                          : t("evolution.showAllCount", {
+                              defaultValue: "查看全部 ({{count}})",
+                              count: sortedParentIds.length,
+                            })}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Children — sorted by score, truncated */}
+              <div className="space-y-1">
+                <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                  {t("evolution.childNodes")} ({sortedChildIds.length})
+                </span>
+                {sortedChildIds.length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic">
+                    {selectedNode.generation === evolutionData.maxGeneration
+                      ? t("evolution.finalGeneration")
+                      : t("evolution.noChildNodes")}
+                  </p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(showAllChildren
+                      ? sortedChildIds
+                      : sortedChildIds.slice(0, PREVIEW_COUNT)
+                    ).map((cid) => (
+                      <NodeLink
+                        key={cid}
+                        nodeId={cid}
+                        currentIsland={selectedNode.island}
+                        nodeMap={nodeMap}
+                        onClick={() => navigateToNode(cid)}
+                        onLocate={() => requestFocusNode(cid, false)}
+                        crossIslandLabel={t("evolution.crossIsland")}
+                        locateLabel={t("evolution.locateNode")}
+                      />
+                    ))}
+                    {sortedChildIds.length > PREVIEW_COUNT && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllChildren((v) => !v)}
+                        className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showAllChildren
+                          ? t("evolution.showLess", {
+                              defaultValue: "收起",
+                            })
+                          : t("evolution.showAllCount", {
+                              defaultValue: "查看全部 ({{count}})",
+                              count: sortedChildIds.length,
+                            })}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* ===== Multiple nodes selected ===== */
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-foreground">
+                  {t("evolution.selectedNodesCount", {
+                    count: selectedNodes.length,
+                  })}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedNodes([])}
+                  className="text-[10px] text-muted-foreground hover:text-primary transition-colors"
+                >
+                  {t("evolution.nodeActions.clearSelection")}
+                </button>
+              </div>
+
+              {/* Stats */}
+              {multiStats && (
+                <div className="grid grid-cols-2 gap-1.5 text-[10px]">
+                  <div className="px-2 py-1.5 rounded border border-border/30 bg-muted/40">
+                    <div className="text-muted-foreground/70 uppercase tracking-wider">
+                      {t("evolution.multi.maxScore", {
+                        defaultValue: "Max",
+                      })}
+                    </div>
+                    <div className="font-mono text-primary font-medium">
+                      {formatScore(multiStats.max)}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1.5 rounded border border-border/30 bg-muted/40">
+                    <div className="text-muted-foreground/70 uppercase tracking-wider">
+                      {t("evolution.multi.avgScore", {
+                        defaultValue: "Avg",
+                      })}
+                    </div>
+                    <div className="font-mono text-foreground/80 font-medium">
+                      {formatScore(multiStats.avg)}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1.5 rounded border border-border/30 bg-muted/40">
+                    <div className="text-muted-foreground/70 uppercase tracking-wider">
+                      {t("evolution.multi.minScore", {
+                        defaultValue: "Min",
+                      })}
+                    </div>
+                    <div className="font-mono text-foreground/80 font-medium">
+                      {formatScore(multiStats.min)}
+                    </div>
+                  </div>
+                  <div className="px-2 py-1.5 rounded border border-border/30 bg-muted/40">
+                    <div className="text-muted-foreground/70 uppercase tracking-wider">
+                      {t("evolution.multi.genRange", {
+                        defaultValue: "Gen",
+                      })}
+                    </div>
+                    <div className="font-mono text-foreground/80 font-medium">
+                      {multiStats.genMin === multiStats.genMax
+                        ? multiStats.genMin
+                        : `${multiStats.genMin}–${multiStats.genMax}`}
+                    </div>
+                  </div>
+                  <div className="col-span-2 px-2 py-1.5 rounded border border-border/30 bg-muted/40 flex items-center justify-between">
+                    <span className="text-muted-foreground/70 uppercase tracking-wider">
+                      {t("evolution.multi.islandCount", {
+                        defaultValue: "Islands",
+                      })}
+                    </span>
+                    <span className="font-mono text-foreground/80 font-medium">
+                      {multiStats.islandCount}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Compact node list — sorted by score desc */}
+              <div className="space-y-1.5 max-h-[240px] overflow-y-auto">
+                {sortedMultiNodes.map((node) => (
+                  <div
+                    key={node.id}
+                    className="flex items-center gap-2 px-2 py-1.5 rounded
+                      bg-muted/60 border border-border/30 group cursor-pointer
+                      hover:border-primary/30 hover:bg-accent/60 transition-colors"
+                    onClick={() => navigateToNode(node.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault()
+                        navigateToNode(node.id)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${node.name} (${formatScore(node.rawScore)})`}
+                  >
+                    <span
+                      className="size-2 rounded-full shrink-0"
+                      style={{
+                        backgroundColor:
+                          ISLAND_COLORS[node.island % ISLAND_COLORS.length],
+                      }}
+                    />
+                    <span className="text-xs text-foreground/80 truncate flex-1">
+                      {node.name}
+                    </span>
+                    <span className="text-[10px] font-mono text-muted-foreground/70 shrink-0">
+                      {formatScore(node.rawScore)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        removeNode(node.id)
+                      }}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity
+                        text-muted-foreground hover:text-destructive p-0.5"
+                      title={t("evolution.nodeActions.removeNode")}
+                      aria-label={t("evolution.nodeActions.removeNode")}
+                    >
+                      <X className="size-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RunLogsSection({
+  isOpen,
+  onToggle,
+}: {
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const { effectiveTaskId, effectiveStatus, logEntries, logLoading } =
+    useEvolution()
+  const { t } = useTranslation()
+  const containerRef = useRef<HTMLDivElement>(null)
+  const isNearBottomRef = useRef(true)
+
+  const isActive =
+    effectiveStatus === "pending" || effectiveStatus === "running"
+
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchInput, setSearchInput] = useState("")
+  const [levelFilter, setLevelFilter] = useState<Set<LogLevel>>(new Set())
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on task switch
+  useEffect(() => {
+    setSearchQuery("")
+    setSearchInput("")
+    setLevelFilter(new Set())
+    isNearBottomRef.current = true
+  }, [effectiveTaskId])
+
+  // Shared REST query (terminal mode only) — multiple subscribers dedupe.
+  // Active streaming uses logEntries from SSE, so disable here.
+  const {
+    entries: restEntries,
+    isLoading: isInitialLoading,
+    isFetchingMore: isLoadingMore,
+    hasMore,
+    loadMore,
+  } = useTaskLogsList({
+    taskId: effectiveTaskId,
+    searchQuery,
+    levelFilter,
+    enabled: !isActive && !!effectiveTaskId && isOpen,
+  })
+
+  const handleSearch = useCallback(() => {
+    setSearchQuery(searchInput.trim())
+  }, [searchInput])
+
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") handleSearch()
+    },
+    [handleSearch],
+  )
+
+  const clearSearch = useCallback(() => {
+    setSearchInput("")
+    setSearchQuery("")
+  }, [])
+
+  const rawEntries = isActive ? logEntries : restEntries
+
+  // Streaming mode filters client-side; terminal mode filters are baked into
+  // the query key (server-side) so rawEntries is already final.
+  const displayEntries = useMemo(() => {
+    if (!isActive) return rawEntries
+    let filtered = rawEntries
+    if (levelFilter.size > 0) {
+      filtered = filtered.filter((e) => matchesLogLevels(e, levelFilter))
+    }
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      filtered = filtered.filter((e) => {
+        const msg = String(e.message ?? e.msg ?? "").toLowerCase()
+        return msg.includes(q)
+      })
+    }
+    return filtered
+  }, [rawEntries, levelFilter, isActive, searchQuery])
+
+  const isLoading = isActive ? logLoading : isInitialLoading
+
+  const virtualizer = useVirtualizer({
+    count: displayEntries.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 20,
+    overscan: 30,
+  })
+
+  const handleScroll = useCallback(() => {
+    const el = containerRef.current
+    if (!el) return
+    const threshold = 40
+    isNearBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+  }, [])
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: effectiveTaskId triggers scroll on task switch
+  useEffect(() => {
+    if (displayEntries.length > 0 && isNearBottomRef.current) {
+      virtualizer.scrollToIndex(displayEntries.length - 1, { align: "end" })
+    }
+  }, [displayEntries.length, virtualizer, effectiveTaskId])
+
+  const summary =
+    rawEntries.length > 0 ? (
+      <span className="text-[10px] text-muted-foreground">
+        {displayEntries.length}
+        {levelFilter.size > 0 && ` / ${rawEntries.length}`}
+      </span>
+    ) : null
+
+  return (
+    <div className={`flex flex-col min-h-0 ${isOpen ? "flex-1" : "shrink-0"}`}>
+      <SectionHeader
+        icon={FileText}
+        title={t("evolution.runLogs")}
+        isOpen={isOpen}
+        onToggle={onToggle}
+        summary={summary}
+      />
+      {isOpen && (
+        <div className="flex-1 overflow-hidden border-b border-border/30 flex flex-col">
+          {/* Toolbar: search + level filter */}
+          <div className="shrink-0 border-b border-border/30">
+            {/* Search bar (always shown; filters client-side when streaming) */}
+            <div className="flex items-center gap-1.5 px-3 py-2">
+              <Search className="size-3.5 text-muted-foreground shrink-0" />
+              <input
+                type="text"
+                value={searchInput}
+                maxLength={INPUT_LIMITS.search}
+                onChange={(e) => setSearchInput(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
+                placeholder={t("evolution.logs.searchPlaceholder", {
+                  defaultValue: "搜索日志...",
+                })}
+                aria-label={t("evolution.logs.searchPlaceholder", {
+                  defaultValue: "搜索日志",
+                })}
+                className="flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground/50"
+              />
+              {searchInput && (
+                <button
+                  type="button"
+                  onClick={clearSearch}
+                  aria-label={t("common.cancel")}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+              <span className="text-[10px] text-muted-foreground/60">
+                {t("evolution.logs.searchHint", {
+                  defaultValue: "Enter 搜索",
+                })}
+              </span>
+            </div>
+
+            {/* Level filter */}
+            <div className="flex items-center gap-0.5 px-2 py-1.5">
+              <span className="text-[10px] text-muted-foreground/60 uppercase tracking-wider mr-1">
+                {t("evolution.logs.level", { defaultValue: "Level" })}
+              </span>
+              {LOG_LEVELS.map((lv) => {
+                const isActiveLv = levelFilter.has(lv)
+                return (
+                  <button
+                    key={lv}
+                    type="button"
+                    onClick={() =>
+                      setLevelFilter((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(lv)) next.delete(lv)
+                        else next.add(lv)
+                        return next
+                      })
+                    }
+                    className={cn(
+                      "px-1.5 py-0.5 text-[10px] rounded font-medium transition-colors",
+                      isActiveLv
+                        ? "text-primary bg-primary/10 border border-primary/30"
+                        : "text-muted-foreground hover:text-foreground border border-transparent hover:border-border/40",
+                    )}
+                  >
+                    {lv}
+                  </button>
+                )
+              })}
+              {levelFilter.size > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setLevelFilter(new Set())}
+                  className="ml-0.5 p-0.5 rounded text-muted-foreground/60 hover:text-foreground hover:bg-accent/60 transition-colors"
+                  title={t("evolution.logs.clearLevel", {
+                    defaultValue: "Clear filter",
+                  })}
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {isLoading ? (
+            <div className="px-4 py-3 text-xs font-mono bg-card">
+              <div className="text-muted-foreground py-4">
+                {t("evolution.logs.loading")}
+              </div>
+            </div>
+          ) : displayEntries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 gap-3 px-4">
+              <div
+                className="p-4 rounded-full"
+                style={{
+                  background:
+                    "radial-gradient(circle, color-mix(in srgb, var(--primary) 6%, transparent) 0%, transparent 70%)",
+                }}
+              >
+                <FileText className="size-7 text-muted-foreground/50" />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {searchQuery
+                    ? t("evolution.logs.noSearchResults", {
+                        defaultValue: "未找到匹配的日志",
+                      })
+                    : levelFilter.size > 0 && rawEntries.length > 0
+                      ? t("evolution.logs.noLevelMatch", {
+                          defaultValue: "当前等级无日志",
+                        })
+                      : t("evolution.runLogsEmpty")}
+                </p>
+                <p className="text-[10px] text-muted-foreground/50">
+                  {searchQuery
+                    ? t("evolution.logs.tryDifferentSearch", {
+                        defaultValue: "尝试其他搜索关键词",
+                      })
+                    : t("evolution.runLogsEmptyHint")}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={containerRef}
+              onScroll={handleScroll}
+              className="flex-1 w-full overflow-y-auto px-4 py-3 text-xs font-mono bg-card"
+            >
+              {/* Load more button (terminal mode only) */}
+              {!isActive && hasMore && (
+                <div className="flex justify-center pb-2">
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={isLoadingMore}
+                    className="flex items-center gap-1.5 px-3 py-1 rounded text-[10px] font-medium
+                      border border-border/60 text-muted-foreground
+                      hover:text-primary hover:border-primary/40 transition-colors
+                      disabled:opacity-50"
+                  >
+                    {isLoadingMore ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <ChevronUp className="size-3" />
+                    )}
+                    {t("evolution.logs.loadMore", { defaultValue: "加载更多" })}
+                  </button>
+                </div>
+              )}
+              <div
+                style={{
+                  height: virtualizer.getTotalSize(),
+                  width: "100%",
+                  position: "relative",
+                }}
+              >
+                {virtualizer.getVirtualItems().map((virtualRow) => (
+                  <div
+                    key={virtualRow.key}
+                    ref={virtualizer.measureElement}
+                    data-index={virtualRow.index}
+                    style={{
+                      position: "absolute",
+                      top: 0,
+                      left: 0,
+                      width: "max-content",
+                      minWidth: "100%",
+                      transform: `translateY(${virtualRow.start}px)`,
+                    }}
+                  >
+                    {renderEntry(displayEntries[virtualRow.index])}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function InfoRow({
+  label,
+  value,
+  children,
+}: {
+  label: string
+  value?: string
+  children?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">
+        {label}
+      </span>
+      {children ?? (
+        <span className="text-xs text-foreground/80 break-all">{value}</span>
+      )}
+    </div>
+  )
+}
+
+interface EvolutionRightPanelProps {
+  task: TaskResponse | null
+}
+
+export default function EvolutionRightPanel({
+  task,
+}: EvolutionRightPanelProps) {
+  const {
+    isConfiguring,
+    isViewingParams,
+    isViewingAiBuildHistory,
+    selectedNodes,
+  } = useEvolution()
+  const { t } = useTranslation()
+
+  const isTuning = isConfiguring || isViewingParams || isViewingAiBuildHistory
+  const [infoOpen, setInfoOpen] = useState(true)
+  const [nodeOpen, setNodeOpen] = useState(!isTuning)
+  const [logsOpen, setLogsOpen] = useState(true)
+
+  useEffect(() => {
+    if (isTuning) {
+      setLogsOpen(true)
+    } else {
+      setNodeOpen(true)
+    }
+  }, [isTuning])
+
+  if (!task) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-xs text-muted-foreground/50">
+          {t("evolution.selectTask")}
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <PanelErrorBoundary resetKey={task.id}>
+        <TaskInfoSection
+          task={task}
+          isOpen={infoOpen}
+          onToggle={() => setInfoOpen(!infoOpen)}
+        />
+      </PanelErrorBoundary>
+      {isTuning ? (
+        <PanelErrorBoundary resetKey={task.id}>
+          <RunLogsSection
+            isOpen={logsOpen}
+            onToggle={() => setLogsOpen(!logsOpen)}
+          />
+        </PanelErrorBoundary>
+      ) : (
+        selectedNodes.length > 0 && (
+          <PanelErrorBoundary resetKey={task.id}>
+            <NodeInfoSection
+              isOpen={nodeOpen}
+              onToggle={() => setNodeOpen(!nodeOpen)}
+            />
+          </PanelErrorBoundary>
+        )
+      )}
+    </div>
+  )
+}

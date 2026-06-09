@@ -1,0 +1,1196 @@
+"""LLM4AD Command Line Interface."""
+
+from __future__ import annotations
+
+import asyncio
+import traceback
+from typing import Annotated
+
+import typer
+from dotenv import load_dotenv
+from rich.console import Console
+from rich.table import Table
+
+from llm4ad import LLM4AD, __version__
+from llm4ad.coder.base import BaseCoder
+from llm4ad.evaluator.base import BaseEvaluator
+from llm4ad.infra.provider.base import BaseProvider
+from llm4ad.orchestrator.base import BaseOrchestrator
+from llm4ad.planner.base import BasePlanner
+
+app = typer.Typer(
+    name="llm4ad",
+    help="LLM4AD: A Platform for Algorithm Design with Large Language Model",
+    add_completion=False,
+    no_args_is_help=True,
+)
+console = Console()
+# Diagnostics for the ``--json`` paths go to stderr so stdout stays a
+# parseable JSON document for backend integrations.
+err_console = Console(stderr=True)
+
+evolve_app = typer.Typer(
+    name="evolve",
+    help="Inspect and clean EVOLVE markers in a task package.",
+    no_args_is_help=True,
+)
+app.add_typer(evolve_app, name="evolve")
+
+load_dotenv()
+
+@app.command("version")
+def show_version():
+    """Show LLM4AD version information."""
+    console.print(f"LLM4AD version: [bold green]{__version__}[/bold green]")
+
+
+@app.command("list")
+def list_components(
+    type: str | None = typer.Option(
+        None,
+        "--type",
+        "-t",
+        help="Filter by component type (provider, planner, coder, evaluator, orchestrator)",
+    )
+):
+    """List all available registered components."""
+    registries = {
+        "provider": ("LLM Providers", BaseProvider),
+        "planner": ("Planners", BasePlanner),
+        "coder": ("Coders", BaseCoder),
+        "evaluator": ("Evaluators", BaseEvaluator),
+        "orchestrator": ("Orchestrators", BaseOrchestrator),
+    }
+
+    if type:
+        if type not in registries:
+            console.print(f"[bold red]Error:[/bold red] Unknown component type '{type}'")
+            console.print(f"Available types: {', '.join(registries.keys())}")
+            raise typer.Exit(code=1)
+        registries = {type: registries[type]}
+
+    # Map component types to their module paths for discovery
+    component_modules = {
+        "provider": "llm4ad.infra.provider",
+        "planner": "llm4ad.planner",
+        "coder": "llm4ad.coder",
+        "evaluator": "llm4ad.evaluator",
+        "orchestrator": "llm4ad.orchestrator",
+    }
+
+    for component_type, (title, registry) in registries.items():
+        # Auto-discover components in the module
+        if component_type in component_modules:
+            registry.discover(component_modules[component_type])
+
+        table = Table(title=title)
+        table.add_column("Name", style="cyan")
+        table.add_column("Description", style="magenta")
+
+        component_names = registry.list()
+        if not component_names:
+            table.add_row("No components registered", "")
+        else:
+            for name in component_names:
+                cls = registry.get(name)
+                description = cls.__doc__.split("\n")[0] if cls.__doc__ else "No description"
+                table.add_row(name, description.strip())
+
+        console.print(table)
+        console.print()
+
+
+@app.command("run")
+def run_pipeline(
+    config: str = typer.Argument(..., help="Path to pipeline configuration file (YAML/JSON)"),
+    output_dir: str | None = typer.Option(
+        None, "--output-dir", "-o", help="Directory to override output base directory"
+    ),
+    resume: str | None = typer.Option(
+        None, "--resume", "-r", help="Resume from checkpoint at this path"
+    ),
+):
+    """Run an algorithm design pipeline with the given configuration."""
+    console.print(f"[bold blue]Running pipeline with config:[/bold blue] {config}")
+
+    # Create LLM4AD instance and run
+    try:
+        llm4ad = LLM4AD(config)
+
+        if output_dir is not None:
+            # Override base directory in config
+            llm4ad.config = llm4ad.config.model_copy(update={"base_dir": output_dir})
+
+        # Print run summary
+        llm4ad.print_run_summary()
+
+        result = asyncio.run(llm4ad.run(resume_from_checkpoint=resume))
+
+        console.print()
+        if result.state.value == "completed":
+            if result.best_individual is not None:
+                # Show multi-objective results when available
+                objective_metrics = result.metadata.get("objective_metrics")
+                if objective_metrics:
+                    per_best = result.metadata.get("per_objective_best", {})
+                    obj_values = [
+                        per_best.get(m, {}).get("value") for m in objective_metrics
+                    ]
+                    obj_str = ", ".join(
+                        f"{m}={v:.4f}" if v is not None else f"{m}=N/A"
+                        for m, v in zip(objective_metrics, obj_values, strict=True)
+                    )
+                    console.print(
+                        f"[bold green]Pipeline completed successfully![/bold green] "
+                        f"Best objectives: [bold]\\[{obj_str}][/bold]"
+                    )
+                else:
+                    console.print(
+                        f"[bold green]Pipeline completed successfully![/bold green] "
+                        f"Best score: [bold]{result.best_individual.score:.4f}[/bold]"
+                    )
+                # Show elitist archive summary for multi-objective runs
+                archive = result.metadata.get("elitist_archive")
+                if archive:
+                    console.print(
+                        f"Elitist archive: [bold]{len(archive)}[/bold] non-dominated solutions"
+                    )
+                    for entry in archive:
+                        objs = entry.get("objectives", {})
+                        obj_str = ", ".join(
+                            f"{m}={v:.4f}" if v is not None else f"{m}=N/A"
+                            for m, v in objs.items()
+                        )
+                        console.print(f"  - {entry.get('name', entry['id'])}: \\[{obj_str}]")
+            else:
+                console.print(
+                    "[bold green]Pipeline completed successfully![/bold green] "
+                    "No valid individual was found."
+                )
+            if (
+                result.best_individual is not None
+                and hasattr(result.best_individual, "metadata")
+                and "worktree_name" in result.best_individual.metadata
+            ):
+                wt_name = result.best_individual.metadata["worktree_name"]
+                console.print(f"Best algorithm worktree: {wt_name}")
+            # Point users at the stable best/ directory written by
+            # ``LLM4AD.run()`` so they don't need to chase the worktree.
+            try:
+                run_dir = llm4ad.get_run_directory()
+                best_subdir = llm4ad.config.workspace.subdirs.get("best", "best")
+                best_dir = run_dir / best_subdir
+                if best_dir.exists():
+                    console.print(f"Best snapshot: [cyan]{best_dir}[/cyan]")
+            except Exception:  # noqa: BLE001 - cosmetic hint only
+                pass
+        else:
+            console.print(f"[bold red]Pipeline {result.state.value}[/bold red]")
+
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {str(e)}")
+        console.print("\n[dim]Full stack trace:[/dim]")
+        traceback.print_exc()
+        raise typer.Exit(code=1) from e
+
+
+@app.command("config")
+def show_config():
+    """Show current LLM4AD configuration."""
+    console.print("[yellow]Configuration system is not yet implemented[/yellow]")
+    # TODO: Implement config loading and display here
+
+
+@app.command("chat")
+def chat_consultant(
+    provider_name: str | None = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="Provider name defined in global settings (~/.llm4ad/settings.yaml). "
+        "Uses the first provider in global settings if not specified.",
+    ),
+    resume: str | None = typer.Option(
+        None,
+        "--resume",
+        "-r",
+        help="Resume a previous session (session ID or state file path)",
+    ),
+    output: str = typer.Option(
+        "./",
+        "--output",
+        "-o",
+        help="Output directory for generated files",
+    ),
+    list_sessions: bool = typer.Option(
+        False,
+        "--list-sessions",
+        "-l",
+        help="List saved sessions and exit",
+    ),
+    max_repair: int = typer.Option(
+        10,
+        "--max-repair",
+        help="Maximum auto-repair attempts during validation",
+    ),
+    prompt: str | None = typer.Option(
+        None,
+        "--prompt",
+        help="Provide full problem description directly (skips Phase 1 conversation)",
+    ),
+    non_interactive: bool = typer.Option(
+        False,
+        "--non-interactive",
+        help="Skip all interactive phases (requires --prompt). "
+        "Builds and writes output without user confirmation.",
+    ),
+    code_path: str | None = typer.Option(
+        None,
+        "--code-path",
+        help="Path to existing algorithm code (used with --prompt)",
+    ),
+    data_path: str | None = typer.Option(
+        None,
+        "--data-path",
+        help="Path to dataset directory or files (used with --prompt)",
+    ),
+    lang: str = typer.Option(
+        "auto",
+        "--lang",
+        help="Language for LLM responses: auto (detect from first input), en (English), zh (Chinese)",
+    ),
+    max_rounds: int | None = typer.Option(
+        None,
+        "--max-rounds",
+        help="Maximum conversation rounds to keep in context window (default: 20)",
+    ),
+    max_tokens: int | None = typer.Option(
+        None,
+        "--max-tokens",
+        help="Maximum token budget for conversation context (default: 100000)",
+    ),
+):
+    """Interactive assistant that builds a complete LLM4AD pipeline.
+
+    Guides you through describing your problem, then automatically generates
+    evaluator code, algorithm template, and pipeline configuration.
+
+    Uses a provider from global settings (~/.llm4ad/settings.yaml).
+    If --provider is not specified, the first provider in global settings is used.
+
+    Use --prompt to provide the problem description directly (skips conversation).
+    Combine with --non-interactive to skip all interactive phases.
+    """
+    from pathlib import Path
+
+    from llm4ad.config.settings import load_global_settings
+    from llm4ad.consultant.session import ConsultantSession
+    from llm4ad.consultant.state import ConversationState
+
+    # Handle --list-sessions
+    if list_sessions:
+        ConsultantSession.list_saved_sessions()
+        raise typer.Exit()
+
+    # Validate --prompt / --non-interactive combinations
+    if non_interactive and not prompt:
+        console.print(
+            "[bold red]Error:[/bold red] --non-interactive requires --prompt"
+        )
+        raise typer.Exit(code=1)
+    if prompt is not None and prompt.strip() == "":
+        console.print("[bold red]Error:[/bold red] --prompt cannot be empty")
+        raise typer.Exit(code=1)
+    if lang not in ("auto", "en", "zh"):
+        console.print(
+            f"[bold red]Error:[/bold red] --lang must be one of: auto, en, zh (got '{lang}')"
+        )
+        raise typer.Exit(code=1)
+    if code_path and not Path(code_path).exists():
+        console.print(
+            f"[bold red]Error:[/bold red] code path not found: {code_path}"
+        )
+        raise typer.Exit(code=1)
+    if data_path and not Path(data_path).exists():
+        console.print(
+            f"[bold red]Error:[/bold red] data path not found: {data_path}"
+        )
+        raise typer.Exit(code=1)
+
+    # Load global settings and resolve provider
+    global_data = load_global_settings()
+    global_providers = global_data.get("providers", [])
+
+    # When resuming, load saved provider name as fallback
+    if resume and provider_name is None:
+        try:
+            state = ConversationState.load(resume)
+            provider_name = state.provider_config.get("provider_name")
+        except FileNotFoundError:
+            console.print(f"[bold red]Error:[/bold red] Session not found: {resume}")
+            raise typer.Exit(code=1) from None
+
+    if not global_providers:
+        console.print(
+            "[bold red]Error:[/bold red] No providers found in global settings.\n"
+            "Please configure providers in [bold]~/.llm4ad/settings.yaml[/bold].\n"
+            "Example:\n"
+            "  providers:\n"
+            '    - name: "default"\n'
+            '      type: "openai_compatible"\n'
+            '      api_key: "${OPENAI_API_KEY}"\n'
+            '      model: "gpt-4o"'
+        )
+        raise typer.Exit(code=1)
+
+    # Resolve provider config from global settings
+    providers_by_name = {p.get("name", "default"): p for p in global_providers}
+
+    if provider_name is None:
+        # Use first provider
+        provider_cfg = global_providers[0]
+        provider_name = provider_cfg.get("name", "default")
+        console.print(f"[dim]Using default provider: {provider_name}[/dim]")
+    else:
+        if provider_name not in providers_by_name:
+            console.print(
+                f"[bold red]Error:[/bold red] Provider '{provider_name}' "
+                f"not found in global settings.\n"
+                f"Available providers: {', '.join(providers_by_name.keys())}"
+            )
+            raise typer.Exit(code=1)
+        provider_cfg = providers_by_name[provider_name]
+
+    # Discover and create provider
+    BaseProvider.discover("llm4ad.infra.provider")
+    provider_type = provider_cfg.get("type", "openai_compatible")
+    try:
+        provider = BaseProvider.create(provider_type, config=provider_cfg)
+    except Exception as e:
+        console.print(f"[bold red]Error creating provider:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
+
+    # Build state-persistable provider config (for resume)
+    persistable_provider_config = {"provider_name": provider_name}
+
+    # Resolve context limits: CLI flags > settings.yaml > defaults
+    from llm4ad.consultant.context_limiter import ContextLimits
+
+    settings_consultant = global_data.get("consultant", {})
+    settings_context = settings_consultant.get("context_limits", {})
+    resolved_max_rounds = (
+        max_rounds
+        or settings_context.get("max_rounds")
+        or ContextLimits.max_rounds
+    )
+    resolved_max_tokens = (
+        max_tokens
+        or settings_context.get("max_tokens")
+        or ContextLimits.max_tokens
+    )
+    context_limits = ContextLimits(
+        max_rounds=resolved_max_rounds,
+        max_tokens=resolved_max_tokens,
+    )
+
+    # Run the session
+    session = ConsultantSession(
+        provider=provider,
+        console=console,
+        resume_path=resume,
+        output_path=output,
+        provider_config=persistable_provider_config,
+        max_repair_attempts=max_repair,
+        prompt=prompt,
+        non_interactive=non_interactive,
+        code_path=code_path,
+        data_path=data_path,
+        lang=lang,
+        context_limits=context_limits,
+    )
+
+    try:
+        config_path = asyncio.run(session.run())
+    except (KeyboardInterrupt, EOFError):
+        raise typer.Exit(code=130) from None
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        traceback.print_exc()
+        raise typer.Exit(code=1) from e
+
+    if config_path:
+        # User chose to start evolution immediately
+        # Resolve to absolute path so LLM4AD can derive config_dir for
+        # relative path resolution (evaluator module, dataset, etc.)
+        config_path = str(Path(config_path).resolve())
+        console.print(f"\n[bold blue]Starting pipeline with config:[/bold blue] {config_path}")
+        try:
+            llm4ad = LLM4AD(config_path)
+            llm4ad.print_run_summary()
+            result = asyncio.run(llm4ad.run())
+
+            console.print()
+            if result.state.value == "completed":
+                console.print(
+                    f"[bold green]Pipeline completed![/bold green] "
+                    f"Best score: [bold]{result.best_individual.score:.4f}[/bold]"
+                )
+            else:
+                console.print(f"[bold red]Pipeline {result.state.value}[/bold red]")
+        except Exception as e:
+            console.print(f"[bold red]Error:[/bold red] {e}")
+            traceback.print_exc()
+            raise typer.Exit(code=1) from e
+
+
+@app.command("advise")
+def advise_block_cmd(
+    goal: str | None = typer.Option(
+        None,
+        "--goal",
+        "-g",
+        help="The algorithm-evolution goal to analyze against",
+    ),
+    config: str | None = typer.Option(
+        None,
+        "--config",
+        "-f",
+        help="Path to an advisor config YAML (alternative to the flags below)",
+    ),
+    repo: str | None = typer.Option(
+        None,
+        "--repo",
+        "-r",
+        help="Path to the repository containing the block",
+    ),
+    file: str | None = typer.Option(
+        None,
+        "--file",
+        help="Path (relative to --repo or absolute) of the file with the block",
+    ),
+    line_range: str | None = typer.Option(
+        None,
+        "--range",
+        help="1-based inclusive line range, format: START:END (e.g. 42:87)",
+    ),
+    code: str | None = typer.Option(
+        None,
+        "--code",
+        help="Raw snippet to analyze instead of a repo path",
+    ),
+    block_id: str | None = typer.Option(
+        None,
+        "--block-id",
+        help=(
+            "Stable id from `llm4ad evolve check` (e.g. 'algo/sort.py#12-162') "
+            "to select a single block in --repo"
+        ),
+    ),
+    all_blocks: bool = typer.Option(
+        False,
+        "--all",
+        help="Analyze every well-formed EVOLVE block in --repo (concurrent)",
+    ),
+    max_concurrency: int = typer.Option(
+        5,
+        "--max-concurrency",
+        help="Max parallel LLM calls when --all is set (default: 5)",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the advisor's LLM (or env: LLM4AD_ADVISE_API_KEY)",
+    ),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Model name for the advisor's LLM (default: gpt-4o)",
+    ),
+    base_url: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Base URL for the advisor's LLM provider",
+    ),
+    provider_type: str = typer.Option(
+        "openai_compatible",
+        "--provider-type",
+        help="Provider type: openai, anthropic, openai_compatible",
+    ),
+    provider_name: str | None = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="Use a named provider from global settings (~/.llm4ad/settings.yaml)",
+    ),
+    lang: str = typer.Option(
+        "en",
+        "--lang",
+        help="Language for the LLM's free-text answers: 'en' or 'zh' (default: en)",
+        case_sensitive=False,
+    ),
+    pretty: bool = typer.Option(
+        False,
+        "--pretty",
+        help="Render a human-readable Rich panel instead of JSON (default: JSON)",
+    ),
+):
+    """Analyze a user-selected block (or every block) against an evolution goal.
+
+    Returns an envelope ``{"goal", "repo_path", "lang", "count", "results", "errors"}``
+    so the frontend never needs to discriminate single-block vs --all output.
+    Default output is JSON on stdout. Use --pretty for a human-readable panel.
+
+    Examples:
+        llm4ad advise -g "minimize comparisons" -r ./solver --file algo.py --range 42:87
+        llm4ad advise -g "reduce tour length"   -r ./solver --block-id 'algo/sort.py#12-162'
+        llm4ad advise -g "tune all heuristics"  -r ./solver --all --max-concurrency 8
+        llm4ad advise --config advise_config.yaml
+    """
+    import json as _json
+
+    from llm4ad.advisor.pipeline import (
+        AdvisorError,
+        advise_block,
+        advise_blocks,
+        advise_from_config,
+    )
+
+    lang_normalized = lang.lower()
+    if lang_normalized not in ("en", "zh"):
+        console.print(
+            f"[bold red]Error:[/bold red] --lang must be 'en' or 'zh' (got {lang!r})"
+        )
+        raise typer.Exit(code=1)
+
+    # Mutual-exclusion gates so a frontend that builds the wrong combination
+    # gets a fast structured failure before any provider is contacted.
+    if all_blocks:
+        for name, value in (
+            ("--code", code),
+            ("--file", file),
+            ("--range", line_range),
+            ("--block-id", block_id),
+        ):
+            if value:
+                console.print(
+                    f"[bold red]Error:[/bold red] --all cannot be combined with {name}."
+                )
+                raise typer.Exit(code=1)
+        if not repo:
+            console.print("[bold red]Error:[/bold red] --all requires --repo.")
+            raise typer.Exit(code=1)
+
+    if block_id is not None:
+        for name, value in (
+            ("--code", code),
+            ("--file", file),
+            ("--range", line_range),
+        ):
+            if value:
+                console.print(
+                    f"[bold red]Error:[/bold red] --block-id cannot be combined with {name}."
+                )
+                raise typer.Exit(code=1)
+
+    if code is not None and (repo or file or line_range or block_id):
+        console.print(
+            "[bold red]Error:[/bold red] --code cannot be combined with "
+            "--repo, --file, --range, or --block-id."
+        )
+        raise typer.Exit(code=1)
+
+    parsed_range: tuple[int, int] | None = None
+    if line_range is not None:
+        try:
+            start_str, end_str = line_range.split(":", 1)
+            parsed_range = (int(start_str), int(end_str))
+        except ValueError as exc:
+            console.print(
+                f"[bold red]Error:[/bold red] --range must be START:END (got {line_range!r})"
+            )
+            raise typer.Exit(code=1) from exc
+
+    try:
+        if config is not None:
+            result = asyncio.run(advise_from_config(config))
+        elif all_blocks:
+            if goal is None:
+                console.print(
+                    "[bold red]Error:[/bold red] --goal is required with --all."
+                )
+                raise typer.Exit(code=1)
+            result = asyncio.run(
+                advise_blocks(
+                    goal,
+                    repo,  # type: ignore[arg-type]
+                    api_key=api_key,
+                    model=model,
+                    base_url=base_url,
+                    provider_type=provider_type,
+                    provider_name=provider_name,
+                    max_concurrency=max_concurrency,
+                    lang=lang_normalized,  # type: ignore[arg-type]
+                )
+            )
+        else:
+            if goal is None:
+                console.print(
+                    "[bold red]Error:[/bold red] Either --goal or --config is required."
+                )
+                raise typer.Exit(code=1)
+            result = asyncio.run(
+                advise_block(
+                    goal,
+                    repo_path=repo,
+                    code=code,
+                    file_path=file,
+                    line_range=parsed_range,
+                    block_id=block_id,
+                    api_key=api_key,
+                    model=model,
+                    base_url=base_url,
+                    provider_type=provider_type,
+                    provider_name=provider_name,
+                    lang=lang_normalized,  # type: ignore[arg-type]
+                )
+            )
+    except AdvisorError as e:
+        console.print(f"[bold red]Advisor error:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        traceback.print_exc()
+        raise typer.Exit(code=1) from e
+
+    if pretty:
+        from rich.panel import Panel
+
+        for idx, advice in enumerate(result.results, start=1):
+            summary = advice.block_summary or "(no summary)"
+            ref = advice.block_ref or {}
+            location = (
+                f"{ref.get('file_path', '?')}:"
+                f"{ref.get('line_start', '?')}-{ref.get('line_end', '?')}"
+                if ref
+                else "(snippet)"
+            )
+            title = (
+                f"Evolve-Block Advice [{idx}/{result.count}] — {location}"
+                if result.count > 1
+                else "Evolve-Block Advice"
+            )
+            body = (
+                f"[bold]Summary[/bold]\n{summary}\n\n"
+                f"[bold]Feasibility[/bold]: {advice.feasibility or '?'} "
+                f"— {advice.feasibility_reason}\n"
+                f"[bold]Significance[/bold]: {advice.significance or '?'} "
+                f"— {advice.significance_reason}\n"
+            )
+            if advice.concerns:
+                body += "\n[bold]Concerns[/bold]\n"
+                body += "\n".join(f"  • {c}" for c in advice.concerns) + "\n"
+            if advice.suggestions:
+                body += "\n[bold]Suggestions[/bold]\n"
+                body += "\n".join(f"  • {s}" for s in advice.suggestions) + "\n"
+            if advice.rationale:
+                body += f"\n[bold]Rationale[/bold]\n{advice.rationale}\n"
+            console.print(Panel(body, title=title, border_style="blue"))
+        if result.errors:
+            err_body = "\n".join(
+                f"  • {e['block_id']}: {e['error']}" for e in result.errors
+            )
+            console.print(
+                Panel(err_body, title="Failed blocks", border_style="red")
+            )
+    else:
+        print(_json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+
+
+@app.command("advise-init")
+def advise_init_config(
+    output: str = typer.Option(
+        "advise_config.yaml",
+        "--output",
+        "-o",
+        help="Output path for the advisor config template",
+    ),
+    goal: str = typer.Option(
+        "",
+        "--goal",
+        "-g",
+        help="Pre-fill the evolution goal field",
+    ),
+):
+    """Generate an advisor config YAML template.
+
+    Creates a config file that users fill in with their LLM credentials,
+    goal, and block location, then run with: llm4ad advise --config <file>
+
+    Examples:
+        llm4ad advise-init
+        llm4ad advise-init -o my_advise.yaml
+        llm4ad advise-init -g "minimize sort comparisons"
+    """
+    from llm4ad.advisor.advisor_config import generate_advisor_config
+
+    path = generate_advisor_config(output, goal=goal)
+    console.print(f"[bold green]Advisor config template created:[/bold green] {path}")
+    console.print(f"[dim]Edit it, then run: llm4ad advise --config {path}[/dim]")
+
+
+@app.command("recommend")
+def recommend_blocks_cmd(
+    goal: str | None = typer.Option(
+        None,
+        "--goal",
+        "-g",
+        help="The algorithm-evolution goal to analyze against",
+    ),
+    repo: str | None = typer.Option(
+        None,
+        "--repo",
+        "-r",
+        help="Path to the repository to scan",
+    ),
+    api_key: str | None = typer.Option(
+        None,
+        "--api-key",
+        help="API key for the recommender's LLM (or env: LLM4AD_ADVISE_API_KEY)",
+    ),
+    model: str | None = typer.Option(
+        None,
+        "--model",
+        help="Model name for the recommender's LLM (default: gpt-4o)",
+    ),
+    base_url: str | None = typer.Option(
+        None,
+        "--base-url",
+        help="Base URL for the recommender's LLM provider",
+    ),
+    provider_type: str = typer.Option(
+        "openai_compatible",
+        "--provider-type",
+        help="Provider type: openai, anthropic, openai_compatible",
+    ),
+    provider_name: str | None = typer.Option(
+        None,
+        "--provider",
+        "-p",
+        help="Use a named provider from global settings (~/.llm4ad/settings.yaml)",
+    ),
+    max_concurrency: int = typer.Option(
+        5,
+        "--max-concurrency",
+        help="Max parallel advice calls during enrichment",
+    ),
+    include_raw: bool = typer.Option(
+        False,
+        "--include-raw",
+        help="Include the raw discovery-LLM text in the output (debug)",
+    ),
+    lang: str = typer.Option(
+        "en",
+        "--lang",
+        help="Language for the LLM's free-text answers: 'en' or 'zh' (default: en)",
+        case_sensitive=False,
+    ),
+    pretty: bool = typer.Option(
+        False,
+        "--pretty",
+        help="Render a human-readable Rich panel instead of JSON (default: JSON)",
+    ),
+):
+    """Scan a repo against a goal and recommend evolve-block targets.
+
+    Returns three tiers: a core (minimal) block, optional expanded variants
+    of core, and optional alternative blocks elsewhere. LLM4AD evolves one
+    block per run — the tiers are alternative CHOICES, not co-evolution.
+
+    Examples:
+        llm4ad recommend -g "reduce TSP tour length" -r ./solver
+        llm4ad recommend -g "improve policy reward" -r ./lander --pretty
+    """
+    import json as _json
+
+    from llm4ad.advisor.pipeline import AdvisorError
+    from llm4ad.advisor.recommender import recommend_blocks
+
+    if goal is None or not goal.strip():
+        console.print("[bold red]Error:[/bold red] --goal is required.")
+        raise typer.Exit(code=1)
+    if repo is None or not repo.strip():
+        console.print("[bold red]Error:[/bold red] --repo is required.")
+        raise typer.Exit(code=1)
+
+    lang_normalized = lang.lower()
+    if lang_normalized not in ("en", "zh"):
+        console.print(
+            f"[bold red]Error:[/bold red] --lang must be 'en' or 'zh' (got {lang!r})"
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        result = asyncio.run(
+            recommend_blocks(
+                goal,
+                repo,
+                api_key=api_key,
+                model=model,
+                base_url=base_url,
+                provider_type=provider_type,
+                provider_name=provider_name,
+                max_concurrency=max_concurrency,
+                include_raw=include_raw,
+                lang=lang_normalized,  # type: ignore[arg-type]
+            )
+        )
+    except AdvisorError as e:
+        console.print(f"[bold red]Recommender error:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
+    except Exception as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        traceback.print_exc()
+        raise typer.Exit(code=1) from e
+
+    if pretty:
+        _render_recommendations_pretty(result)
+    else:
+        print(_json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
+
+
+def _render_recommendations_pretty(result) -> None:
+    """Render a RepoRecommendations as a stack of Rich panels."""
+    from rich.panel import Panel
+
+    def _block_body(rec) -> str:
+        loc = f"{rec.file_path}:{rec.line_start}-{rec.line_end} ({rec.size_lines} lines)"
+        body = f"[bold]Location[/bold]: {loc}\n"
+        if rec.discovery_rationale:
+            body += f"[bold]Why suggested[/bold]: {rec.discovery_rationale}\n"
+        if rec.advice is not None:
+            a = rec.advice
+            if a.feasibility or a.feasibility_reason:
+                body += (
+                    f"[bold]Feasibility[/bold]: {a.feasibility or '?'} "
+                    f"— {a.feasibility_reason}\n"
+                )
+            if a.significance or a.significance_reason:
+                body += (
+                    f"[bold]Significance[/bold]: {a.significance or '?'} "
+                    f"— {a.significance_reason}\n"
+                )
+            if a.concerns:
+                body += "[bold]Concerns[/bold]\n"
+                body += "\n".join(f"  • {c}" for c in a.concerns) + "\n"
+            if a.suggestions:
+                body += "[bold]Suggestions[/bold]\n"
+                body += "\n".join(f"  • {s}" for s in a.suggestions) + "\n"
+            if a.rationale:
+                body += f"[bold]Rationale[/bold]\n{a.rationale}\n"
+        elif rec.advice_error:
+            body += f"[yellow]Advice enrichment failed:[/yellow] {rec.advice_error}\n"
+        return body
+
+    console.print(f"\n[bold]Goal:[/bold] {result.goal}")
+    console.print(f"[bold]Repo:[/bold] {result.repo_path}\n")
+
+    if result.core is not None:
+        console.print(
+            Panel(_block_body(result.core), title="Core (recommended)", border_style="green")
+        )
+    for i, rec in enumerate(result.expanded):
+        console.print(
+            Panel(
+                _block_body(rec),
+                title=f"Expanded variant {i + 1}",
+                border_style="cyan",
+            )
+        )
+    for i, rec in enumerate(result.alternatives):
+        console.print(
+            Panel(
+                _block_body(rec),
+                title=f"Alternative {i + 1}",
+                border_style="magenta",
+            )
+        )
+    if result.dropped_candidates:
+        console.print(
+            f"\n[dim]Dropped {len(result.dropped_candidates)} invalid candidate(s) "
+            f"(see --pretty=false JSON output for details).[/dim]"
+        )
+    if result.unreadable_files:
+        console.print(
+            f"[dim]{len(result.unreadable_files)} file(s) skipped during compaction.[/dim]"
+        )
+
+
+@app.command("init")
+def init_config(
+    level: str = typer.Argument(
+        "minimal",
+        help="Configuration level: minimal, standard, or complete",
+    ),
+    output: str = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Output file name. Defaults to '<level>.yaml'.",
+    ),
+):
+    """Generate a configuration template in the current directory.
+
+    Copies the chosen template (minimal, standard, or complete) from the
+    bundled templates to the current working directory so you can edit it
+    directly.
+    """
+    from llm4ad.consultant.templates import _read_template_file, get_template_info
+
+    valid_levels = ("minimal", "standard", "complete")
+    if level not in valid_levels:
+        console.print(
+            f"[bold red]Error:[/bold red] Unknown level '{level}'. "
+            f"Choose from: {', '.join(valid_levels)}"
+        )
+        raise typer.Exit(code=1)
+
+    try:
+        info = get_template_info(level)
+        content = _read_template_file(info.filename)
+    except (ValueError, FileNotFoundError) as e:
+        console.print(f"[bold red]Error:[/bold red] {e}")
+        raise typer.Exit(code=1) from e
+
+    from pathlib import Path
+
+    dest = Path(output) if output else Path(f"{level}.yaml")
+
+    if dest.exists():
+        from rich.prompt import Confirm
+
+        if not Confirm.ask(f"[yellow]{dest} already exists. Overwrite?[/yellow]", default=False):
+            raise typer.Exit()
+
+    dest.write_text(content, encoding="utf-8")
+    console.print(f"[bold green]Created {dest}[/bold green] ({info.display_name} template)")
+    console.print(f"[dim]Edit it, then run: llm4ad run {dest}[/dim]")
+
+
+@evolve_app.command("check")
+def evolve_check(
+    path: str = typer.Argument(
+        ".",
+        help="Task package directory to inspect (defaults to current directory).",
+    ),
+    include: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include",
+            "-i",
+            help="Glob pattern to include (repeatable). Overrides defaults.",
+        ),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude",
+            "-e",
+            help="Glob pattern to exclude (repeatable). Overrides defaults.",
+        ),
+    ] = None,
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit InspectResult.to_dict() as JSON on stdout.",
+    ),
+):
+    """Inspect EVOLVE markers in a task package.
+
+    Reports total well-formed blocks, unbalanced or nested markers, and
+    per-file details. The ``--json`` flag emits the same structured result
+    the Python API returns, suitable for backend consumption.
+    """
+    import json as _json
+
+    from llm4ad.infra.repo_analyzer import inspect_path
+
+    result = inspect_path(
+        path,
+        include=list(include) if include else None,
+        exclude=list(exclude) if exclude else None,
+    )
+
+    if json_output:
+        print(_json.dumps(result.to_dict(), ensure_ascii=False))
+        raise typer.Exit(code=0 if result.ok else 1)
+
+    if "error" in result.summary:
+        console.print(f"[bold red]Error:[/bold red] {result.summary['error']}")
+        raise typer.Exit(code=1)
+
+    summary_table = Table(title="EVOLVE Inspection Summary", show_header=False)
+    summary_table.add_column("Field", style="cyan")
+    summary_table.add_column("Value", style="magenta")
+    summary_table.add_row("Root", result.root)
+    summary_table.add_row("Files scanned", str(result.summary["files_scanned"]))
+    summary_table.add_row("Files with blocks", str(result.summary["files_with_blocks"]))
+    summary_table.add_row("Total blocks", str(result.summary["blocks"]))
+    summary_table.add_row("Total issues", str(result.summary["issues"]))
+    summary_table.add_row(
+        "Active block",
+        result.active_block_id or "[dim]none[/dim]",
+    )
+    console.print(summary_table)
+
+    blocks_table = Table(title="Discovered Blocks")
+    blocks_table.add_column("Active", style="bold yellow", justify="center")
+    blocks_table.add_column("File", style="cyan")
+    blocks_table.add_column("Lines", style="green")
+    blocks_table.add_column("Style", style="yellow")
+    blocks_table.add_column("Name", style="magenta")
+    any_block = False
+    for f in result.files:
+        for b in f.blocks:
+            any_block = True
+            block_id = f"{f.path}#{b.line_start}-{b.line_end}"
+            is_active = block_id == result.active_block_id
+            blocks_table.add_row(
+                "*" if is_active else "",
+                f.path,
+                f"{b.line_start}-{b.line_end}",
+                b.comment_style,
+                b.block_name or "-",
+            )
+    if any_block:
+        console.print(blocks_table)
+        if result.active_block_id:
+            console.print(
+                "[dim]* marks the block planners currently feed to the coder "
+                "(evolvable_blocks[0]).[/dim]"
+            )
+    else:
+        console.print("[dim]No EVOLVE blocks found.[/dim]")
+
+    issues_table = Table(title="Issues")
+    issues_table.add_column("File", style="cyan")
+    issues_table.add_column("Line", style="green")
+    issues_table.add_column("Kind", style="red")
+    issues_table.add_column("Detail", style="yellow")
+    any_issue = False
+    for f in result.files:
+        for issue in f.issues:
+            any_issue = True
+            detail = issue.detail or ""
+            if issue.related_line is not None:
+                detail = f"outer START at line {issue.related_line}"
+            issues_table.add_row(f.path, str(issue.line), issue.kind, detail)
+    if any_issue:
+        console.print(issues_table)
+
+    if result.ok:
+        console.print("[bold green]OK[/bold green]: no issues found.")
+        raise typer.Exit(code=0)
+    console.print(f"[bold red]Found {result.summary['issues']} issue(s).[/bold red]")
+    raise typer.Exit(code=1)
+
+
+@evolve_app.command("clean")
+def evolve_clean(
+    path: str = typer.Argument(
+        ".",
+        help="Task package directory to clean (defaults to current directory).",
+    ),
+    apply: bool = typer.Option(
+        False,
+        "--apply",
+        help="Actually rewrite files. Default is dry-run (no writes).",
+    ),
+    include: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--include",
+            "-i",
+            help="Glob pattern to include (repeatable). Overrides defaults.",
+        ),
+    ] = None,
+    exclude: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--exclude",
+            "-e",
+            help="Glob pattern to exclude (repeatable). Overrides defaults.",
+        ),
+    ] = None,
+    json_output: bool = typer.Option(
+        False,
+        "--json",
+        help="Emit CleanResult.to_dict() as JSON on stdout.",
+    ),
+):
+    """Remove EVOLVE START/END marker lines from a task package.
+
+    Marker lines are dropped while block bodies and surrounding context are
+    preserved. Default is dry-run; pass ``--apply`` to write changes back
+    to disk in place.
+    """
+    import json as _json
+
+    from llm4ad.infra.repo_analyzer import clean_path
+
+    result = clean_path(
+        path,
+        apply=apply,
+        include=list(include) if include else None,
+        exclude=list(exclude) if exclude else None,
+    )
+
+    if json_output:
+        print(_json.dumps(result.to_dict(), ensure_ascii=False))
+        raise typer.Exit(code=0 if result.ok else 1)
+
+    if "error" in result.summary:
+        console.print(f"[bold red]Error:[/bold red] {result.summary['error']}")
+        raise typer.Exit(code=1)
+
+    summary_table = Table(title="EVOLVE Clean Summary", show_header=False)
+    summary_table.add_column("Field", style="cyan")
+    summary_table.add_column("Value", style="magenta")
+    summary_table.add_row("Root", result.root)
+    summary_table.add_row("Mode", "apply" if result.applied else "dry-run")
+    summary_table.add_row("Files changed", str(result.summary["files_changed"]))
+    summary_table.add_row("Lines removed", str(result.summary["lines_removed"]))
+    summary_table.add_row("Errors", str(result.summary["errors"]))
+    console.print(summary_table)
+
+    files_table = Table(title="Files")
+    files_table.add_column("File", style="cyan")
+    files_table.add_column("Removed lines", style="green")
+    files_table.add_column("Written", style="yellow")
+    files_table.add_column("Error", style="red")
+    for entry in result.files:
+        files_table.add_row(
+            entry["path"],
+            ", ".join(str(n) for n in entry["removed_lines"]),
+            "yes" if entry.get("written") else "no",
+            entry.get("error", ""),
+        )
+    if result.files:
+        console.print(files_table)
+
+    if not result.applied:
+        console.print("[dim]Dry-run only. Re-run with --apply to write changes.[/dim]")
+
+    if not result.ok:
+        console.print(
+            f"[bold red]Encountered {result.summary['errors']} error(s).[/bold red]"
+        )
+        raise typer.Exit(code=1)
+
+
+def main():
+    """Main entrypoint for the CLI."""
+    app()
+
+
+if __name__ == "__main__":
+    main()

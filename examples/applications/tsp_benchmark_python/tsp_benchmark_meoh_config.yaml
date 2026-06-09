@@ -1,0 +1,120 @@
+# LLM4AD Configuration for Python TSP Benchmark using MEoH
+
+project_name: "tsp_benchmark_python_meoh"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve Python TSP solvers with MEoH, jointly optimizing tour length and runtime; stdlib and numpy only."
+description_zh: "使用 MEoH 联合优化 TSP 求解器的路径长度与运行时间，仅允许标准库与 numpy。"
+
+background: |
+  In this benchmark, we aim to evolve efficient algorithms for the Traveling Salesman Problem (TSP) in Python.
+  The primary objective is to minimize total tour length while visiting all cities exactly once and returning to
+  the starting city. We also track the runtime of the generated solver itself, so MEoH can optimize both solution
+  quality and execution efficiency.
+  IMPORTANT CONSTRAINT: You may ONLY use the Python standard library and numpy.
+  Do NOT import scipy, sklearn, networkx, ortools, or any other third-party package.
+  Any solution using unavailable packages will fail immediately.
+
+base_dir: "./runs"
+random_seed: 42
+
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 1.2
+    max_tokens: 4096
+    timeout: 120.0
+
+evaluator:
+  module: "tsp_evaluator.py:PythonTSPEvaluator"
+  timeout: 180.0
+  max_retries: 2
+  parallel: true
+  # batch_size: 2  # Not yet used by dispatcher — concurrency controlled by max_workers
+  max_workers: 4
+  dataset:
+    mode: "directory"
+    path: "data/TSP100"
+    recursive: false
+  metrics:
+    - "tour_length"
+    - "candidate_runtime_ms"
+    - "evaluation_total_ms"
+    - "valid_tour"
+  timing_metrics:
+    enabled: true
+    include_in_score: false
+    score_components:
+      - "candidate_runtime_ms"
+    aggregation: "sum"
+    weights:
+      candidate_runtime_ms: 0.1
+
+evolution:
+  type: "meoh"
+  planner_type: "meoh_evolution"
+  max_llm_concurrency: 4
+  max_generations: 4
+  max_sample_nums: 800
+  checkpoint_interval: 1
+  max_checkpoints: 10
+  early_stop_patience: 5
+  early_stop_threshold: 1e-6
+
+  pop_size: 2
+  selection_num: 2
+  num_samplers: 1
+
+  objective_metrics:
+    - "tour_length"
+    - "candidate_runtime_ms"
+
+  use_e2_operator: true
+  use_m1_operator: true
+  use_m2_operator: true
+
+  generation_mode: "survival"
+
+  batch_per_operator: true
+
+coder:
+  type: "custom"
+  provider: "default"
+  provider_name: "openai"
+  timeout: 180.0
+  max_retries: 2
+  temperature: 0.7
+  max_gen_tokens: 4096
+
+planner:
+  mask_evolve_blocks: true
+
+memory:
+  embedding_dim: 768
+  max_entries: 1000
+  similarity_threshold: 0.8
+  decay_factor: 0.99
+  auto_extraction:
+    enabled: false
+
+logging:
+  level: "INFO"
+  console: true
+  json_format: false
+
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "./tsp_algorithm"
+  auto_initialize: true
+  auto_cleanup: true
+
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 50
+  include: ["*.py"]
+  exclude: [".git/**", "__pycache__/**", "*.pyc"]

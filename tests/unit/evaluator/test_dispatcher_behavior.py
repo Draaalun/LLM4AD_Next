@@ -1,0 +1,101 @@
+"""Tests for dispatcher behavior data aggregation."""
+
+from llm4ad.evaluator.base import EvaluationResult
+from llm4ad.evaluator.behavior import BehaviorData, BehaviorVisualization
+from llm4ad.evaluator.dispatcher import EvaluationDispatcher
+
+
+def _make_behavior(instance_id: str, observation: str = "obs") -> BehaviorData:
+    """Create a BehaviorData with a dummy visualization."""
+    return BehaviorData(
+        observation=observation,
+        visualizations=[
+            BehaviorVisualization(
+                label="Test Viz",
+                media_type="image/png",
+                data_base64="iVBORw0KGgo=",  # minimal valid base64
+            )
+        ],
+        instance_id=instance_id,
+    )
+
+
+def _make_result(
+    score: float,
+    behavior: BehaviorData | None = None,
+    success: bool = True,
+) -> EvaluationResult:
+    """Create an EvaluationResult with optional behavior."""
+    return EvaluationResult(
+        score=score,
+        metrics={"reward": score * 100},
+        success=success,
+        behavior=behavior,
+        duration_ms=10.0,
+    )
+
+
+class TestDispatcherBehaviorAggregation:
+    """Tests for _aggregate_results behavior data handling."""
+
+    def _dispatcher(self) -> EvaluationDispatcher:
+        """Create a minimal dispatcher (only _aggregate_results is tested)."""
+        from unittest.mock import patch
+
+        with patch.object(EvaluationDispatcher, "__init__", lambda self, *a, **kw: None):
+            d = EvaluationDispatcher.__new__(EvaluationDispatcher)
+        return d
+
+    def test_single_result_passes_behavior_through(self):
+        """Single result's behavior should be returned unchanged."""
+        bd = _make_behavior("inst_1")
+        result = _make_result(0.8, behavior=bd)
+
+        aggregated = self._dispatcher()._aggregate_results([result])
+
+        assert aggregated.behavior is bd
+
+    def test_multiple_results_picks_best_behavior(self):
+        """Best-scoring instance's behavior should be primary."""
+        bd1 = _make_behavior("inst_1", "low score")
+        bd2 = _make_behavior("inst_2", "high score")
+        bd3 = _make_behavior("inst_3", "mid score")
+
+        results = [
+            _make_result(0.5, behavior=bd1),
+            _make_result(0.9, behavior=bd2),
+            _make_result(0.3, behavior=bd3),
+        ]
+
+        aggregated = self._dispatcher()._aggregate_results(results)
+
+        assert aggregated.behavior is bd2
+        assert aggregated.behavior.observation == "high score"
+
+        all_behavior = aggregated.metadata.get("all_behavior", [])
+        assert len(all_behavior) == 3
+
+    def test_no_behavior_returns_none(self):
+        """Results without behavior should aggregate to None behavior."""
+        results = [
+            _make_result(0.5),
+            _make_result(0.9),
+        ]
+
+        aggregated = self._dispatcher()._aggregate_results(results)
+
+        assert aggregated.behavior is None
+
+    def test_partial_behavior_picks_best_with_behavior(self):
+        """When only some results have behavior, pick best among those."""
+        bd = _make_behavior("inst_2", "only one with behavior")
+        results = [
+            _make_result(0.9),  # best score but no behavior
+            _make_result(0.5, behavior=bd),
+        ]
+
+        aggregated = self._dispatcher()._aggregate_results(results)
+
+        assert aggregated.behavior is bd
+        all_behavior = aggregated.metadata.get("all_behavior", [])
+        assert len(all_behavior) == 1

@@ -1,0 +1,267 @@
+# ==============================================================================
+# LLM4AD Configuration for Symbolic Regression (LLM + EC Bi-Level)
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "symbolic_regression"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve symbolic regression expressions via bi-level optimization: LLM proposes structure, BFGS tunes constants."
+description_zh: "采用双层优化进化符号回归表达式：LLM 提出公式结构，BFGS 调优内部常数以最小化 MSE。"
+
+# Background description of the task, passed to LLM for context
+background: |
+  In this benchmark, we aim to evolve symbolic regression expressions following the
+  LLM + EC bi-level optimization approach. The LLM proposes the equation structure
+  with all tunable parameters explicitly placed in the params array. Bi-level
+  optimization then uses BFGS gradient-based search to find the optimal values
+  for these parameters before evaluating the expression. The goal is to find
+  a symbolic expression that matches the data with minimal mean squared error (MSE).
+
+  Dataset has 3 input variables. Input ranges: x0 in (1, 5), x1 in (1, 5), x2 in (1, 5).
+  Discover the underlying mathematical expression from the data.
+# Random seed for reproducibility across all components
+random_seed: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  auto_create: true
+  subdirs:
+    output: "output"
+    logs: "logs"
+    checkpoints: "checkpoints"
+    generated: "generated"
+    cache: "cache"
+    temp: "temp"
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120.0
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"
+  provider: "default"
+
+  # --- Generation Parameters ---
+  timeout: 300.0
+  max_retries: 3
+  temperature: 0.7
+  max_gen_tokens: 4096
+  context_max_tokens: 4096
+  default_extension: "py"
+  log_to_console: false
+
+  # --- Prompt Template ---
+  prompt_template: |
+    DO NOT WRITE CLASSES, PARSERS, OR HELPER FUNCTIONS. YOU WILL BE PENALIZED FOR COMPLICATED CODE.
+
+    **NON-NEGOTIABLE REQUIREMENTS - VIOLATION = 0 SCORE**:
+    - ONLY write the equation function body
+    - RETURN DIRECTLY: `return params[0] * np.sin(params[1] * x0) + params[2] * np.sin(params[3] * x1 ** 2)`
+    - **MANDATORY: EVERY parameter MUST use explicit index notation: params[0], params[1], params[2], ...**
+    - **WRITE params[N] 100% OF THE TIME - NO EXCEPTIONS**
+    - **MAX 30 PARAMETERS TOTAL: params[0] to params[29] ONLY - DO NOT USE params[30] OR HIGHER**
+    - **CRITICAL: TUPLE UNPACKING WILL CRASH THE EVALUATOR AND GIVE YOU 0 SCORE**
+
+    **💡 SMART PARAMETER STRATEGY - HIGHER SCORE = FEWER PARAMETERS**:
+    - **Use fewer parameters**: Each extra parameter adds a 0.1% penalty to your MSE score!
+    - **Reuse parameters creatively**: `params[0] * np.sin(x0) + params[0] * np.cos(x1)` (same param for multiple terms)
+    - **Smart combinations**: `params[0] * np.sin(x0 + params[1])` (one param controls both amplitude and phase)
+    - **Avoid full polynomials**: You don't need EVERY interaction term - pick the most promising ones!
+    - **Example - 4 params**: `return params[0] * np.sin(x0 + params[1]) + params[2] * np.exp(-params[3] * x1**2)`
+    - **DO NOT DO THIS - EVER**: `a, b, c, d = params` (tuple unpacking is FORBIDDEN)
+    - **DO NOT DO THIS**: `# Unpack parameters for readability` followed by unpacking
+    - **DO NOT DO THIS**: Any assignment like `x = params[0]` - use `params[0]` INLINE in the equation
+    - NO intermediate variables for parameters
+    - NO classes like `Node`, `Expr`, etc.
+    - NO helper functions inside the EVOLVE block
+    - NO docstrings or comments
+
+    **INPUT VARIABLE NAMING**: The dataset has 3 input variables, named: `x0, x1, x2`
+      - Always use zero-indexed naming: `x0`, `x1`, `x2`, ...
+      - Use the EXACT variable names shown in the function signature below.
+
+    **AVOID NaN PRODUCTION - CRITICAL FOR SUCCESS**:
+    - **AVOID**: `np.log(x0)` - use `np.log(np.abs(x0) + 1e-8)` instead
+    - **AVOID**: `np.sqrt(x0)` - use `np.sqrt(np.abs(x0) + 1e-8)` instead
+    - **AVOID**: `x0 ** x1` - use `np.power(np.abs(x0) + 1e-8, x1)` instead
+    - **AVOID**: `np.exp(x0)` for large values - use `np.exp(np.clip(x0, -10, 10))` instead
+    - **AVOID**: Division by zero - use `1.0 / (x0 + 1e-8)` instead of `1.0 / x0`
+
+    Problem: Design the equation structure using inputs `x0, x1, x2`; BFGS will optimize the params values.
+
+    ```python
+    import numpy as np
+
+    # EVOLVE_START
+    def equation(x0: np.ndarray, x1: np.ndarray, x2: np.ndarray, params: np.ndarray) -> np.ndarray:
+        return params[0] * np.sin(params[1] * x0) + params[2] * np.sin(params[3] * x1 ** 2)
+    # EVOLVE_END
+    ```
+
+    Available numpy functions: np.sin, np.cos, np.exp, np.log, np.sqrt, np.tan, np.abs
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"
+  provider: "default"
+
+  # Selection strategies
+  selection_strategy: "weighted"
+  parent_selection_strategy: "tournament"
+
+  # Build configuration
+  build:
+    script: {}
+
+  # Samplers
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  type: "custom"
+
+  # Custom evaluator module path
+  module: "predefined_evaluator.py:PredefinedBilevelEvaluator"
+
+  # --- Execution Settings ---
+  timeout: 120.0
+  max_retries: 2
+  parallel: true
+  batch_size: 5
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "directory"
+    path: "data/train"
+    recursive: false
+
+  # --- Metrics ---
+  metrics:
+    - "mse"
+    - "rmse"
+    - "mae"
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"
+
+  # --- Common Parameters ---
+  max_generations: 20
+  early_stop_patience: 10
+  early_stop_threshold: 0.00000001
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+  # --- Island GA Parameters ---
+  elite_ratio: 0.1
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+  parent_selection_strategy: "tournament"
+  survival_selection_strategy: "truncation"
+  tournament_size: 3
+
+  # Island-specific
+  num_islands: 4
+  island_population_size: 10
+  migration_interval: 5
+  migration_rate: 0.1
+  migration_strategy: "random"
+  migration_topology: "full"
+  parallel_islands: true
+
+  # --- Display ---
+  human_readable_timing: true
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: false
+  max_images_per_prompt: 3
+  image_max_size_kb: 512
+  include_observation_text: true
+  two_step_refinement: false
+  behavior_storage: "rendered"
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"
+  format: null
+  file: null
+  console: true
+  json_format: false
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "./sr_algorithm"
+  remote_url: null
+  revision: null
+  auto_initialize: true
+  auto_cleanup: false
+  max_worktree_age_days: 7
+  max_worktrees: 100
+  default_branch: "main"
+  commit_message_template: "Algorithm {algorithm_id}: {description}"
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include:
+    - "*.py"
+  exclude:
+    - ".git/**"
+    - "__pycache__/**"
+    - "*.pyc"
+
+# ==============================================================================
+# SECTION 11: Embedding Configuration (防近亲繁殖/代码多样性)
+# ==============================================================================
+embedding:
+  type: openai_compatible
+  model: text-embedding-3-small
+  api_key: "${EMBEDDING_API_KEY}"
+  base_url: "${EMBEDDING_BASE_URL}"
+  dim: 1536
+  embedding_func_max_async: 10

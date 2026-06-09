@@ -1,0 +1,175 @@
+# LLM4AD Configuration for Python TSP Benchmark
+# Python version - no C++ compilation required!
+
+project_name: "tsp_benchmark_python"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve Python TSP solvers minimizing total tour length across instances of varying sizes."
+description_zh: "进化 Python TSP 求解算法，在不同规模实例上最小化总路径长度。"
+
+background: |
+  In this benchmark, we aim to evolve efficient algorithms for the Traveling Salesman Problem (TSP) in Python. The goal is to minimize the total tour length while visiting all cities exactly once and returning to the starting city. The evolved algorithms will be evaluated on multiple TSP instances of varying sizes, measuring tour length and execution time.
+
+base_dir: "./runs"
+random_seed: 42
+
+# LLM Providers
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    base_url: ${LLM_BASE_URL}
+    api_key: "${LLM_API_KEY}"
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 4096
+    timeout: 120.0
+
+# Evaluator configuration - custom Python evaluator (no compilation needed)
+evaluator:
+  type: "custom"
+  module: "tsp_evaluator.py:PythonTSPEvaluator"
+  timeout: 60.0
+  max_retries: 2
+  parallel: true
+  batch_size: 5
+  # Dataset configuration - load all files from the small directory
+  dataset:
+    mode: "directory"
+    path: "data/small"
+    recursive: false
+  metrics: ["tour_length", "execution_time_ms", "valid_tour"]
+
+# Evolution parameters
+evolution:
+  type: "island_ga"
+  max_generations: 5
+  elite_ratio: 0.1
+  mutation_rate: 0.3
+  crossover_rate: 0.5
+  survival_selection_strategy: "truncation"
+  tournament_size: 3
+  early_stop_patience: 10
+  early_stop_threshold: 1e-6
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+  num_islands: 1
+  island_population_size: 2
+
+# Planner configuration with samplers
+planner:
+  type: "llm_evolution"
+  provider: "default"
+  selection_strategy: "weighted"
+  parent_selection_strategy: "tournament"
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+# Coder configuration
+coder:
+  type: "custom"
+  provider: "default"
+  provider_name: ""  # only needed for type: "opencode"
+  prompt_template: |
+    You are tasked with implementing a TSP (Traveling Salesman Problem) solver in Python.
+
+    Problem Description:
+    Given a set of cities with their (x, y) coordinates, find the shortest possible tour that visits each city exactly once and returns to the starting city.
+
+    Your task is to implement the function signature below:
+
+    ```python
+    import sys
+    import json
+    import numpy as np
+
+    # Your TSP solver function should be between EVOLVE_START and EVOLVE_END markers
+    # EVOLVE_START
+    def nearest_neighbor_tsp(nodes):
+        '''Solve TSP and return tour as list of node indices'''
+        pass
+    # EVOLVE_END
+
+    def calculate_tour_length(nodes, tour):
+        '''Calculate total tour length (including return to start)'''
+        if len(tour) < 2:
+            return 0.0
+        total = 0.0
+        nodes = np.array(nodes)
+        for i in range(len(tour) - 1):
+            total += np.linalg.norm(nodes[tour[i]] - nodes[tour[i + 1]])
+        total += np.linalg.norm(nodes[tour[-1]] - nodes[tour[0]])
+        return total
+
+    def solve(nodes):
+        tour = nearest_neighbor_tsp(nodes)
+        tour_length = calculate_tour_length(nodes, tour)
+        return {
+            "tour": tour,
+            "tour_length": tour_length,
+        }
+
+    def main():
+        if len(sys.argv) < 2:
+            sys.exit(1)
+        input_data = json.loads(sys.argv[1])
+        nodes = input_data.get("nodes", [])
+        result = solve(nodes)
+        print(json.dumps(result))
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    Requirements:
+    1. The function must return a valid tour: a list of all node indices [0, 1, 2, ..., n-1] in some order
+    2. Each city must be visited exactly once (no duplicates, no missing cities)
+    3. The tour implicitly returns to the starting city (tour is a Hamiltonian cycle)
+    4. Minimize the total Euclidean distance traveled
+
+    Input format:
+    - nodes: List of (x, y) coordinate tuples, e.g., [(0.0, 0.0), (1.0, 2.0), (3.0, 1.0), ...]
+
+    Output format:
+    - tour: List of node indices in visitation order, e.g., [0, 3, 1, 2, ...]
+    - tour_length: Total length of the tour (including return to start)
+
+    Your goal is to find shorter tours than the baseline Nearest Neighbor heuristic.
+    Consider approaches like:
+    - 2-opt local search improvements
+    - Multi-start constructions
+    - Smart initialization strategies
+    - Hybrid approaches combining multiple heuristics
+
+    Provide only the complete implementation of the nearest_neighbor_tsp function between EVOLVE_START and EVOLVE_END markers.
+
+# Memory configuration
+memory:
+  embedding_dim: 768
+  max_entries: 1000
+  similarity_threshold: 0.8
+  decay_factor: 0.99
+
+# Logging configuration
+logging:
+  level: "INFO"
+  console: true
+  json_format: false
+
+# Version control configuration
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "./tsp_algorithm"
+  auto_initialize: true
+  auto_cleanup: true
+
+# Repository analyzer configuration
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include: ["*.py"]
+  exclude: [".git/**", "__pycache__/**", "*.pyc"]

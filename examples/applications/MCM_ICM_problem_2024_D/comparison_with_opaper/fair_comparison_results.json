@@ -1,0 +1,62 @@
+{
+  "2417004 (NSGA-II + Network Model)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.4557516908764208,
+    "recreation": 0.7089500269240784,
+    "ecosystem": 0.9848026289278002,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 1.0,
+    "overall_score": 0.9264189120119768
+  },
+  "2417831 (GA + AHP Weighting)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.48000077321737544,
+    "recreation": 0.903786714109231,
+    "ecosystem": 0.9983107667022321,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 1.0,
+    "overall_score": 0.8658401994900828
+  },
+  "2419588 (MPC + Rolling Horizon)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.48635349624016017,
+    "recreation": 0.22013769198772767,
+    "ecosystem": 0.4792606702640592,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 0.8598282053424584,
+    "overall_score": 0.6760976006153199
+  },
+  "2429211 (LP + Dual Timescale)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.47820557515198914,
+    "recreation": 0.4547966976389603,
+    "ecosystem": 0.8897884783706441,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 1.0,
+    "overall_score": 0.7352887078104702
+  },
+  "LLM4AD_Evolved (Linear + NSGA-II)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.45488246902633866,
+    "recreation": 0.40777242534107117,
+    "ecosystem": 0.8934120655275853,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 1.0,
+    "overall_score": 0.8134100439842492
+  },
+  "LLM4AD_Evolved (Lexicographic + PSO)": {
+    "flood_prevention": 1.0,
+    "navigation": 1.0,
+    "hydropower": 0.4915588152241269,
+    "recreation": 0.33534975174655884,
+    "ecosystem": 0.9084323120669588,
+    "municipal_water": 1.0,
+    "constraint_satisfaction": 1.0,
+    "overall_score": 0.9175562840576611
+  }
+}

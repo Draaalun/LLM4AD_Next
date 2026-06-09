@@ -1,0 +1,16 @@
+# data/profiles/profile_c.yaml
+
+name: "c"
+age: 22
+current_role: "应届毕业生，即将成为数据分析师"
+aspirations:
+  - "在两年内打下坚实的职业基础，获得晋升"
+  - "建立自己的职业社交网络"
+  - "在一线城市独立生活并管理好自己的财务"
+  - "培养一个艺术类爱好，比如绘画或陶艺"
+values:
+  - "职业成就"
+  - "独立自主"
+  - "人际连接"
+  - "创造力"
+time_horizon_years: 3

@@ -1,0 +1,261 @@
+{
+  "comparison_summary": {
+    "best_llm4ad_score": 0.6938300355752979,
+    "best_human_paper_score": 0.6664344518892537,
+    "score_ratio": 1.0411076942501718,
+    "llm4ad_wins": true,
+    "human_wins": false,
+    "winner": "LLM4AD",
+    "improvement_percent": 4.11076942501718
+  },
+  "best_llm4ad": {
+    "name": "island_2_gen_4_ind_a1e9c9a53728",
+    "genotype": {
+      "dynamics": "simple_mass_balance",
+      "constraints": "soft_penalty",
+      "objective_form": "linear_weighted",
+      "stakeholders": "core_3",
+      "solver": "nsga2",
+      "temporal": "annual_monthly",
+      "robustness": "deterministic",
+      "coupling": "equal_weight"
+    },
+    "metrics": {
+      "overall_fitness": 0.6938300355752979,
+      "constraint_satisfaction": 1.0,
+      "backtesting_deviation": 0.42698035656828115,
+      "sensitivity_score": 0.4565506232475326,
+      "flood_prevention": 1.0,
+      "navigation": 1.0,
+      "hydropower": 0.4737116233580097,
+      "recreation": 0.0,
+      "ecosystem": 0.0,
+      "municipal_water": 0.0
+    }
+  },
+  "best_human_paper": {
+    "name": "2417004 (NSGA-II + Network Model)",
+    "genotype": {
+      "dynamics": "seasonal_evap",
+      "constraints": "hard_clipping",
+      "objective_form": "linear_weighted",
+      "stakeholders": "comprehensive_5",
+      "solver": "nsga2",
+      "temporal": "annual_monthly",
+      "robustness": "deterministic",
+      "coupling": "pareto_filter"
+    },
+    "metrics": {
+      "overall_fitness": 0.6664344518892537,
+      "constraint_satisfaction": 0.9483923467030775,
+      "backtesting_deviation": 0.433516746607188,
+      "sensitivity_score": 0.44939217511678864,
+      "flood_prevention": 1.0,
+      "navigation": 0.9892339822098118,
+      "hydropower": 0.3092081613988427,
+      "recreation": 0.7730990391342525,
+      "ecosystem": 0.8428594639682474,
+      "municipal_water": 0.0
+    }
+  },
+  "all_llm4ad_results": [
+    {
+      "name": "island_2_gen_4_ind_a1e9c9a53728",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6938300355752979
+    },
+    {
+      "name": "island_2_gen_4_ind_02caecb5a744",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "stochastic_expected",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6876159672311917
+    },
+    {
+      "name": "island_1_gen_4_ind_8156066ea9b0",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "full_6",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "stochastic_expected",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6874184970254044
+    },
+    {
+      "name": "island_2_gen_4_ind_9a9e43c57068",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6851978982740757
+    },
+    {
+      "name": "island_3_gen_4_ind_503a54a8b161",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6840849860952697
+    },
+    {
+      "name": "island_0_gen_4_ind_927dd1e8fc5e",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6806337483041598
+    },
+    {
+      "name": "island_3_gen_4_ind_bd31e6c63b00",
+      "genotype": {
+        "dynamics": "stochastic_inflow",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "full_6",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "stochastic_expected",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6784330461793759
+    },
+    {
+      "name": "island_3_gen_4_ind_4b5a22457521",
+      "genotype": {
+        "dynamics": "stochastic_inflow",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "full_6",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "stochastic_expected",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6776298351987493
+    },
+    {
+      "name": "island_1_gen_4_ind_843e2ad68945",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "leaky_constraint",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6748857336233643
+    },
+    {
+      "name": "island_3_gen_4_ind_3bc6b11b072c",
+      "genotype": {
+        "dynamics": "simple_mass_balance",
+        "constraints": "hard_clipping",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "stochastic_cvar",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.67147556548487
+    }
+  ],
+  "all_paper_results": [
+    {
+      "name": "2417004 (NSGA-II + Network Model)",
+      "genotype": {
+        "dynamics": "seasonal_evap",
+        "constraints": "hard_clipping",
+        "objective_form": "linear_weighted",
+        "stakeholders": "comprehensive_5",
+        "solver": "nsga2",
+        "temporal": "annual_monthly",
+        "robustness": "deterministic",
+        "coupling": "pareto_filter"
+      },
+      "overall_fitness": 0.6664344518892537
+    },
+    {
+      "name": "2417831 (GA + AHP Weighting)",
+      "genotype": {
+        "dynamics": "flow_delay",
+        "constraints": "soft_penalty",
+        "objective_form": "linear_weighted",
+        "stakeholders": "core_3",
+        "solver": "particle_swarm",
+        "temporal": "seasonal_peak",
+        "robustness": "stochastic_expected",
+        "coupling": "ahp_hierarchy"
+      },
+      "overall_fitness": 0.6488997393438537
+    },
+    {
+      "name": "2419588 (MPC + Rolling Horizon)",
+      "genotype": {
+        "dynamics": "stochastic_inflow",
+        "constraints": "barrier_function",
+        "objective_form": "linear_weighted",
+        "stakeholders": "full_6",
+        "solver": "mpc_rolling",
+        "temporal": "multi_year",
+        "robustness": "worst_case",
+        "coupling": "equal_weight"
+      },
+      "overall_fitness": 0.6168805072495769
+    },
+    {
+      "name": "2429211 (LP + Dual Timescale)",
+      "genotype": {
+        "dynamics": "seasonal_evap",
+        "constraints": "leaky_constraint",
+        "objective_form": "linear_weighted",
+        "stakeholders": "balanced_4",
+        "solver": "linear_program",
+        "temporal": "event_triggered",
+        "robustness": "stochastic_cvar",
+        "coupling": "entropy_weight"
+      },
+      "overall_fitness": 0.5685992815882502
+    }
+  ]
+}

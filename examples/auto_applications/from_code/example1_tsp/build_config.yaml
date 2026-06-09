@@ -1,0 +1,30 @@
+# ============================================================
+# LLM4AD Auto Build Configuration — from_code with EVOLVE markers
+# ============================================================
+# This example demonstrates the enhanced from_code mode:
+# the builder detects EVOLVE markers in the provided code,
+# reuses the algorithm verbatim, and only generates the
+# evaluator, config, debug runner, test, and sample data.
+# ============================================================
+
+# --- Builder LLM Configuration ---
+builder:
+  type: "openai_compatible"
+  base_url: "https://api.bltcy.ai/v1/"
+  api_key: "${LLM4AD_BUILD_API_KEY}"
+  model: "claude-opus-4-6"
+  max_repair_attempts: 4
+
+# --- Task Specification ---
+task:
+  description: |
+    Evolve efficient TSP (Traveling Salesman Problem) solvers in Python.
+    The goal is to minimize the total tour length while visiting all cities
+    exactly once and returning to the starting city. The evolved algorithms
+    will be evaluated on multiple TSP instances of varying sizes.
+  code_path: "./tsp_algorithm"
+  project_name: "tsp_multimodal"
+  multimodal: true
+  data_path: "./data/small"
+  output_dir: "../../auto_applications_output"
+  visualization_hint: 'The visualization of solution'

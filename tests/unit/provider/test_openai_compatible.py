@@ -1,0 +1,517 @@
+"""Unit tests for OpenAI-compatible provider."""
+
+from typing import List
+from unittest.mock import AsyncMock, patch
+
+import pytest
+from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessage
+from openai.types.chat.chat_completion import Choice
+from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
+from pydantic import BaseModel
+
+from llm4ad.infra.provider.base import ChatMessage, GenerationResult
+from llm4ad.infra.provider.openai_compatible import OpenAICompatibleProvider
+
+
+@pytest.fixture
+def provider_config():
+    """Default provider configuration for testing."""
+    return {
+        "api_key": "test_key",
+        "base_url": "http://localhost:8000/v1",
+        "model": "test-model",
+        "input_cost_per_million": 0.15,
+        "output_cost_per_million": 0.60,
+    }
+
+
+@pytest.fixture
+def provider(provider_config):
+    """Create an OpenAICompatibleProvider instance with mocked client."""
+    provider = OpenAICompatibleProvider(provider_config)
+    provider.client = AsyncMock()
+    return provider
+
+
+def test_provider_initialization(provider_config):
+    """Test provider initialization with custom config."""
+    provider = OpenAICompatibleProvider(provider_config)
+
+    assert provider.api_key == "test_key"
+    assert provider.base_url == "http://localhost:8000/v1"
+    assert provider.model == "test-model"
+    assert provider.input_cost_per_million == 0.15
+    assert provider.output_cost_per_million == 0.60
+
+
+def test_estimate_cost(provider):
+    """Test cost estimation functionality."""
+    # 1M input tokens = $0.15, 1M output tokens = $0.60
+    cost = provider.estimate_cost(input_tokens=1_000_000, output_tokens=1_000_000)
+    assert cost == 0.75  # 0.15 + 0.60
+
+    # 500k input, 200k output
+    cost = provider.estimate_cost(input_tokens=500_000, output_tokens=200_000)
+    assert cost == 0.075 + 0.12 == 0.195
+
+
+def test_get_model_info(provider):
+    """Test get_model_info returns correct information."""
+    info = provider.get_model_info()
+
+    assert info["name"] == "test-model"
+    assert info["provider"] == "openai_compatible"
+    assert info["base_url"] == "http://localhost:8000/v1"
+    assert info["input_cost_per_million"] == 0.15
+    assert info["output_cost_per_million"] == 0.60
+
+
+@pytest.mark.asyncio
+async def test_chat_success(provider):
+    """Test successful chat completion."""
+    # Mock response
+    mock_response = ChatCompletion(
+        id="test-id-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(role="assistant", content="This is a test response"),
+            )
+        ],
+        usage={"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+        object="chat.completion",
+        system_fingerprint="test-fingerprint",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    # Test messages
+    messages = [
+        ChatMessage(role="system", content="You are a helpful assistant"),
+        ChatMessage(role="user", content="Hello, how are you?"),
+    ]
+
+    result = await provider.chat(messages, temperature=0.7, max_tokens=100)
+
+    # Verify result
+    assert isinstance(result, GenerationResult)
+    assert result.text == "This is a test response"
+    assert result.prompt_tokens == 10
+    assert result.completion_tokens == 20
+    assert result.total_tokens == 30
+    assert result.cost_usd == (10 / 1e6) * 0.15 + (20 / 1e6) * 0.60 == pytest.approx(0.0000135)
+    assert result.model == "test-model"
+    assert result.finish_reason == "stop"
+    assert result.metadata["id"] == "test-id-123"
+    assert result.metadata["created"] == 1234567890
+    assert result.metadata["system_fingerprint"] == "test-fingerprint"
+
+    # Verify client was called correctly
+    provider.client.chat.completions.create.assert_called_once_with(
+        model="test-model",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "Hello, how are you?"},
+        ],
+        stream=False,
+        temperature=0.7,
+        max_tokens=100,
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_with_named_messages(provider):
+    """Test chat messages with name field."""
+    mock_response = ChatCompletion(
+        id="test-id-456",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(role="assistant", content="Hi Alice!"),
+            )
+        ],
+        usage={"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [
+        ChatMessage(role="user", content="Hello, my name is Alice", name="Alice"),
+    ]
+
+    await provider.chat(messages)
+
+    provider.client.chat.completions.create.assert_called_once_with(
+        model="test-model",
+        messages=[{"role": "user", "content": "Hello, my name is Alice", "name": "Alice"}],
+        stream=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_without_usage(provider):
+    """Test chat when response has no usage information."""
+    mock_response = ChatCompletion(
+        id="test-id-789",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(role="assistant", content="Response without usage"),
+            )
+        ],
+        usage=None,
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [ChatMessage(role="user", content="Hello")]
+    result = await provider.chat(messages)
+
+    assert result.prompt_tokens == 0
+    assert result.completion_tokens == 0
+    assert result.total_tokens == 0
+    assert result.cost_usd == 0.0
+
+
+@pytest.mark.asyncio
+async def test_generate(provider):
+    """Test generate (single prompt) functionality."""
+    # Mock chat response (generate delegates to chat)
+    mock_response = ChatCompletion(
+        id="gen-id-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(role="assistant", content="Generated text"),
+            )
+        ],
+        usage={"prompt_tokens": 5, "completion_tokens": 3, "total_tokens": 8},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    result = await provider.generate("Write a sentence", temperature=0.5)
+
+    assert result.text == "Generated text"
+    provider.client.chat.completions.create.assert_called_once_with(
+        model="test-model",
+        messages=[{"role": "user", "content": "Write a sentence"}],
+        stream=False,
+        temperature=0.5,
+    )
+
+
+@pytest.mark.asyncio
+async def test_chat_stream(provider):
+    """Test streaming chat completion."""
+    # Create mock chunks
+    chunks = [
+        ChatCompletionChunk(
+            id="stream-123",
+            created=1234567890,
+            model="test-model",
+            choices=[ChunkChoice(delta={"content": "Hello"}, index=0, finish_reason=None)],
+            object="chat.completion.chunk",
+        ),
+        ChatCompletionChunk(
+            id="stream-123",
+            created=1234567890,
+            model="test-model",
+            choices=[ChunkChoice(delta={"content": " world"}, index=0, finish_reason=None)],
+            object="chat.completion.chunk",
+        ),
+        ChatCompletionChunk(
+            id="stream-123",
+            created=1234567890,
+            model="test-model",
+            choices=[ChunkChoice(delta={}, index=0, finish_reason="stop")],
+            object="chat.completion.chunk",
+        ),
+    ]
+
+    # Mock async stream — create() must return a coroutine that resolves to an
+    # async iterable, matching the new StreamResponse-based contract.
+    async def mock_stream(*args, **kwargs):
+        for chunk in chunks:
+            yield chunk
+
+    async def mock_create(*args, **kwargs):
+        return mock_stream()
+
+    provider.client.chat.completions.create = mock_create
+
+    # Collect stream chunks
+    collected = []
+    stream = await provider.chat_stream([ChatMessage(role="user", content="Hi")])
+    async for chunk in stream:
+        collected.append(chunk)
+
+    assert collected == ["Hello", " world"]
+
+
+@pytest.mark.asyncio
+async def test_generate_stream(provider):
+    """Test streaming generate functionality."""
+    # Mock stream response (generate_stream delegates to chat_stream)
+    chunks = [
+        ChatCompletionChunk(
+            id="stream-gen-123",
+            created=1234567890,
+            model="test-model",
+            choices=[ChunkChoice(delta={"content": "Test"}, index=0, finish_reason=None)],
+            object="chat.completion.chunk",
+        ),
+        ChatCompletionChunk(
+            id="stream-gen-123",
+            created=1234567890,
+            model="test-model",
+            choices=[ChunkChoice(delta={"content": " stream"}, index=0, finish_reason=None)],
+            object="chat.completion.chunk",
+        ),
+    ]
+
+    async def mock_stream(*args, **kwargs):
+        for chunk in chunks:
+            yield chunk
+
+    async def mock_create(*args, **kwargs):
+        return mock_stream()
+
+    provider.client.chat.completions.create = mock_create
+
+    collected = []
+    async for chunk in provider.generate_stream("Generate something"):
+        collected.append(chunk)
+
+    assert collected == ["Test", " stream"]
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_success(provider):
+    """Test chat with schema parses response correctly."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    mock_response = ChatCompletion(
+        id="schema-id-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": 30}'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [ChatMessage(role="user", content="Tell me about a person")]
+    result = await provider.chat(messages, schema=PersonInfo)
+
+    assert isinstance(result, GenerationResult)
+    assert result.parsed is not None
+    assert result.parsed.name == "Alice"
+    assert result.parsed.age == 30
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_json_in_markdown(provider):
+    """Test chat with schema parses JSON from markdown code blocks."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    mock_response = ChatCompletion(
+        id="schema-md-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content='```json\n{"name": "Bob", "age": 25}\n```',
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [ChatMessage(role="user", content="Tell me about a person")]
+    result = await provider.chat(messages, schema=PersonInfo)
+
+    assert result.parsed is not None
+    assert result.parsed.name == "Bob"
+    assert result.parsed.age == 25
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_retry_on_parse_error(provider):
+    """Test chat with schema retries when JSON parsing fails."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+        city: str
+
+    # First response has invalid JSON
+    mock_response_1 = ChatCompletion(
+        id="retry-1",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": }'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    # Second response has valid JSON
+    mock_response_2 = ChatCompletion(
+        id="retry-2",
+        created=1234567891,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content='{"name": "Alice", "age": 30, "city": "Beijing"}',
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 80, "completion_tokens": 25, "total_tokens": 105},
+        object="chat.completion",
+    )
+
+    # Mock the API to return first invalid, then valid response
+    provider.client.chat.completions.create.side_effect = [
+        mock_response_1,
+        mock_response_2,
+    ]
+
+    messages = [ChatMessage(role="user", content="Tell me about a person")]
+    result = await provider.chat(messages, schema=PersonInfo)
+
+    # Should succeed after retry
+    assert result.parsed is not None
+    assert result.parsed.name == "Alice"
+    assert result.parsed.age == 30
+    assert result.parsed.city == "Beijing"
+
+    # Should have called API twice
+    assert provider.client.chat.completions.create.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_retry_exhausted(provider):
+    """Test chat with schema returns None when all retries exhausted."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    # Always return invalid JSON
+    mock_response = ChatCompletion(
+        id="fail-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": }'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [ChatMessage(role="user", content="Tell me about a person")]
+    result = await provider.chat(messages, schema=PersonInfo)
+
+    # Should return result with parsed=None after retries exhausted
+    assert result.parsed is None
+    # Should have called API 3 times (initial + 2 retries)
+    assert provider.client.chat.completions.create.call_count == 3
+
+
+@pytest.mark.asyncio
+async def test_chat_with_list_schema(provider):
+    """Test chat with schema that returns a list."""
+
+    class Item(BaseModel):
+        id: int
+        name: str
+
+    class ItemsList(BaseModel):
+        items: List[Item]
+        total: int
+
+    mock_response = ChatCompletion(
+        id="list-schema-123",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content='{"items": [{"id": 1, "name": "A"}, {"id": 2, "name": "B"}], "total": 2}',
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 30, "total_tokens": 80},
+        object="chat.completion",
+    )
+
+    provider.client.chat.completions.create.return_value = mock_response
+
+    messages = [ChatMessage(role="user", content="List items")]
+    result = await provider.chat(messages, schema=ItemsList)
+
+    assert result.parsed is not None
+    assert result.parsed.total == 2
+    assert len(result.parsed.items) == 2
+    assert result.parsed.items[0].name == "A"
+    assert result.parsed.items[1].name == "B"

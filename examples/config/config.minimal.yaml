@@ -1,0 +1,24 @@
+# LLM4AD Minimal Configuration
+# Only override the settings you need to change, all others use defaults.
+# The workspace will automatically create a directory structure at ./runs/{project_name}/{run_id}/
+
+project_name: "my-algorithm-design"
+
+# Configure multiple providers - one for planning, one for coding
+providers:
+  - name: "default"
+    type: "anthropic"
+    model: "claude-3-5-sonnet-20241022"
+    # API key should be set via ANTHROPIC_API_KEY environment variable
+
+evaluator:
+  type: "python"
+  metrics: ["negative_score", "runtime"]
+  dataset:
+    mode: "directory"
+    path: "./data/my_benchmark/"
+    recursive: true
+
+evolution:
+  max_generations: 50
+  population_size: 20

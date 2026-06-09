@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+  <defs>
+    <!-- Main cyan gradient -->
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00d4ff"/>
+      <stop offset="50%" stop-color="#0088ff"/>
+      <stop offset="100%" stop-color="#0055cc"/>
+    </linearGradient>
+    <!-- Glow gradient -->
+    <linearGradient id="g2" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#60efff"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+    <!-- Node gradient -->
+    <radialGradient id="g3" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#60efff"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </radialGradient>
+    <!-- Outer glow -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="glow-strong">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background circle ring -->
+  <circle cx="100" cy="100" r="88" fill="none" stroke="url(#g1)" stroke-width="1.5" opacity="0.25"/>
+  <circle cx="100" cy="100" r="78" fill="none" stroke="url(#g1)" stroke-width="0.8" opacity="0.12"/>
+
+  <!-- DNA double helix — representing evolution -->
+  <!-- Strand 1 -->
+  <path d="M58 45 C75 65, 125 65, 142 85 C125 105, 75 105, 58 125 C75 145, 125 145, 142 165"
+        fill="none" stroke="url(#g2)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)" opacity="0.9"/>
+  <!-- Strand 2 -->
+  <path d="M142 45 C125 65, 75 65, 58 85 C75 105, 125 105, 142 125 C125 145, 75 145, 58 165"
+        fill="none" stroke="url(#g1)" stroke-width="2.5" stroke-linecap="round" filter="url(#glow)" opacity="0.9"/>
+
+  <!-- Cross rungs connecting strands -->
+  <line x1="78" y1="55" x2="122" y2="55" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="68" y1="75" x2="132" y2="75" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="80" y1="95" x2="120" y2="95" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="68" y1="115" x2="132" y2="115" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="78" y1="135" x2="122" y2="135" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+  <line x1="68" y1="155" x2="132" y2="155" stroke="#00d4ff" stroke-width="1.2" opacity="0.3" stroke-linecap="round"/>
+
+  <!-- Evolution nodes on helix intersections -->
+  <circle cx="100" cy="65" r="4" fill="url(#g3)" filter="url(#glow-strong)" opacity="0.95"/>
+  <circle cx="100" cy="105" r="5" fill="url(#g3)" filter="url(#glow-strong)"/>
+  <circle cx="100" cy="145" r="4" fill="url(#g3)" filter="url(#glow-strong)" opacity="0.95"/>
+
+  <!-- Corner accent dots — circuit/tech feel -->
+  <circle cx="100" cy="37" r="2" fill="#00d4ff" opacity="0.5"/>
+  <circle cx="100" cy="173" r="2" fill="#00d4ff" opacity="0.5"/>
+
+  <!-- Upward arrow merged into top of helix — evolution/improvement -->
+  <path d="M100 28 L93 38 L97 38 L97 45 L103 45 L103 38 L107 38 Z"
+        fill="url(#g2)" filter="url(#glow)" opacity="0.85"/>
+</svg>

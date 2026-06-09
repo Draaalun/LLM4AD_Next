@@ -1,0 +1,237 @@
+# LLM4AD Configuration for TSP with DyCA (Dynamic Clustering Algorithm)
+#
+# DyCA automatically clusters the 18 diverse TSP instances into groups
+# (small-random, clustered, large-random) and evolves specialist algorithms
+# for each cluster while maintaining cross-cluster diversity.
+
+project_name: "tsp_dyca"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve TSP solvers with DyCA, auto-clustering 18 diverse instances and breeding specialist algorithms per cluster."
+description_zh: "使用 DyCA 自动聚类 18 个多样 TSP 实例，并为每个簇培育专用求解算法。"
+
+background: |
+  We aim to evolve efficient algorithms for the Traveling Salesman Problem (TSP).
+  The dataset contains diverse instances: small random (10-20 cities),
+  clustered layouts (30-50 cities in spatial clusters), and large random
+  (60-100 cities). Different instance types may benefit from different strategies:
+  - Small: exhaustive local search or exact methods
+  - Clustered: cluster-first-route-second approaches
+  - Large: fast constructive heuristics with targeted local search
+  The goal is to evolve algorithms that handle this diversity well.
+
+base_dir: "./runs"
+random_seed: 42
+
+# LLM Providers
+providers:
+  - name: "default"
+    type: "openai_compatible"
+    # Use environment variables or set directly
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: "gpt-4o-mini"
+    temperature: 0.7
+    max_tokens: 8192
+    timeout: 120.0
+
+# Evaluator — custom PythonTSPEvaluator, using the diverse dataset
+evaluator:
+  type: "custom"
+  module: "tsp_evaluator.py:PythonTSPEvaluator"
+  timeout: 120.0
+  max_retries: 2
+  parallel: true
+  batch_size: 6
+  dataset:
+    mode: "directory"
+    path: "data/diverse"
+    recursive: false
+  metrics: ["tour_length", "execution_time_ms", "valid_tour"]
+
+# Evolution — DyCA orchestrator
+evolution:
+  type: "dyca"
+  # Pass background to DyCA (EvolutionConfig allows extra fields)
+  background: |
+    We aim to evolve efficient algorithms for the Traveling Salesman Problem (TSP).
+    The dataset contains diverse instances: small random (10-20 cities),
+    clustered layouts (30-50 cities in spatial clusters), and large random
+    (60-100 cities). Different instance types may benefit from different strategies.
+
+  # General evolution parameters
+  max_generations: 4
+  population_size: 5
+  elite_ratio: 0.1
+  parent_selection_strategy: "tournament"
+  tournament_size: 3
+
+  # DyCA-specific parameters
+  n_clusters: 2               # Auto-select via elbow method
+  clustering_method: "kmeans"
+  recluster_interval: 5       # Check reclustering every 5 generations
+  ari_threshold: 0.8          # Stability threshold for cluster labels
+  n_anchors: 2                # Anchor algorithms for feature extraction (must <= population_size)
+
+  # Pool sizes
+  generalist_pool_size: 8
+  specialist_pool_size: 6
+  complementary_pool_size: 6
+  elite_archive_size: 3
+
+  # SOS (Save Our Specialist) — trigger after 3 stagnant generations
+  sos_stagnation_threshold: 3
+
+  # Resource allocation
+  base_complementary_ratio: 0.2
+  offspring_per_generation: 5  # New individuals per generation
+
+  # Early stopping and checkpoints
+  early_stop_patience: 10
+  early_stop_threshold: 1e-6
+  checkpoint_interval: 5
+  max_checkpoints: 3
+
+# Planner — must include DyCA samplers
+planner:
+  type: "llm_evolution"
+  provider: "default"
+  selection_strategy: "weighted"
+  samplers:
+    - name: "init_sampler"
+    - name: "e1_sampler"
+      config:
+        temperature: 0.7
+    - name: "e2_sampler"
+      config:
+        temperature: 0.9
+    - name: "m1_sampler"
+      config:
+        temperature: 0.5
+    - name: "m2_sampler"
+      config:
+        temperature: 1.0
+    - name: "summary_sampler"
+      config:
+        temperature: 0.7
+    - name: "complementary_cross_sampler"
+      config:
+        temperature: 0.8
+    # Keep standard samplers as fallbacks
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+# Coder configuration
+coder:
+  type: "custom"
+  provider: "default"
+  timeout: 180.0
+  max_retries: 2
+  temperature: 0.7
+  max_gen_tokens: 4096
+  # type: "claude_code"
+  # api_key: ${ANTHROPIC_AUTH_TOKEN}
+  # base_url: ${ANTHROPIC_BASE_URL}
+  # model: ${ANTHROPIC_MODEL}
+  # provider_name: ""  # only needed for type: "opencode"
+  # prompt_template: |
+  #   You are tasked with implementing a TSP (Traveling Salesman Problem) solver in Python.
+
+  #   Problem Description:
+  #   Given a set of cities with their (x, y) coordinates, find the shortest possible tour that visits each city exactly once and returns to the starting city.
+
+  #   Your task is to implement the function signature below:
+
+  #   ```python
+  #   import sys
+  #   import json
+  #   import numpy as np
+
+  #   # Your TSP solver function should be between EVOLVE_START and EVOLVE_END markers
+  #   # EVOLVE_START
+  #   def nearest_neighbor_tsp(nodes):
+  #       '''Solve TSP and return tour as list of node indices'''
+  #       pass
+  #   # EVOLVE_END
+
+  #   def calculate_tour_length(nodes, tour):
+  #       '''Calculate total tour length (including return to start)'''
+  #       if len(tour) < 2:
+  #           return 0.0
+  #       total = 0.0
+  #       nodes = np.array(nodes)
+  #       for i in range(len(tour) - 1):
+  #           total += np.linalg.norm(nodes[tour[i]] - nodes[tour[i + 1]])
+  #       total += np.linalg.norm(nodes[tour[-1]] - nodes[tour[0]])
+  #       return total
+
+  #   def solve(nodes):
+  #       tour = nearest_neighbor_tsp(nodes)
+  #       tour_length = calculate_tour_length(nodes, tour)
+  #       return {
+  #           "tour": tour,
+  #           "tour_length": tour_length,
+  #       }
+
+  #   def main():
+  #       if len(sys.argv) < 2:
+  #           sys.exit(1)
+  #       input_data = json.loads(sys.argv[1])
+  #       nodes = input_data.get("nodes", [])
+  #       result = solve(nodes)
+  #       print(json.dumps(result))
+
+  #   if __name__ == "__main__":
+  #       main()
+  #   ```
+
+  #   Requirements:
+  #   1. The function must return a valid tour: a list of all node indices [0, 1, 2, ..., n-1] in some order
+  #   2. Each city must be visited exactly once (no duplicates, no missing cities)
+  #   3. The tour implicitly returns to the starting city (tour is a Hamiltonian cycle)
+  #   4. Minimize the total Euclidean distance traveled
+
+  #   Input format:
+  #   - nodes: List of (x, y) coordinate tuples, e.g., [(0.0, 0.0), (1.0, 2.0), (3.0, 1.0), ...]
+
+  #   Output format:
+  #   - tour: List of node indices in visitation order, e.g., [0, 3, 1, 2, ...]
+  #   - tour_length: Total length of the tour (including return to start)
+
+  #   Your goal is to find shorter tours than the baseline Nearest Neighbor heuristic.
+  #   Consider approaches like:
+  #   - 2-opt local search improvements
+  #   - Multi-start constructions
+  #   - Smart initialization strategies
+  #   - Hybrid approaches combining multiple heuristics
+
+  #   Provide only the complete implementation of the nearest_neighbor_tsp function between EVOLVE_START and EVOLVE_END markers.
+
+# Memory configuration
+memory:
+  embedding_dim: 768
+  max_entries: 1000
+  similarity_threshold: 0.8
+  decay_factor: 0.99
+
+# Logging
+logging:
+  level: "INFO"
+  console: true
+  json_format: false
+
+# Version control
+version_control:
+  enabled: true
+  type: "git_worktree"
+  local_path: "tsp_algorithm"
+  auto_initialize: true
+  auto_cleanup: true
+
+# Repository analyzer
+repo_analyzer:
+  type: "evolve_detector"
+  context_lines_before: 5
+  context_lines_after: 5
+  include: ["*.py"]
+  exclude: [".git/**", "__pycache__/**", "*.pyc"]

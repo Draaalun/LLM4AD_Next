@@ -1,0 +1,738 @@
+import * as d3 from "d3"
+import { ChevronDown } from "lucide-react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useEvolution } from "@/hooks/useEvolution"
+import { cn, formatScore } from "@/lib/utils"
+import { ISLAND_COLORS } from "./island-ga-mock-data"
+
+type ViewMode = "global" | "instance"
+
+interface GenerationStats {
+  generation: number
+  maxScore: number
+  avgScore: number
+}
+
+interface NodeNameInfo {
+  name: string
+  island: number
+  generationCount: number
+}
+
+interface InstanceTrendLine {
+  name: string
+  color: string
+  points: Array<{ generation: number; rawScore: number }>
+}
+
+const MARGIN = { top: 28, right: 20, bottom: 36, left: 54 }
+const MAX_COLOR = "#00d4ff"
+const AVG_COLOR = "#a66cff"
+
+const SUB_VIEWS: Array<{ value: ViewMode; labelKey: string }> = [
+  { value: "global", labelKey: "evolution.panel.trend.globalTrend" },
+  { value: "instance", labelKey: "evolution.panel.trend.instanceTrend" },
+]
+
+export default function TrendPanel() {
+  const { t } = useTranslation()
+  const { evolutionData, currentGeneration } = useEvolution()
+
+  const [viewMode, setViewMode] = useState<ViewMode>("global")
+  const [selectedNodeNames, setSelectedNodeNames] = useState<Set<string>>(
+    new Set(),
+  )
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
+
+  const chartContainerRef = useRef<HTMLDivElement>(null)
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  useEffect(() => {
+    const el = chartContainerRef.current
+    if (!el) return
+    let rafId = 0
+    const ro = new ResizeObserver((entries) => {
+      cancelAnimationFrame(rafId)
+      rafId = requestAnimationFrame(() => {
+        const { width, height } = entries[0].contentRect
+        setDimensions({ width, height })
+      })
+    })
+    ro.observe(el)
+    return () => {
+      cancelAnimationFrame(rafId)
+      ro.disconnect()
+    }
+  }, [])
+
+  const globalTrendData = useMemo<GenerationStats[]>(() => {
+    const genMap = new Map<number, number[]>()
+    for (const node of evolutionData.nodes) {
+      if (node.generation > currentGeneration) continue
+      if (!genMap.has(node.generation)) genMap.set(node.generation, [])
+      genMap.get(node.generation)!.push(node.rawScore)
+    }
+    const result: GenerationStats[] = []
+    for (const [gen, scores] of genMap) {
+      result.push({
+        generation: gen,
+        maxScore: Math.max(...scores),
+        avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
+      })
+    }
+    return result.sort((a, b) => a.generation - b.generation)
+  }, [evolutionData.nodes, currentGeneration])
+
+  const availableNodes = useMemo<NodeNameInfo[]>(() => {
+    const nameMap = new Map<string, { island: number; gens: Set<number> }>()
+    for (const node of evolutionData.nodes) {
+      if (node.generation > currentGeneration) continue
+      if (!nameMap.has(node.name)) {
+        nameMap.set(node.name, { island: node.island, gens: new Set() })
+      }
+      nameMap.get(node.name)!.gens.add(node.generation)
+    }
+    return Array.from(nameMap.entries())
+      .map(([name, info]) => ({
+        name,
+        island: info.island,
+        generationCount: info.gens.size,
+      }))
+      .sort((a, b) => b.generationCount - a.generationCount)
+  }, [evolutionData.nodes, currentGeneration])
+
+  const instanceTrendData = useMemo<InstanceTrendLine[]>(() => {
+    const lines: InstanceTrendLine[] = []
+    for (const name of selectedNodeNames) {
+      const nodes = evolutionData.nodes
+        .filter((n) => n.name === name && n.generation <= currentGeneration)
+        .sort((a, b) => a.generation - b.generation)
+      if (nodes.length === 0) continue
+      const island = nodes[0].island
+      lines.push({
+        name,
+        color: ISLAND_COLORS[island % ISLAND_COLORS.length],
+        points: nodes.map((n) => ({
+          generation: n.generation,
+          rawScore: n.rawScore,
+        })),
+      })
+    }
+    return lines
+  }, [evolutionData.nodes, selectedNodeNames, currentGeneration])
+
+  const toggleNode = useCallback((name: string) => {
+    setSelectedNodeNames((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }, [])
+
+  const selectAll = useCallback(() => {
+    setSelectedNodeNames(new Set(availableNodes.map((n) => n.name)))
+  }, [availableNodes])
+
+  const clearAll = useCallback(() => {
+    setSelectedNodeNames(new Set())
+  }, [])
+
+  // D3 rendering: global trend
+  useEffect(() => {
+    if (viewMode !== "global") return
+    if (!svgRef.current || dimensions.width === 0) return
+
+    const svg = d3.select(svgRef.current)
+    svg.selectAll("*").remove()
+
+    const { width, height } = dimensions
+
+    if (globalTrendData.length === 0) {
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .attr("class", "fill-muted-foreground text-sm")
+        .text(t("evolution.panel.trend.noData"))
+      return
+    }
+
+    const innerW = width - MARGIN.left - MARGIN.right
+    const innerH = height - MARGIN.top - MARGIN.bottom
+    if (innerW <= 0 || innerH <= 0) return
+
+    const allScores = globalTrendData.flatMap((d) => [d.maxScore, d.avgScore])
+    const yMin = Math.min(...allScores)
+    const yMax = Math.max(...allScores)
+    const yPad = (yMax - yMin) * 0.08 || 1
+
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, Math.max(currentGeneration, 1)])
+      .range([MARGIN.left, width - MARGIN.right])
+
+    const yScale = d3
+      .scaleLinear()
+      .domain([yMin - yPad, yMax + yPad])
+      .nice()
+      .range([height - MARGIN.bottom, MARGIN.top])
+
+    const g = svg.append("g")
+
+    // grid
+    const yTicks = yScale.ticks(5)
+    g.selectAll(".grid-line")
+      .data(yTicks)
+      .join("line")
+      .attr("x1", MARGIN.left)
+      .attr("x2", width - MARGIN.right)
+      .attr("y1", (d) => yScale(d))
+      .attr("y2", (d) => yScale(d))
+      .attr("stroke", "currentColor")
+      .attr("class", "text-border")
+      .attr("stroke-opacity", 0.15)
+
+    // axes
+    const xAxis = d3
+      .axisBottom(xScale)
+      .ticks(Math.min(currentGeneration, 10))
+      .tickFormat((d) => String(Math.round(d as number)))
+    const yAxis = d3.axisLeft(yScale).ticks(5)
+
+    g.append("g")
+      .attr("transform", `translate(0,${height - MARGIN.bottom})`)
+      .call(xAxis)
+      .call((sel) => sel.select(".domain").attr("class", "text-border"))
+      .call((sel) =>
+        sel.selectAll(".tick text").attr("class", "fill-muted-foreground"),
+      )
+      .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
+
+    g.append("g")
+      .attr("transform", `translate(${MARGIN.left},0)`)
+      .call(yAxis)
+      .call((sel) => sel.select(".domain").attr("class", "text-border"))
+      .call((sel) =>
+        sel.selectAll(".tick text").attr("class", "fill-muted-foreground"),
+      )
+      .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
+
+    // axis labels
+    g.append("text")
+      .attr("x", width / 2)
+      .attr("y", height - 4)
+      .attr("text-anchor", "middle")
+      .attr("class", "fill-muted-foreground")
+      .style("font-size", "10px")
+      .text(t("evolution.panel.trend.generation"))
+
+    // max line
+    const maxLine = d3
+      .line<GenerationStats>()
+      .x((d) => xScale(d.generation))
+      .y((d) => yScale(d.maxScore))
+      .curve(d3.curveMonotoneX)
+
+    g.append("path")
+      .datum(globalTrendData)
+      .attr("fill", "none")
+      .attr("stroke", MAX_COLOR)
+      .attr("stroke-width", 2)
+      .attr("d", maxLine)
+
+    // avg line (dashed)
+    const avgLine = d3
+      .line<GenerationStats>()
+      .x((d) => xScale(d.generation))
+      .y((d) => yScale(d.avgScore))
+      .curve(d3.curveMonotoneX)
+
+    g.append("path")
+      .datum(globalTrendData)
+      .attr("fill", "none")
+      .attr("stroke", AVG_COLOR)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", "6,3")
+      .attr("d", avgLine)
+
+    // data points
+    g.selectAll(".dot-max")
+      .data(globalTrendData)
+      .join("circle")
+      .attr("cx", (d) => xScale(d.generation))
+      .attr("cy", (d) => yScale(d.maxScore))
+      .attr("r", 3)
+      .attr("fill", MAX_COLOR)
+
+    g.selectAll(".dot-avg")
+      .data(globalTrendData)
+      .join("circle")
+      .attr("cx", (d) => xScale(d.generation))
+      .attr("cy", (d) => yScale(d.avgScore))
+      .attr("r", 2.5)
+      .attr("fill", AVG_COLOR)
+
+    // legend
+    const legend = g
+      .append("g")
+      .attr("transform", `translate(${MARGIN.left + 8}, ${MARGIN.top - 12})`)
+
+    legend
+      .append("line")
+      .attr("x1", 0)
+      .attr("x2", 16)
+      .attr("y1", 0)
+      .attr("y2", 0)
+      .attr("stroke", MAX_COLOR)
+      .attr("stroke-width", 2)
+    legend
+      .append("text")
+      .attr("x", 20)
+      .attr("y", 4)
+      .attr("class", "fill-muted-foreground")
+      .style("font-size", "10px")
+      .text(t("evolution.panel.trend.highestScore"))
+
+    legend
+      .append("line")
+      .attr("x1", 80)
+      .attr("x2", 96)
+      .attr("y1", 0)
+      .attr("y2", 0)
+      .attr("stroke", AVG_COLOR)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", "6,3")
+    legend
+      .append("text")
+      .attr("x", 100)
+      .attr("y", 4)
+      .attr("class", "fill-muted-foreground")
+      .style("font-size", "10px")
+      .text(t("evolution.panel.trend.averageScore"))
+
+    // tooltip
+    const tooltipLine = g
+      .append("line")
+      .attr("stroke", "currentColor")
+      .attr("class", "text-muted-foreground")
+      .attr("stroke-opacity", 0.3)
+      .attr("stroke-dasharray", "3,3")
+      .style("display", "none")
+
+    const tooltipG = g
+      .append("g")
+      .style("display", "none")
+      .style("pointer-events", "none")
+
+    tooltipG
+      .append("rect")
+      .attr("rx", 4)
+      .attr("ry", 4)
+      .attr("class", "fill-card stroke-border")
+      .attr("stroke-width", 1)
+
+    const tooltipText = tooltipG
+      .append("text")
+      .attr("class", "fill-foreground")
+      .style("font-size", "10px")
+
+    const overlay = g
+      .append("rect")
+      .attr("x", MARGIN.left)
+      .attr("y", MARGIN.top)
+      .attr("width", innerW)
+      .attr("height", innerH)
+      .attr("fill", "transparent")
+
+    overlay.on("mousemove", (event: MouseEvent) => {
+      const [mx] = d3.pointer(event)
+      const gen = Math.round(xScale.invert(mx))
+      const d = globalTrendData.find((s) => s.generation === gen)
+      if (!d) return
+
+      const x = xScale(d.generation)
+      tooltipLine
+        .attr("x1", x)
+        .attr("x2", x)
+        .attr("y1", MARGIN.top)
+        .attr("y2", height - MARGIN.bottom)
+        .style("display", null)
+
+      const maxLabel = `${t("evolution.panel.trend.highestScore")}: ${formatScore(d.maxScore)}`
+      const avgLabel = `${t("evolution.panel.trend.averageScore")}: ${formatScore(d.avgScore)}`
+      const genLabel = `${t("evolution.panel.trend.generation")} ${d.generation}`
+
+      tooltipText.selectAll("tspan").remove()
+      tooltipText
+        .append("tspan")
+        .attr("x", 8)
+        .attr("dy", 14)
+        .style("font-weight", "600")
+        .text(genLabel)
+      tooltipText.append("tspan").attr("x", 8).attr("dy", 14).text(maxLabel)
+      tooltipText.append("tspan").attr("x", 8).attr("dy", 14).text(avgLabel)
+
+      const bbox = tooltipText.node()!.getBBox()
+      tooltipG
+        .select("rect")
+        .attr("width", bbox.width + 16)
+        .attr("height", bbox.height + 10)
+
+      const tx = x + 12 + bbox.width + 16 > width ? x - bbox.width - 28 : x + 12
+      const ty = MARGIN.top + 4
+      tooltipG
+        .attr("transform", `translate(${tx},${ty})`)
+        .style("display", null)
+    })
+
+    overlay.on("mouseleave", () => {
+      tooltipLine.style("display", "none")
+      tooltipG.style("display", "none")
+    })
+  }, [viewMode, globalTrendData, dimensions, currentGeneration, t])
+
+  // D3 rendering: instance trend
+  useEffect(() => {
+    if (viewMode !== "instance") return
+    if (!svgRef.current || dimensions.width === 0) return
+
+    const svg = d3.select(svgRef.current)
+    svg.selectAll("*").remove()
+
+    const { width, height } = dimensions
+
+    if (instanceTrendData.length === 0) {
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .attr("class", "fill-muted-foreground text-sm")
+        .text(
+          selectedNodeNames.size === 0
+            ? t("evolution.panel.trend.noSelection")
+            : t("evolution.panel.trend.noData"),
+        )
+      return
+    }
+
+    const innerW = width - MARGIN.left - MARGIN.right
+    const innerH = height - MARGIN.top - MARGIN.bottom
+    if (innerW <= 0 || innerH <= 0) return
+
+    const allScores = instanceTrendData.flatMap((line) =>
+      line.points.map((p) => p.rawScore),
+    )
+    const yMin = Math.min(...allScores)
+    const yMax = Math.max(...allScores)
+    const yPad = (yMax - yMin) * 0.08 || 1
+
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, Math.max(currentGeneration, 1)])
+      .range([MARGIN.left, width - MARGIN.right])
+
+    const yScale = d3
+      .scaleLinear()
+      .domain([yMin - yPad, yMax + yPad])
+      .nice()
+      .range([height - MARGIN.bottom, MARGIN.top])
+
+    const g = svg.append("g")
+
+    // grid
+    const yTicks = yScale.ticks(5)
+    g.selectAll(".grid-line")
+      .data(yTicks)
+      .join("line")
+      .attr("x1", MARGIN.left)
+      .attr("x2", width - MARGIN.right)
+      .attr("y1", (d) => yScale(d))
+      .attr("y2", (d) => yScale(d))
+      .attr("stroke", "currentColor")
+      .attr("class", "text-border")
+      .attr("stroke-opacity", 0.15)
+
+    // axes
+    const xAxis = d3
+      .axisBottom(xScale)
+      .ticks(Math.min(currentGeneration, 10))
+      .tickFormat((d) => String(Math.round(d as number)))
+    const yAxis = d3.axisLeft(yScale).ticks(5)
+
+    g.append("g")
+      .attr("transform", `translate(0,${height - MARGIN.bottom})`)
+      .call(xAxis)
+      .call((sel) => sel.select(".domain").attr("class", "text-border"))
+      .call((sel) =>
+        sel.selectAll(".tick text").attr("class", "fill-muted-foreground"),
+      )
+      .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
+
+    g.append("g")
+      .attr("transform", `translate(${MARGIN.left},0)`)
+      .call(yAxis)
+      .call((sel) => sel.select(".domain").attr("class", "text-border"))
+      .call((sel) =>
+        sel.selectAll(".tick text").attr("class", "fill-muted-foreground"),
+      )
+      .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
+
+    // axis label
+    g.append("text")
+      .attr("x", width / 2)
+      .attr("y", height - 4)
+      .attr("text-anchor", "middle")
+      .attr("class", "fill-muted-foreground")
+      .style("font-size", "10px")
+      .text(t("evolution.panel.trend.generation"))
+
+    // lines
+    const lineGen = d3
+      .line<{ generation: number; rawScore: number }>()
+      .x((d) => xScale(d.generation))
+      .y((d) => yScale(d.rawScore))
+      .curve(d3.curveMonotoneX)
+
+    for (const line of instanceTrendData) {
+      g.append("path")
+        .datum(line.points)
+        .attr("fill", "none")
+        .attr("stroke", line.color)
+        .attr("stroke-width", 1.5)
+        .attr("d", lineGen)
+
+      g.selectAll(null)
+        .data(line.points)
+        .join("circle")
+        .attr("cx", (d) => xScale(d.generation))
+        .attr("cy", (d) => yScale(d.rawScore))
+        .attr("r", 2.5)
+        .attr("fill", line.color)
+    }
+
+    // legend
+    const legendG = g
+      .append("g")
+      .attr("transform", `translate(${MARGIN.left + 8}, ${MARGIN.top - 12})`)
+
+    let lx = 0
+    for (const line of instanceTrendData) {
+      legendG
+        .append("circle")
+        .attr("cx", lx + 4)
+        .attr("cy", 0)
+        .attr("r", 3)
+        .attr("fill", line.color)
+      legendG
+        .append("text")
+        .attr("x", lx + 10)
+        .attr("y", 4)
+        .attr("class", "fill-muted-foreground")
+        .style("font-size", "9px")
+        .text(line.name)
+      lx += 10 + line.name.length * 7 + 12
+      if (lx > innerW - 40) break
+    }
+
+    // tooltip
+    const tooltipLine = g
+      .append("line")
+      .attr("stroke", "currentColor")
+      .attr("class", "text-muted-foreground")
+      .attr("stroke-opacity", 0.3)
+      .attr("stroke-dasharray", "3,3")
+      .style("display", "none")
+
+    const tooltipG = g
+      .append("g")
+      .style("display", "none")
+      .style("pointer-events", "none")
+
+    tooltipG
+      .append("rect")
+      .attr("rx", 4)
+      .attr("ry", 4)
+      .attr("class", "fill-card stroke-border")
+      .attr("stroke-width", 1)
+
+    const tooltipText = tooltipG
+      .append("text")
+      .attr("class", "fill-foreground")
+      .style("font-size", "10px")
+
+    const overlay = g
+      .append("rect")
+      .attr("x", MARGIN.left)
+      .attr("y", MARGIN.top)
+      .attr("width", innerW)
+      .attr("height", innerH)
+      .attr("fill", "transparent")
+
+    overlay.on("mousemove", (event: MouseEvent) => {
+      const [mx] = d3.pointer(event)
+      const gen = Math.round(xScale.invert(mx))
+
+      const x = xScale(gen)
+      tooltipLine
+        .attr("x1", x)
+        .attr("x2", x)
+        .attr("y1", MARGIN.top)
+        .attr("y2", height - MARGIN.bottom)
+        .style("display", null)
+
+      tooltipText.selectAll("tspan").remove()
+      tooltipText
+        .append("tspan")
+        .attr("x", 8)
+        .attr("dy", 14)
+        .style("font-weight", "600")
+        .text(`${t("evolution.panel.trend.generation")} ${gen}`)
+
+      for (const line of instanceTrendData) {
+        const pt = line.points.find((p) => p.generation === gen)
+        if (pt) {
+          tooltipText
+            .append("tspan")
+            .attr("x", 8)
+            .attr("dy", 14)
+            .attr("fill", line.color)
+            .text(`${line.name}: ${formatScore(pt.rawScore)}`)
+        }
+      }
+
+      const bbox = tooltipText.node()!.getBBox()
+      tooltipG
+        .select("rect")
+        .attr("width", bbox.width + 16)
+        .attr("height", bbox.height + 10)
+
+      const tx = x + 12 + bbox.width + 16 > width ? x - bbox.width - 28 : x + 12
+      const ty = MARGIN.top + 4
+      tooltipG
+        .attr("transform", `translate(${tx},${ty})`)
+        .style("display", null)
+    })
+
+    overlay.on("mouseleave", () => {
+      tooltipLine.style("display", "none")
+      tooltipG.style("display", "none")
+    })
+  }, [
+    viewMode,
+    instanceTrendData,
+    dimensions,
+    currentGeneration,
+    selectedNodeNames,
+    t,
+  ])
+
+  return (
+    <div className="flex h-full w-full flex-col">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 px-2 py-1">
+        {/* Sub-view toggle */}
+        <div className="flex items-center gap-0.5">
+          {SUB_VIEWS.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setViewMode(opt.value)}
+              className={cn(
+                "px-2 py-0.5 text-xs rounded transition-all duration-200",
+                viewMode === opt.value
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:text-secondary-foreground hover:bg-accent/30",
+              )}
+            >
+              {t(opt.labelKey)}
+            </button>
+          ))}
+        </div>
+
+        {/* Node selector (instance mode only) */}
+        {viewMode === "instance" && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="flex items-center gap-1 px-2 py-0.5 text-xs rounded border border-border/50 text-muted-foreground hover:text-primary hover:border-primary/30 transition-all duration-200"
+              >
+                {t("evolution.panel.trend.selectNodes")}
+                {selectedNodeNames.size > 0 && (
+                  <span className="text-primary ml-0.5">
+                    (
+                    {t("evolution.panel.trend.selectedCount", {
+                      count: selectedNodeNames.size,
+                    })}
+                    )
+                  </span>
+                )}
+                <ChevronDown className="size-3 ml-0.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="max-h-60 overflow-y-auto">
+              <DropdownMenuLabel className="text-xs">
+                {t("evolution.panel.trend.selectNodes")}
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <div className="flex gap-2 px-2 py-1">
+                <button
+                  type="button"
+                  onClick={selectAll}
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  {t("evolution.panel.trend.selectAll")}
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="text-[10px] text-muted-foreground hover:underline"
+                >
+                  {t("evolution.panel.trend.clearAll")}
+                </button>
+              </div>
+              <DropdownMenuSeparator />
+              {availableNodes.map((nodeInfo) => (
+                <DropdownMenuCheckboxItem
+                  key={nodeInfo.name}
+                  checked={selectedNodeNames.has(nodeInfo.name)}
+                  onCheckedChange={() => toggleNode(nodeInfo.name)}
+                >
+                  <span
+                    className="size-2 rounded-full mr-1.5 inline-block shrink-0"
+                    style={{
+                      backgroundColor:
+                        ISLAND_COLORS[nodeInfo.island % ISLAND_COLORS.length],
+                    }}
+                  />
+                  <span className="text-xs truncate">{nodeInfo.name}</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto pl-2 shrink-0">
+                    {nodeInfo.generationCount}
+                    {t("evolution.panel.trend.generation")}
+                  </span>
+                </DropdownMenuCheckboxItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
+
+      {/* Chart area */}
+      <div ref={chartContainerRef} className="flex-1 min-h-0 w-full">
+        <svg ref={svgRef} width={dimensions.width} height={dimensions.height} />
+      </div>
+    </div>
+  )
+}

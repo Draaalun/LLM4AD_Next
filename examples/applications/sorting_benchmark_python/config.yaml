@@ -1,0 +1,267 @@
+# ==============================================================================
+# LLM4AD Configuration for Python Sorting Benchmark
+# ==============================================================================
+
+# ==============================================================================
+# SECTION 1: General Settings (通用设置)
+# ==============================================================================
+# Project name, used for output directory organization
+project_name: "sorting_benchmark_python"
+
+# Short descriptions for frontend display (English / Chinese)
+description_en: "Evolve Python sorting algorithms minimizing execution time across multiple integer datasets."
+description_zh: "进化 Python 排序算法，在多种整数数据集上最小化执行时间。"
+
+# Background description of the task, passed to LLM for context
+background: |
+  In this benchmark, we aim to evolve efficient sorting algorithms in Python. The goal is to minimize execution time while correctly sorting a list of integers. The evolved algorithms will be evaluated on multiple datasets of varying sizes, measuring execution time, number of comparisons, and number of swaps.
+
+# Random seed for reproducibility across all components
+random_seed: 42
+
+# Base working directory where the task directory will be created
+base_dir: "./runs"
+
+# ==============================================================================
+# SECTION 1.5: Workspace Configuration (工作空间配置)
+# ==============================================================================
+workspace:
+  # Create task directory structure automatically at startup
+  # Structure: {base_dir}/{project_name}/{run_id}/
+  auto_create: true
+
+  # Subdirectory names within the task directory
+  subdirs:
+    output: "output"          # Final results and best algorithms
+    logs: "logs"              # Log files
+    checkpoints: "checkpoints"  # Evolution checkpoints
+    generated: "generated"    # Generated code files
+    cache: "cache"            # Cached LLM responses
+    temp: "temp"              # Temporary files
+
+# ==============================================================================
+# SECTION 2: LLM Provider Configuration (LLM 提供者配置)
+# ==============================================================================
+# Multiple providers can be defined and referenced by name elsewhere.
+# Global settings file (~/.llm4ad/settings.yaml) can define shared providers.
+# Supports ${ENV_VAR} expansion for sensitive values.
+providers:
+  - name: "default"
+    type: "openai_compatible"  # type: enum [openai_compatible, anthropic, openai]
+    base_url: ${LLM_BASE_URL}
+    api_key: ${LLM_API_KEY}
+    model: ${LLM_MODEL}
+    temperature: 0.7
+    max_tokens: 8192
+    timeout: 120.0
+
+# ==============================================================================
+# SECTION 3: Coder Configuration (代码生成器配置)
+# ==============================================================================
+coder:
+  # --- Coder Type ---
+  type: "custom"  # type: enum [custom, claude_code, opencode]
+  provider: "default"
+
+  provider_name: ""              # type: str, only needed for type: "opencode"
+
+  # --- Generation Parameters ---
+  timeout: 300.0          # type: float, seconds
+  max_retries: 3          # type: int
+  temperature: 0.7        # type: float
+  max_gen_tokens: 4096    # type: int, max tokens for code generation
+  context_max_tokens: 4096  # type: int
+  default_extension: "py" # type: str, file extension for generated code
+  log_to_console: false   # type: bool
+
+  # --- Prompt Template ---
+  # Multi-line template sent to LLM. Supports placeholders:
+  #   {insight} — planner output / evolution context
+  #   {project_context} — repo analyzer output
+  prompt_template: |
+    You are tasked with implementing a sorting algorithm in Python.
+
+    Problem Description:
+    Implement the function signature below to sort a list of integers in-place:
+
+    ```python
+    import sys
+    import json
+
+    # Your sorting function should be between EVOLVE_START and EVOLVE_END markers
+    # EVOLVE_START
+    def your_sort_function(data):
+        '''Sort the data list in-place and return (comparisons, swaps)'''
+        pass
+    # EVOLVE_END
+
+    def sort(data):
+        data = list(data)
+        comparisons, swaps = your_sort_function(data)
+        return {
+            "result": data,
+            "comparisons": comparisons,
+            "swaps": swaps,
+        }
+
+    def main():
+        if len(sys.argv) < 2:
+            sys.exit(1)
+        input_data = json.loads(sys.argv[1])
+        result = sort(input_data)
+        print(json.dumps(result))
+
+    if __name__ == "__main__":
+        main()
+    ```
+
+    The function must:
+    1. Sort the integers in ascending order in-place
+    2. Count the number of element comparisons
+    3. Count the number of element swaps
+    4. Return a dictionary with these counts
+
+    Your goal is to minimize the execution time.
+    Implement the sorting algorithm efficiently in Python.
+
+    Provide only the complete implementation of the sort function between EVOLVE_START and EVOLVE_END markers.
+
+# ==============================================================================
+# SECTION 4: Planner Configuration (规划器配置)
+# ==============================================================================
+planner:
+  type: "llm_evolution"  # type: str
+  provider: "default"
+
+  # Selection strategies
+  selection_strategy: "weighted"  # type: str
+  parent_selection_strategy: "tournament"  # type: str
+
+  # Samplers — define which operators are available
+  # Standard samplers: init_sampler, mutation_sampler, crossover_sampler
+  # Multimodal samplers: multimodal_mutation_sampler, multimodal_crossover_sampler
+  # DyCA samplers: e1_sampler, e2_sampler, m1_sampler, m2_sampler,
+  #                summary_sampler, complementary_cross_sampler
+  samplers:
+    - name: "init_sampler"
+    - name: "mutation_sampler"
+    - name: "crossover_sampler"
+
+# ==============================================================================
+# SECTION 5: Evaluator Configuration (评估器配置)
+# ==============================================================================
+evaluator:
+  # --- Evaluator Type ---
+  # Built-in: "python", "executable", "benchmark"
+  # Custom: "custom" (requires module field)
+  type: "custom"  # type: enum [python, executable, benchmark, custom]
+
+  # Custom evaluator module path (for type: "custom")
+  # Format: "path/to/module.py:ClassName"
+  module: "sorting_evaluator.py:PythonSortingEvaluator"
+
+  # --- Execution Settings ---
+  timeout: 60.0       # type: float, seconds per evaluation
+  max_retries: 3      # type: int, retry failed evaluations
+  parallel: true      # type: bool, enable parallel evaluation
+  batch_size: 10      # type: int, batch size for parallel eval
+
+  # --- Dataset Configuration ---
+  dataset:
+    mode: "directory"  # type: enum [files, directory, glob]
+
+    # Mode: "directory" — traverse all files in a directory
+    path: "data/small"  # type: str, for mode "directory"
+    recursive: false      # type: bool, search subdirectories
+
+  # --- Metrics ---
+  # List of metric names to compute. Evaluator-specific.
+  metrics: ["execution_time_ms", "comparisons", "swaps"]
+
+# ==============================================================================
+# SECTION 6: Evolution Configuration (进化算法配置)
+# ==============================================================================
+evolution:
+  # --- Evolution Type ---
+  type: "island_ga"  # type: enum [island_ga, meoh, dyca]
+
+  # --- Common Parameters (all types) ---
+  max_generations: 3       # type: int
+  early_stop_patience: 20    # type: int, generations without improvement
+  early_stop_threshold: 1e-6 # type: float, minimum improvement
+  checkpoint_interval: 5    # type: int, generations between saves
+  max_checkpoints: 3         # type: int, max checkpoints to keep
+  max_llm_concurrency: 4     # type: int, max concurrent LLM calls
+
+  # --- Island GA Parameters (type: "island_ga") ---
+  elite_ratio: 0.1           # type: float, range [0.0, 1.0]
+  mutation_rate: 0.3         # type: float, range [0.0, 1.0]
+  crossover_rate: 0.5        # type: float, range [0.0, 1.0]
+  parent_selection_strategy: "tournament"  # type: enum [tournament, roulette, rank, random]
+  survival_selection_strategy: "truncation"  # type: enum [truncation, tournament, roulette, rank, random]
+  selection_strategy: "tournament"  # type: str (alias)
+  tournament_size: 3         # type: int
+
+  # Island-specific
+  num_islands: 2             # type: int, number of parallel islands
+  island_population_size: 4  # type: int, population per island
+  migration_interval: 5      # type: int, generations between migrations
+  migration_rate: 0.1        # type: float
+  migration_strategy: "random"  # type: str
+  migration_topology: "full"    # type: str
+  parallel_islands: true     # type: bool
+
+  # --- Display ---
+  human_readable_timing: true  # type: bool
+
+# ==============================================================================
+# SECTION 7: Multimodal Configuration (多模态配置)
+# ==============================================================================
+multimodal:
+  enabled: false                   # type: bool, default: false
+  max_images_per_prompt: 3         # type: int
+  image_max_size_kb: 512           # type: int, compress images beyond this
+  include_observation_text: true   # type: bool, include text alongside images
+  two_step_refinement: false       # type: bool
+  behavior_storage: "rendered"     # type: enum [rendered, raw, none]
+
+# ==============================================================================
+# SECTION 8: Logging Configuration (日志配置)
+# ==============================================================================
+logging:
+  level: "INFO"  # type: enum [TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL]
+  format: null  # type: str, use null for loguru default format
+  file: null     # type: str, optional (auto-set by workspace)
+  console: true  # type: bool
+  json_format: false  # type: bool, structured JSON logging
+
+# ==============================================================================
+# SECTION 9: Version Control Configuration (版本控制配置)
+# ==============================================================================
+version_control:
+  enabled: true              # type: bool
+  type: "git_worktree"       # type: str
+  local_path: "sorting_algorithm"  # type: str, path to code repository
+  remote_url: null           # type: str, optional, clone from remote
+  revision: null             # type: str, optional, branch/tag to checkout
+  auto_initialize: true      # type: bool, init git if not present
+  auto_cleanup: true         # type: bool, cleanup worktrees after completion
+  max_worktree_age_days: 7   # type: int
+  max_worktrees: 100         # type: int
+  default_branch: "main"     # type: str
+  commit_message_template: "Algorithm {algorithm_id}: {description}"  # type: str
+
+# ==============================================================================
+# SECTION 10: Repository Analyzer Configuration (仓库分析器配置)
+# ==============================================================================
+repo_analyzer:
+  type: "evolve_detector"    # type: str, detect EVOLVE markers
+  context_lines_before: 5    # type: int, lines before EVOLVE marker
+  context_lines_after: 5     # type: int, lines after EVOLVE marker (up to 50 for MEoH)
+  include:                   # type: list[str], file patterns to scan
+    - "*.py"
+  exclude:                   # type: list[str], patterns to skip
+    - ".git/**"
+    - "__pycache__/**"
+    - "build/**"
+    - "*.pyc"

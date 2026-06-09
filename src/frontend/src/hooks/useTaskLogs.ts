@@ -1,0 +1,346 @@
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query"
+import { useEffect, useMemo, useRef, useState } from "react"
+import { useTranslation } from "react-i18next"
+import type { TaskStatus } from "@/client"
+import { Llm4AdTasksService } from "@/client"
+import type { LogLevel } from "@/components/Evolution/TaskDetail/log-renderers"
+import { taskKeys } from "@/lib/task-queries"
+import { authFetch } from "@/utils/auth"
+
+export type LogEntry = { _kind?: "system" | "log"; [key: string]: unknown }
+
+export interface UseTaskLogsReturn {
+  entries: LogEntry[]
+  isLoading: boolean
+  error: string | null
+}
+
+export interface UseTaskLogsOptions {
+  onResetTask?: () => void
+  onStatusChange?: (status: string) => void
+  onGenerated?: (entry: Record<string, unknown>) => void
+}
+
+function nowISO() {
+  return new Date().toISOString()
+}
+
+export function normalizeLogEntries(
+  raw: Record<string, unknown>[],
+): LogEntry[] {
+  return raw
+    .filter((e) => {
+      const t = e.type as string | undefined
+      return t !== "generated" && t !== "status"
+    })
+    .map((e): LogEntry => {
+      const t = e.type as string | undefined
+      if (t === "log") return { _kind: "log", ...e }
+      if (t === "system" || t === "error" || t === "end")
+        return { _kind: "system", event: t, ...e }
+      return e as LogEntry
+    })
+}
+
+export function useTaskLogs(
+  taskId: string,
+  taskStatus: TaskStatus,
+  enabled: boolean,
+  options?: UseTaskLogsOptions,
+): UseTaskLogsReturn {
+  const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const isActive = taskStatus === "pending" || taskStatus === "running"
+
+  const onResetTaskRef = useRef(options?.onResetTask)
+  onResetTaskRef.current = options?.onResetTask
+  const onStatusChangeRef = useRef(options?.onStatusChange)
+  onStatusChangeRef.current = options?.onStatusChange
+  const onGeneratedRef = useRef(options?.onGenerated)
+  onGeneratedRef.current = options?.onGenerated
+
+  // ---------- SSE path (active states only) ----------
+  const [streamEntries, setStreamEntries] = useState<LogEntry[]>([])
+  const [streamLoading, setStreamLoading] = useState(false)
+  const [streamError, setStreamError] = useState<string | null>(null)
+  const entriesBuffer = useRef<LogEntry[]>([])
+  const rafId = useRef<number>(0)
+
+  useEffect(() => {
+    if (!enabled || !isActive) {
+      setStreamEntries([])
+      setStreamLoading(false)
+      setStreamError(null)
+      entriesBuffer.current = []
+      return
+    }
+
+    queryClient.removeQueries({ queryKey: taskKeys.logs(taskId) })
+
+    setStreamLoading(true)
+    setStreamError(null)
+    entriesBuffer.current = []
+    setStreamEntries([])
+
+    const abortController = new AbortController()
+    let cancelled = false
+
+    const flushEntries = () => {
+      if (!cancelled) setStreamEntries([...entriesBuffer.current])
+    }
+
+    const scheduleFlush = () => {
+      cancelAnimationFrame(rafId.current)
+      rafId.current = requestAnimationFrame(flushEntries)
+    }
+
+    const pushSystem = (
+      event: string,
+      message: string,
+      extra?: Record<string, unknown>,
+    ) => {
+      entriesBuffer.current.push({
+        _kind: "system",
+        event,
+        message,
+        timestamp: nowISO(),
+        ...extra,
+      })
+      scheduleFlush()
+    }
+
+    const baseUrl = import.meta.env.VITE_API_URL || ""
+    const streamUrl = `${baseUrl}/api/v1/llm4ad/tasks/${taskId}/logs/stream`
+
+    ;(async () => {
+      try {
+        const response = await authFetch(streamUrl, {
+          signal: abortController.signal,
+        })
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
+        setStreamLoading(false)
+
+        const reader = response.body!.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ""
+        let currentEvent = ""
+        let currentData = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
+
+          for (const line of lines) {
+            if (line.startsWith("event:")) {
+              currentEvent = line.slice(6).trim()
+            } else if (line.startsWith("data:")) {
+              currentData = line.slice(5).trim()
+            } else if (line.trim() === "") {
+              switch (currentEvent) {
+                case "connected":
+                  pushSystem(
+                    "connected",
+                    currentData || t("evolution.logStream.connected"),
+                  )
+                  break
+
+                case "heartbeat":
+                  break
+
+                case "timeout":
+                  pushSystem("timeout", t("evolution.logStream.timeout"))
+                  if (!cancelled) onResetTaskRef.current?.()
+                  currentEvent = ""
+                  currentData = ""
+                  return
+
+                case "done":
+                  if (!cancelled) {
+                    queryClient.invalidateQueries({
+                      queryKey: taskKeys.detail(taskId),
+                    })
+                    queryClient.invalidateQueries({
+                      queryKey: taskKeys.allTasks,
+                    })
+                    onStatusChangeRef.current?.("done")
+                  }
+                  currentEvent = ""
+                  currentData = ""
+                  return
+
+                case "data":
+                case "message":
+                case "": {
+                  if (!currentData) break
+                  try {
+                    const parsed = JSON.parse(currentData)
+                    const type = parsed.type as string | undefined
+
+                    switch (type) {
+                      case "error":
+                        pushSystem(
+                          "error",
+                          parsed.error_message ??
+                            parsed.message ??
+                            t("evolution.logStream.taskError"),
+                        )
+                        if (!cancelled) onResetTaskRef.current?.()
+                        currentEvent = ""
+                        currentData = ""
+                        break
+
+                      case "system":
+                        pushSystem(
+                          "system",
+                          parsed.message ?? "",
+                          parsed.timestamp
+                            ? { timestamp: parsed.timestamp }
+                            : undefined,
+                        )
+                        break
+
+                      case "end":
+                        pushSystem(
+                          "end",
+                          parsed.message ?? t("evolution.logStream.taskEnd"),
+                        )
+                        if (!cancelled) onResetTaskRef.current?.()
+                        currentEvent = ""
+                        currentData = ""
+                        break
+
+                      case "log":
+                        entriesBuffer.current.push({
+                          _kind: "log",
+                          ...parsed,
+                        })
+                        scheduleFlush()
+                        break
+
+                      case "generated":
+                        if (!cancelled) onGeneratedRef.current?.(parsed)
+                        break
+
+                      case "status":
+                        if (!cancelled)
+                          onStatusChangeRef.current?.(
+                            parsed.status ?? parsed.data?.status,
+                          )
+                        break
+
+                      default:
+                        break
+                    }
+                  } catch {
+                    // skip malformed JSON
+                  }
+                  break
+                }
+
+                default:
+                  break
+              }
+
+              currentEvent = ""
+              currentData = ""
+            }
+          }
+        }
+      } catch (err: unknown) {
+        if (!cancelled && (err as Error).name !== "AbortError") {
+          setStreamError(
+            (err as Error).message || t("evolution.logStream.connectionFailed"),
+          )
+          setStreamLoading(false)
+        }
+      }
+    })()
+
+    return () => {
+      cancelled = true
+      abortController.abort()
+      cancelAnimationFrame(rafId.current)
+    }
+  }, [taskId, isActive, enabled, queryClient, t])
+
+  // ---------- Return ----------
+  if (isActive) {
+    return {
+      entries: streamEntries,
+      isLoading: streamLoading,
+      error: streamError,
+    }
+  }
+
+  return { entries: [], isLoading: false, error: null }
+}
+
+/**
+ * Shared paginated logs query for terminal tasks.
+ *
+ * Backed by useInfiniteQuery so multiple panels (LogsPanel, RunLogsSection)
+ * with the same (taskId, searchQuery, levelFilter) share a single network
+ * fetch via React Query's cache. Cursor pages return older entries — they are
+ * surfaced in chronological order (oldest first).
+ */
+export interface UseTaskLogsListResult {
+  entries: LogEntry[]
+  isLoading: boolean
+  isFetchingMore: boolean
+  hasMore: boolean
+  loadMore: () => void
+}
+
+export function useTaskLogsList(opts: {
+  taskId: string | null | undefined
+  searchQuery: string
+  levelFilter: Set<LogLevel>
+  enabled: boolean
+}): UseTaskLogsListResult {
+  const { taskId, searchQuery, levelFilter, enabled } = opts
+  const levelArr = useMemo(() => [...levelFilter], [levelFilter])
+
+  const query = useInfiniteQuery({
+    queryKey: taskKeys.logsList(taskId ?? "", "log", searchQuery, levelArr),
+    queryFn: ({ pageParam }) =>
+      Llm4AdTasksService.getTaskLogs({
+        taskId: taskId!,
+        cursor: pageParam || undefined,
+        q: searchQuery || undefined,
+        logType: "log",
+        level: levelArr.length > 0 ? levelArr : undefined,
+        limit: 1000,
+      }),
+    initialPageParam: "" as string,
+    getNextPageParam: (lastPage) =>
+      lastPage.has_more ? (lastPage.next_cursor ?? undefined) : undefined,
+    enabled: enabled && !!taskId,
+    staleTime: 5 * 60_000,
+  })
+
+  const entries = useMemo<LogEntry[]>(() => {
+    if (!query.data) return []
+    // Pages are loaded newest → older. Reverse so display is oldest-first.
+    const pages = [...query.data.pages].reverse()
+    return pages.flatMap((p) =>
+      normalizeLogEntries((p.entries ?? []) as Record<string, unknown>[]),
+    )
+  }, [query.data])
+
+  const lastPage = query.data?.pages[query.data.pages.length - 1]
+
+  return {
+    entries,
+    isLoading: query.isLoading,
+    isFetchingMore: query.isFetchingNextPage,
+    hasMore: lastPage?.has_more ?? false,
+    loadMore: () => {
+      if (query.hasNextPage && !query.isFetchingNextPage) query.fetchNextPage()
+    },
+  }
+}

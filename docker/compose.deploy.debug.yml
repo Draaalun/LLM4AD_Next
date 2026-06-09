@@ -1,0 +1,27 @@
+# 部署调试模式：额外暴露基础服务和后端端口
+services:
+
+  db:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  rustfs:
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  backend:
+    ports:
+      - "8000:8000"
+
+  adminer:
+    ports:
+      - "8080:8080"
+
+  flower:
+    ports:
+      - "5555:5555"

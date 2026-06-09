@@ -1,0 +1,20 @@
+{
+  "project_name": "tsp_multimodal",
+  "task_description": "The Traveling Salesman Problem (TSP) requires finding the shortest Hamiltonian cycle through a set of 2D cities. The goal is to evolve the tour construction heuristic to minimize total tour length. The baseline uses a KD-tree with two-phase nearest neighbor search, k-means clustering for start point selection, and bidirectional local search, but there is significant room for improvement through better construction strategies and local optimization techniques like 2-opt.",
+  "evaluator_class_name": "TSPMultimodalEvaluator",
+  "evaluator_file_name": "tsp_multimodal_evaluator.py",
+  "algorithm_dir_name": "algorithm",
+  "algorithm_file_name": "solve.py",
+  "function_to_evolve": "hybrid_kdtree_two_phase_tsp",
+  "metrics": [
+    {
+      "name": "tour_length",
+      "type": "minimize",
+      "weight": 1.0,
+      "description": "Total Euclidean distance of the tour including the return edge from the last city back to the first city. This is the primary optimization objective."
+    }
+  ],
+  "validation_status": "passed",
+  "validation_errors": [],
+  "repair_attempts": 1
+}

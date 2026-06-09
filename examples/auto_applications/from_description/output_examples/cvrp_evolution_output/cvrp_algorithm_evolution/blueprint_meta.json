@@ -1,0 +1,32 @@
+{
+  "project_name": "cvrp_algorithm_evolution",
+  "task_description": "The Capacitated Vehicle Routing Problem (CVRP) requires finding minimum-distance routes for a fleet of capacity-limited vehicles serving customers from a single depot. Each customer has a known demand and must be visited exactly once, and every route must start and end at the depot (index 0). The total demand on any route cannot exceed the vehicle capacity Q. The goal is to evolve heuristic or metaheuristic construction strategies that minimize total Euclidean travel distance while respecting capacity constraints.",
+  "evaluator_class_name": "CVRPAlgorithmEvolutionEvaluatorMultimodal",
+  "evaluator_file_name": "cvrp_algorithm_evolution_evaluator.py",
+  "algorithm_dir_name": "cvrp_solver_algorithm",
+  "algorithm_file_name": "cvrp_solver.py",
+  "function_to_evolve": "solve_cvrp",
+  "metrics": [
+    {
+      "name": "total_distance",
+      "type": "minimize",
+      "weight": 0.8,
+      "description": "Total Euclidean distance traveled across all vehicle routes. This is the primary optimization objective."
+    },
+    {
+      "name": "num_routes",
+      "type": "minimize",
+      "weight": 0.15,
+      "description": "Number of vehicles (routes) used. Fewer routes generally indicate better packing of customer demands into vehicles."
+    },
+    {
+      "name": "feasibility_penalty",
+      "type": "minimize",
+      "weight": 0.05,
+      "description": "Penalty score for constraint violations: unvisited customers, duplicate visits, or routes exceeding vehicle capacity. A feasible solution scores 0."
+    }
+  ],
+  "validation_status": "passed",
+  "validation_errors": [],
+  "repair_attempts": 3
+}

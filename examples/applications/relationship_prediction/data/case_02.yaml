@@ -1,0 +1,24 @@
+case_id: "case_002_love_bombing_withdraw"
+relationship_type: "恋爱（交往3个月）"
+
+person_a:
+  mbti: "ENFJ"
+  attachment_style: "热情-投入型"
+  core_traits: ["主动付出，容易陷入热恋", "对关系有高期待", "习惯性压抑自己真实想法", "渴望被完美理解"]
+  trigger_points: "对方回应度下降、态度变冷淡、不愿意谈论未来"
+  typical_behavior: "开始时会加倍示好和投入试图'扭转局面'，如果还是没有改善就会陷入自我怀疑和焦虑"
+
+person_b:
+  mbti: "ISTP"
+  attachment_style: "逃避-保留型"
+  core_traits: ["享受新鲜感", "情感表达能力弱", "害怕承诺和被约束", "追求个人自由空间"]
+  trigger_points: "感觉对方太依赖自己、有太多期待、开始规划共同未来"
+  typical_behavior: "热恋期会投入和主动，但一旦关系稳定就会逐渐冷淡、制造距离、找借口减少陪伴"
+
+current_crisis:
+  event: "前两个月A和B几乎每天都在一起，B满口承诺和甜言蜜语。进入第三个月，B因为'工作太忙'突然减少了约会次数，消息也变得冷淡。当A提及要不要一起去见家长时，B说'太快了，咱们再缓缓'。"
+  current_state: "A现在不安全感爆棚，每天都在纠结是不是被骗了。B则感到被施压，开始刷手机和游戏来躲避。两人在宿舍陷入了尴尬的沉默，A在想是否要主动分手。"
+
+evaluator_focus: |
+  关键推演：B的冷淡是真心变心还是只是爱情的平稳期反应？A继续投入会不会加速B的逃离？如果A选择主动分手，B会不会突然后悔？这段关系还有救吗，还是已经走向终局？
+

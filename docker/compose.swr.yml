@@ -1,0 +1,49 @@
+# Use images already pushed to SWR instead of building locally.
+#
+# Example:
+#   ./start.sh
+#
+# Optional debug ports:
+#   ./start.sh --debug
+
+x-swr-env: &swr-env
+  TASK_RUNNER_IMAGE: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_TASK_RUNNER:-llm4ad-task-runner}:${TAG-latest}"
+
+services:
+  prestart:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_BACKEND:-backend}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null
+    environment:
+      <<: *swr-env
+
+  backend:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_BACKEND:-backend}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null
+    environment:
+      <<: *swr-env
+
+  worker:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_BACKEND:-backend}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null
+    environment:
+      <<: *swr-env
+
+  flower:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_BACKEND:-backend}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null
+    environment:
+      <<: *swr-env
+
+  task-runner:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_TASK_RUNNER:-llm4ad-task-runner}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null
+
+  frontend:
+    image: "${SWR_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}/${SWR_IMAGE_FRONTEND:-frontend}:${TAG-latest}"
+    pull_policy: always
+    build: !reset null

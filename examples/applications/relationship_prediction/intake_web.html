@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关系预测 — 案例录入</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, "Microsoft YaHei", sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; padding: 20px; }
+.container { max-width: 720px; margin: 0 auto; }
+h1 { text-align: center; margin-bottom: 8px; font-size: 1.6em; }
+.subtitle { text-align: center; color: #666; margin-bottom: 24px; }
+.step { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); display: none; }
+.step.active { display: block; }
+.step-header { font-size: 1.1em; font-weight: 600; margin-bottom: 16px; color: #2c3e50; border-left: 4px solid #3498db; padding-left: 12px; }
+.field { margin-bottom: 16px; }
+.field label { display: block; font-weight: 500; margin-bottom: 6px; }
+.field .hint { font-size: 0.85em; color: #888; margin-bottom: 6px; }
+select, input[type="text"], textarea { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 0.95em; font-family: inherit; }
+textarea { min-height: 80px; resize: vertical; }
+select:focus, input:focus, textarea:focus { outline: none; border-color: #3498db; box-shadow: 0 0 0 2px rgba(52,152,219,0.15); }
+.mbti-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.mbti-row { display: flex; gap: 8px; align-items: center; }
+.mbti-row .dim-label { min-width: 70px; font-size: 0.9em; color: #555; }
+.mbti-row label { flex: 1; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.mbti-row label:hover { border-color: #3498db; }
+.mbti-row input:checked + span { color: #3498db; font-weight: 500; }
+.mbti-row label:has(input:checked) { border-color: #3498db; background: #ebf5fb; }
+.traits-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+@media (max-width: 600px) { .traits-grid { grid-template-columns: repeat(2, 1fr); } }
+.traits-grid label { padding: 8px 10px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; font-size: 0.9em; display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+.traits-grid label:hover { border-color: #3498db; }
+.traits-grid label:has(input:checked) { border-color: #3498db; background: #ebf5fb; }
+.radio-group { display: flex; flex-direction: column; gap: 8px; }
+.radio-group label { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+.radio-group label:hover { border-color: #3498db; }
+.radio-group label:has(input:checked) { border-color: #3498db; background: #ebf5fb; }
+.radio-group .desc { font-size: 0.85em; color: #666; }
+.check-group { display: flex; flex-direction: column; gap: 8px; }
+.check-group label { padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.15s; }
+.check-group label:hover { border-color: #3498db; }
+.check-group label:has(input:checked) { border-color: #3498db; background: #ebf5fb; }
+.nav-buttons { display: flex; justify-content: space-between; margin-top: 20px; }
+.btn { padding: 10px 24px; border: none; border-radius: 8px; font-size: 1em; cursor: pointer; transition: all 0.15s; }
+.btn-primary { background: #3498db; color: #fff; }
+.btn-primary:hover { background: #2980b9; }
+.btn-secondary { background: #ecf0f1; color: #333; }
+.btn-secondary:hover { background: #ddd; }
+.btn-success { background: #27ae60; color: #fff; }
+.btn-success:hover { background: #219a52; }
+.progress { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+.progress .dot { width: 12px; height: 12px; border-radius: 50%; background: #ddd; transition: all 0.2s; }
+.progress .dot.active { background: #3498db; transform: scale(1.2); }
+.progress .dot.done { background: #27ae60; }
+#preview-output { background: #2d3436; color: #dfe6e9; padding: 16px; border-radius: 8px; font-family: "Fira Code", monospace; font-size: 0.85em; white-space: pre-wrap; overflow-x: auto; max-height: 500px; overflow-y: auto; }
+.action-buttons { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #27ae60; color: #fff; padding: 10px 20px; border-radius: 8px; display: none; z-index: 999; }
+.custom-input { margin-top: 8px; display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>关系预测 — 案例录入</h1>
+<p class="subtitle">填写以下信息，生成案例文件用于关系结局预测</p>
+
+<div class="progress" id="progress"></div>
+
+<!-- Step 1: Relationship Basics -->
+<div class="step active" id="step-1">
+  <div class="step-header">第 1 步：关系基本信息</div>
+  <div class="field">
+    <label>关系类型</label>
+    <div class="radio-group" id="rel-type-group">
+      <label><input type="radio" name="rel-type" value="恋爱"><span>恋爱</span></label>
+      <label><input type="radio" name="rel-type" value="婚姻"><span>婚姻</span></label>
+      <label><input type="radio" name="rel-type" value="亲子"><span>亲子</span></label>
+      <label><input type="radio" name="rel-type" value="职场"><span>职场</span></label>
+      <label><input type="radio" name="rel-type" value="友谊"><span>友谊</span></label>
+      <label><input type="radio" name="rel-type" value="__custom"><span>其他（自定义）</span></label>
+    </div>
+    <input type="text" id="rel-custom" class="custom-input" placeholder="如：师生、室友">
+  </div>
+  <div class="field" id="rel-detail-field" style="display:none">
+    <label>关系时长/背景</label>
+    <div class="radio-group" id="rel-detail-group"></div>
+    <input type="text" id="rel-detail-custom" class="custom-input" placeholder="自定义描述">
+  </div>
+  <div class="nav-buttons"><div></div><button class="btn btn-primary" onclick="nextStep()">下一步</button></div>
+</div>
+
+<!-- Step 2: Person A -->
+<div class="step" id="step-2">
+  <div class="step-header">第 2 步：人物 A 画像</div>
+  <div class="field">
+    <label>角色</label>
+    <div class="radio-group" id="a-role-group"></div>
+    <input type="text" id="a-role-custom" class="custom-input" placeholder="自定义角色">
+  </div>
+  <div class="field" id="a-gender-field">
+    <label>性别</label>
+    <div class="radio-group" id="a-gender-group">
+      <label><input type="radio" name="a-gender" value="男"><span>男</span></label>
+      <label><input type="radio" name="a-gender" value="女"><span>女</span></label>
+      <label><input type="radio" name="a-gender" value="不指定"><span>不指定</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>MBTI 性格类型</label>
+    <div class="hint">每行选一个，系统自动生成4字母代码</div>
+    <div class="mbti-grid">
+      <div class="mbti-row"><span class="dim-label">精力来源</span><label><input type="radio" name="a-ei" value="E"><span>E 外向 — 从社交获能</span></label><label><input type="radio" name="a-ei" value="I"><span>I 内向 — 从独处获能</span></label></div>
+      <div class="mbti-row"><span class="dim-label">获取信息</span><label><input type="radio" name="a-sn" value="S"><span>S 感觉 — 关注事实细节</span></label><label><input type="radio" name="a-sn" value="N"><span>N 直觉 — 关注可能性</span></label></div>
+      <div class="mbti-row"><span class="dim-label">做决定</span><label><input type="radio" name="a-tf" value="T"><span>T 思考 — 重逻辑分析</span></label><label><input type="radio" name="a-tf" value="F"><span>F 情感 — 重价值感受</span></label></div>
+      <div class="mbti-row"><span class="dim-label">生活方式</span><label><input type="radio" name="a-jp" value="J"><span>J 判断 — 喜欢计划</span></label><label><input type="radio" name="a-jp" value="P"><span>P 感知 — 喜欢灵活</span></label></div>
+    </div>
+  </div>
+  <div class="field">
+    <label>依恋类型</label>
+    <div class="radio-group" id="a-attach-group"></div>
+  </div>
+  <div class="field">
+    <label>核心特质（选 2-5 个）</label>
+    <div class="traits-grid" id="a-traits"></div>
+    <input type="text" id="a-traits-custom" placeholder="其他特质（逗号分隔）" style="margin-top:8px">
+  </div>
+  <div class="field">
+    <label>触发点</label>
+    <div class="hint">什么情况下TA会情绪爆发或退缩？（可多选）</div>
+    <div class="check-group" id="a-trigger-group"></div>
+    <input type="text" id="a-trigger-custom" class="custom-input" placeholder="自定义触发点">
+  </div>
+  <div class="field">
+    <label>典型行为</label>
+    <div class="hint">吵架/冲突时TA通常怎么做？（可多选）</div>
+    <div class="check-group" id="a-behavior-group"></div>
+    <input type="text" id="a-behavior-custom" class="custom-input" placeholder="自定义行为">
+  </div>
+  <div class="nav-buttons"><button class="btn btn-secondary" onclick="prevStep()">上一步</button><button class="btn btn-primary" onclick="nextStep()">下一步</button></div>
+</div>
+
+<!-- Step 3: Person B -->
+<div class="step" id="step-3">
+  <div class="step-header">第 3 步：人物 B 画像</div>
+  <div class="field">
+    <label>角色</label>
+    <div class="radio-group" id="b-role-group"></div>
+    <input type="text" id="b-role-custom" class="custom-input" placeholder="自定义角色">
+  </div>
+  <div class="field" id="b-gender-field">
+    <label>性别</label>
+    <div class="radio-group" id="b-gender-group">
+      <label><input type="radio" name="b-gender" value="男"><span>男</span></label>
+      <label><input type="radio" name="b-gender" value="女"><span>女</span></label>
+      <label><input type="radio" name="b-gender" value="不指定"><span>不指定</span></label>
+    </div>
+  </div>
+  <div class="field">
+    <label>MBTI 性格类型</label>
+    <div class="hint">每行选一个</div>
+    <div class="mbti-grid">
+      <div class="mbti-row"><span class="dim-label">精力来源</span><label><input type="radio" name="b-ei" value="E"><span>E 外向 — 从社交获能</span></label><label><input type="radio" name="b-ei" value="I"><span>I 内向 — 从独处获能</span></label></div>
+      <div class="mbti-row"><span class="dim-label">获取信息</span><label><input type="radio" name="b-sn" value="S"><span>S 感觉 — 关注事实细节</span></label><label><input type="radio" name="b-sn" value="N"><span>N 直觉 — 关注可能性</span></label></div>
+      <div class="mbti-row"><span class="dim-label">做决定</span><label><input type="radio" name="b-tf" value="T"><span>T 思考 — 重逻辑分析</span></label><label><input type="radio" name="b-tf" value="F"><span>F 情感 — 重价值感受</span></label></div>
+      <div class="mbti-row"><span class="dim-label">生活方式</span><label><input type="radio" name="b-jp" value="J"><span>J 判断 — 喜欢计划</span></label><label><input type="radio" name="b-jp" value="P"><span>P 感知 — 喜欢灵活</span></label></div>
+    </div>
+  </div>
+  <div class="field">
+    <label>依恋类型</label>
+    <div class="radio-group" id="b-attach-group"></div>
+  </div>
+  <div class="field">
+    <label>核心特质（选 2-5 个）</label>
+    <div class="traits-grid" id="b-traits"></div>
+    <input type="text" id="b-traits-custom" placeholder="其他特质（逗号分隔）" style="margin-top:8px">
+  </div>
+  <div class="field">
+    <label>触发点</label>
+    <div class="hint">什么情况下TA会情绪爆发或退缩？（可多选）</div>
+    <div class="check-group" id="b-trigger-group"></div>
+    <input type="text" id="b-trigger-custom" class="custom-input" placeholder="自定义触发点">
+  </div>
+  <div class="field">
+    <label>典型行为</label>
+    <div class="hint">吵架/冲突时TA通常怎么做？（可多选）</div>
+    <div class="check-group" id="b-behavior-group"></div>
+    <input type="text" id="b-behavior-custom" class="custom-input" placeholder="自定义行为">
+  </div>
+  <div class="nav-buttons"><button class="btn btn-secondary" onclick="prevStep()">上一步</button><button class="btn btn-primary" onclick="nextStep()">下一步</button></div>
+</div>
+
+<!-- Step 4: Crisis -->
+<div class="step" id="step-4">
+  <div class="step-header">第 4 步：危机事件</div>
+  <div class="field">
+    <label>导火索事件</label>
+    <div class="hint">最近发生了什么事？</div>
+    <div class="radio-group" id="crisis-event-group"></div>
+    <input type="text" id="crisis-event-custom" class="custom-input" placeholder="自定义事件描述">
+    <textarea id="crisis-event-detail" class="custom-input" placeholder="请详细描述事件经过（可选）" style="min-height:60px;"></textarea>
+  </div>
+  <div class="field">
+    <label>A 的当前状态</label>
+    <div class="hint" id="crisis-state-a-hint">A 现在是什么状态？</div>
+    <div class="radio-group" id="crisis-state-a-group"></div>
+    <input type="text" id="crisis-state-a-custom" class="custom-input" placeholder="自定义状态描述">
+  </div>
+  <div class="field">
+    <label>B 的当前状态</label>
+    <div class="hint" id="crisis-state-b-hint">B 现在是什么状态？</div>
+    <div class="radio-group" id="crisis-state-b-group"></div>
+    <input type="text" id="crisis-state-b-custom" class="custom-input" placeholder="自定义状态描述">
+  </div>
+  <div class="field">
+    <label>预测关注点</label>
+    <div class="hint">你最想知道什么？（可多选）</div>
+    <div class="check-group" id="crisis-focus-group"></div>
+    <input type="text" id="crisis-focus-custom" class="custom-input" placeholder="自定义关注点">
+  </div>
+  <div class="nav-buttons"><button class="btn btn-secondary" onclick="prevStep()">上一步</button><button class="btn btn-success" onclick="generateYaml()">生成案例文件</button></div>
+</div>
+
+<!-- Step 5: Preview -->
+<div class="step" id="step-5">
+  <div class="step-header">生成完成</div>
+  <pre id="preview-output"></pre>
+  <div class="action-buttons">
+    <button class="btn btn-primary" onclick="downloadYaml()">下载 YAML 文件</button>
+    <button class="btn btn-secondary" onclick="copyYaml()">复制到剪贴板</button>
+    <button class="btn btn-secondary" onclick="goToStep(1)">重新填写</button>
+  </div>
+  <div style="margin-top:16px; padding:12px 16px; background:#f8f9fa; border-radius:8px; font-size:0.9em;">
+    <p style="font-weight:500; margin-bottom:6px;">导入配置文件：</p>
+    <p style="color:#555;">下载文件后放入 <code>data/</code> 目录，然后运行：</p>
+    <code id="import-cmd" style="display:block; margin-top:6px; padding:8px; background:#2d3436; color:#dfe6e9; border-radius:4px; cursor:pointer;" onclick="copyCmd()">python prep_config.py --case data/case_new.yaml</code>
+    <p style="color:#888; font-size:0.85em; margin-top:6px;">点击命令可复制</p>
+  </div>
+</div>
+
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const TOTAL_STEPS = 5;
+let currentStep = 1;
+let yamlContent = '';
+
+const SLUG_MAP = { '恋爱':'romance', '婚姻':'marriage', '亲子':'parent_child', '职场':'workplace', '友谊':'friendship' };
+
+const ROLE_SUGGESTIONS = {
+  '恋爱': ['男友', '女友'],
+  '婚姻': ['丈夫', '妻子'],
+  '亲子': ['父亲', '母亲', '儿子', '女儿'],
+  '职场': ['上级', '下属', '同事'],
+  '友谊': ['朋友'],
+};
+
+const ROLE_GENDER_MAP = {
+  '男友': '男', '女友': '女',
+  '丈夫': '男', '妻子': '女',
+  '父亲': '男', '母亲': '女',
+  '儿子': '男', '女儿': '女',
+};
+
+const PARENT_ROLES = new Set(['父亲', '母亲']);
+const CHILD_ROLES = new Set(['儿子', '女儿']);
+
+const REL_DETAIL_OPTIONS = {
+  '恋爱': ['刚在一起（不到3个月）', '热恋期（3-12个月）', '稳定期（1-3年）', '长期恋爱（3年以上）', '同居中'],
+  '婚姻': ['新婚（不到1年）', '婚后2-5年', '婚后5-10年', '老夫老妻（10年以上）', '有孩子'],
+  '亲子': ['孩子0-6岁', '孩子7-12岁', '孩子13-18岁（青春期）', '孩子已成年'],
+  '职场': ['入职不到1年', '共事1-3年', '共事3年以上', '刚换部门/团队'],
+  '友谊': ['认识不到1年', '认识1-5年', '认识5年以上', '从小一起长大'],
+};
+
+const ATTACHMENT_STYLES = {
+  '恋爱': [['安全型','能自在地亲密也能独立'],['焦虑型','渴望亲密，害怕被忽视或抛弃'],['回避型','重视独立空间，不舒服太亲密'],['恐惧型','想亲近又害怕受伤'],['控制型','需要掌控关系中的主导权']],
+  '婚姻': [['安全型','信任伴侣，能坦诚沟通也能给彼此空间'],['焦虑型','需要频繁确认对方的爱，害怕被冷落'],['回避型','回避深度情感交流，倾向独自处理问题'],['恐惧型','渴望亲密但一旦靠近就想逃'],['控制型','需要掌控家庭决策和伴侣行为']],
+  '亲子_父母': [['安全型','能给予孩子稳定的情感回应'],['焦虑型','过度担心孩子，控制欲来自不安全感'],['回避型','情感表达少，倾向用物质或道理代替陪伴'],['恐惧型','想靠近孩子但不知道怎么表达'],['控制型','对孩子有强烈的规划和掌控需求']],
+  '亲子_子女': [['安全型','信任父母，能自在表达需求也能独立'],['焦虑型','害怕被父母忽视或抛弃，需要频繁确认关爱'],['回避型','习惯独自处理问题，不愿向父母袒露脆弱'],['恐惧型','渴望父母关注但害怕靠近后再次失望'],['控制型','试图主导与父母的互动方式和边界']],
+  '职场': [['安全型','能独立工作也能顺畅协作，不卑不亢'],['焦虑型','在意上级/同事评价，害怕被边缘化'],['回避型','倾向独自完成任务，不愿暴露弱点或求助'],['恐惧型','想融入团队但害怕被否定，表现矛盾'],['控制型','需要主导项目方向和团队决策']],
+  '友谊': [['安全型','能保持适当距离也能在需要时给予支持'],['焦虑型','害怕被朋友疏远，需要频繁联系确认关系'],['回避型','喜欢独处，社交消耗大，不主动维护关系'],['恐惧型','想要深度友谊但害怕付出后被辜负'],['控制型','习惯在朋友圈中当主导者或组织者']],
+};
+
+const TRIGGER_OPTIONS = {
+  '恋爱': ['对方回复变慢或语气变冷', '被忽视或冷落', '对方与异性互动过密', '意见不合被否定', '对方不兑现承诺', '感觉不被理解', '对方情绪失控发脾气', '经济/消费观念冲突'],
+  '婚姻': ['对方回复变慢或语气变冷', '家务/育儿分工不均', '被忽视或冷落', '对方与异性互动过密', '经济/消费观念冲突', '婆媳/翁婿矛盾', '对方不兑现承诺', '感觉不被理解'],
+  '亲子_父母': ['孩子不听话或顶嘴', '孩子成绩下滑', '孩子隐瞒事情', '感觉孩子不需要自己', '孩子的选择与期望不符', '孩子沉迷手机/游戏', '孩子交了不好的朋友'],
+  '亲子_子女': ['被父母否定或拿来比较', '父母过度干涉自由', '父母不理解自己', '被忽视或感到偏心', '父母吵架让自己夹在中间', '被强迫做不想做的事', '隐私被侵犯'],
+  '职场_上级': ['下属不服从安排', '下属工作质量差', '下属越级汇报', '团队目标未达成', '下属当众质疑自己'],
+  '职场_下属': ['被上级批评或否定', '功劳被抢', '被分配不合理的任务', '意见不被采纳', '被当众批评'],
+  '职场_同事': ['被排挤或边缘化', '功劳被抢', '工作量分配不公平', '被背后说坏话', '合作中被甩锅'],
+  '友谊': ['被朋友忽视或冷落', '朋友背后说坏话', '付出不对等', '价值观产生冲突', '朋友突然疏远自己', '被朋友利用'],
+};
+
+const BEHAVIOR_OPTIONS = {
+  '恋爱': ['沉默冷战，不主动说话', '情绪崩溃大哭', '反复追问对方想法', '摔门离开/回避', '发长消息表达不满', '找朋友倾诉', '翻旧账', '道歉求和', '提分手威胁'],
+  '婚姻': ['沉默冷战，不主动说话', '情绪崩溃大哭', '反复追问对方想法', '摔门离开/回避', '找朋友/家人倾诉', '翻旧账', '道歉求和', '提离婚威胁', '分房睡'],
+  '亲子_父母': ['大声训斥', '冷处理不说话', '讲道理/说教', '表达失望', '限制自由（没收手机等）', '找配偶/老师介入', '自责内疚', '妥协让步'],
+  '亲子_子女': ['关门把自己锁在房间', '顶嘴反抗', '沉默不回应', '哭泣', '离家出走/威胁离家', '找朋友倾诉', '表面顺从内心抗拒', '自我封闭'],
+  '职场_上级': ['直接批评指正', '冷处理/边缘化', '找HR介入', '私下谈话施压', '表面不动声色暗中观察'],
+  '职场_下属': ['表面配合内心不满', '直接对抗/争论', '消极怠工', '找人倾诉/抱怨', '默默忍受', '考虑离职', '越级反映'],
+  '职场_同事': ['表面配合内心不满', '直接表达不满', '找人倾诉/抱怨', '减少合作', '默默忍受', '向上级反映'],
+  '友谊': ['减少联系', '直接表达不满', '找其他朋友倾诉', '假装没事', '疏远对方', '等对方先道歉'],
+};
+
+const CRISIS_EVENT_OPTIONS = {
+  '恋爱': ['因为某事大吵一架', '发现对方和异性暧昧', '异地/聚少离多产生隔阂', '一方提出分手', '价值观严重冲突（如生育观、未来规划）', '一方出轨', '因为家人反对产生矛盾'],
+  '婚姻': ['因家务/育儿分工大吵', '发现对方隐瞒重要事情', '婆媳/翁婿矛盾爆发', '一方提出离婚', '经济危机/重大决策分歧', '一方出轨', '因孩子教育问题爆发冲突'],
+  '亲子': ['因学业/成绩爆发冲突', '孩子做了让父母失望的事', '父母发现孩子的秘密', '关于未来方向的严重分歧', '家庭变故（离婚/搬家等）', '孩子提出要独立/搬出去', '因手机/游戏问题大吵'],
+  '职场': ['项目出了重大问题', '升职/加薪被拒', '被同事/上级当众批评', '团队内部严重分歧', '被要求做不认同的事', '发现被同事背后使绊子'],
+  '友谊': ['朋友做了伤害自己的事', '因误会产生隔阂', '利益冲突（借钱/合作等）', '朋友突然疏远不联系', '价值观冲突导致争吵', '发现朋友背后说坏话'],
+};
+
+const CRISIS_STATE_OPTIONS = {
+  '恋爱': ['冷战不说话', '焦虑等待对方联系', '想和好但拉不下脸', '还在气头上', '已经不联系好几天', '表面和好但心结未解', '在考虑分手', '正常生活但回避话题'],
+  '婚姻': ['冷战不说话', '焦虑等待对方让步', '想和好但拉不下脸', '还在气头上', '已经分房睡/分居', '表面和好但心结未解', '在认真考虑离婚', '正常生活但回避话题'],
+  '亲子': ['把自己关在房间', '冷战不说话', '表面顺从内心抗拒', '焦虑但不知如何开口', '情绪低落/厌学', '正常但关系紧张', '通过第三方沟通', '主动想修复关系'],
+  '职场': ['表面正常但关系紧张', '不直接沟通/回避', '在考虑离职', '等对方先让步', '已影响工作效率', '通过第三方传话', '正常工作但心里不舒服'],
+  '友谊': ['很久没联系', '表面正常但有隔阂', '想修复但不知如何开口', '已经在其他朋友面前闹开', '主动疏远对方', '正常来往但心里有芥蒂'],
+};
+
+const CRISIS_FOCUS_OPTIONS = {
+  '恋爱': ['谁会先妥协？', '关系能修复吗？', '会不会分手？', '下一步会发生什么？', '需要多久才能和好？', '该怎么做才能挽回？'],
+  '婚姻': ['会不会离婚？', '谁会先让步？', '孩子会受多大影响？', '关系能回到从前吗？', '需要什么条件才能修复？', '该不该妥协？'],
+  '亲子': ['孩子会怎么反应？', '关系会恶化还是修复？', '谁应该先迈出一步？', '长期会有什么影响？', '如何打破僵局？', '孩子的心理状态会怎样？'],
+  '职场': ['会不会离职？', '关系能修复吗？', '对职业发展有什么影响？', '该主动还是等待？', '需要找第三方介入吗？'],
+  '友谊': ['友谊还能维持吗？', '谁会先联系对方？', '需要多久才能恢复？', '该主动还是放手？', '值不值得挽回？'],
+};
+
+const COMMON_TRAITS = ['情绪稳定','高敏感','高共情','需要个人空间','害怕冲突','控制欲强','追求完美','习惯压抑情绪','行动派','需要被认可','害怕承诺','直觉敏锐'];
+
+function getRelType() {
+  const checked = document.querySelector('input[name="rel-type"]:checked');
+  return checked ? checked.value : '';
+}
+
+function getTriggerKey(prefix) {
+  const relType = getRelType();
+  if (relType === '亲子') {
+    const roleChecked = document.querySelector(`input[name="${prefix}-role"]:checked`);
+    const role = roleChecked ? roleChecked.value : '';
+    return CHILD_ROLES.has(role) ? '亲子_子女' : '亲子_父母';
+  }
+  if (relType === '职场') {
+    const roleChecked = document.querySelector(`input[name="${prefix}-role"]:checked`);
+    const role = roleChecked ? roleChecked.value : '';
+    if (role === '上级') return '职场_上级';
+    if (role === '下属') return '职场_下属';
+    return '职场_同事';
+  }
+  return relType;
+}
+
+function renderRadioWithCustom(containerId, customId, name, options) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = options.map(opt =>
+    `<label><input type="radio" name="${name}" value="${opt}"><span>${opt}</span></label>`
+  ).join('') + `<label><input type="radio" name="${name}" value="__custom"><span>其他（自定义）</span></label>`;
+  const customInput = document.getElementById(customId);
+  customInput.style.display = 'none';
+  container.addEventListener('change', function(e) {
+    customInput.style.display = e.target.value === '__custom' ? 'block' : 'none';
+  });
+}
+
+function renderCheckWithCustom(containerId, customId, name, options) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = options.map(opt =>
+    `<label><input type="checkbox" name="${name}" value="${opt}"><span>${opt}</span></label>`
+  ).join('') + `<label><input type="checkbox" name="${name}" value="__custom"><span>其他（自定义）</span></label>`;
+  const customInput = document.getElementById(customId);
+  customInput.style.display = 'none';
+  container.addEventListener('change', function(e) {
+    if (e.target.value === '__custom') {
+      customInput.style.display = e.target.checked ? 'block' : 'none';
+    }
+  });
+}
+
+function renderRelDetailOptions() {
+  const relType = getRelType();
+  const field = document.getElementById('rel-detail-field');
+  if (!relType || relType === '__custom') { field.style.display = 'none'; return; }
+  field.style.display = 'block';
+  const options = REL_DETAIL_OPTIONS[relType] || [];
+  renderRadioWithCustom('rel-detail-group', 'rel-detail-custom', 'rel-detail', options);
+}
+
+function renderAttachmentOptions(prefix) {
+  const relType = getRelType();
+  let key = relType;
+  if (relType === '亲子') {
+    const roleChecked = document.querySelector(`input[name="${prefix}-role"]:checked`);
+    const role = roleChecked ? roleChecked.value : '';
+    key = CHILD_ROLES.has(role) ? '亲子_子女' : '亲子_父母';
+  }
+  const styles = ATTACHMENT_STYLES[key] || ATTACHMENT_STYLES['恋爱'];
+  const container = document.getElementById(`${prefix}-attach-group`);
+  container.innerHTML = styles.map(([name, desc]) =>
+    `<label><input type="radio" name="${prefix}-attach" value="${name}"><span>${name}<span class="desc"> — ${desc}</span></span></label>`
+  ).join('');
+}
+
+function renderRoleOptions(prefix) {
+  const relType = getRelType();
+  const roles = ROLE_SUGGESTIONS[relType] || ['其他'];
+  const container = document.getElementById(`${prefix}-role-group`);
+  container.innerHTML = roles.map(r =>
+    `<label><input type="radio" name="${prefix}-role" value="${r}"><span>${r}</span></label>`
+  ).join('') + `<label><input type="radio" name="${prefix}-role" value="__custom"><span>其他（自定义）</span></label>`;
+  document.getElementById(`${prefix}-role-custom`).style.display = 'none';
+  const genderField = document.getElementById(`${prefix}-gender-field`);
+  genderField.style.display = '';
+  container.addEventListener('change', function(e) {
+    const val = e.target.value;
+    document.getElementById(`${prefix}-role-custom`).style.display = val === '__custom' ? 'block' : 'none';
+    const inferredGender = ROLE_GENDER_MAP[val];
+    if (inferredGender) {
+      const radio = document.querySelector(`input[name="${prefix}-gender"][value="${inferredGender}"]`);
+      if (radio) radio.checked = true;
+      genderField.style.display = 'none';
+    } else {
+      genderField.style.display = '';
+    }
+    if (relType === '亲子') renderAttachmentOptions(prefix);
+    renderTriggerOptions(prefix);
+    renderBehaviorOptions(prefix);
+  });
+}
+
+function renderTraits(prefix) {
+  const container = document.getElementById(`${prefix}-traits`);
+  container.innerHTML = COMMON_TRAITS.map(t =>
+    `<label><input type="checkbox" value="${t}"><span>${t}</span></label>`
+  ).join('');
+}
+
+function renderTriggerOptions(prefix) {
+  const key = getTriggerKey(prefix);
+  const options = TRIGGER_OPTIONS[key] || TRIGGER_OPTIONS['恋爱'];
+  renderCheckWithCustom(`${prefix}-trigger-group`, `${prefix}-trigger-custom`, `${prefix}-trigger`, options);
+}
+
+function renderBehaviorOptions(prefix) {
+  const key = getTriggerKey(prefix);
+  const options = BEHAVIOR_OPTIONS[key] || BEHAVIOR_OPTIONS['恋爱'];
+  renderCheckWithCustom(`${prefix}-behavior-group`, `${prefix}-behavior-custom`, `${prefix}-behavior`, options);
+}
+
+function renderCrisisOptions() {
+  const relType = getRelType();
+  const key = (relType === '__custom' || !relType) ? '恋爱' : relType;
+  renderRadioWithCustom('crisis-event-group', 'crisis-event-custom', 'crisis-event', CRISIS_EVENT_OPTIONS[key] || CRISIS_EVENT_OPTIONS['恋爱']);
+  const stateOpts = CRISIS_STATE_OPTIONS[key] || CRISIS_STATE_OPTIONS['恋爱'];
+  renderRadioWithCustom('crisis-state-a-group', 'crisis-state-a-custom', 'crisis-state-a', stateOpts);
+  renderRadioWithCustom('crisis-state-b-group', 'crisis-state-b-custom', 'crisis-state-b', stateOpts);
+  renderCheckWithCustom('crisis-focus-group', 'crisis-focus-custom', 'crisis-focus', CRISIS_FOCUS_OPTIONS[key] || CRISIS_FOCUS_OPTIONS['恋爱']);
+  // Show detail textarea when any crisis event is selected
+  const detailEl = document.getElementById('crisis-event-detail');
+  detailEl.style.display = 'none';
+  document.getElementById('crisis-event-group').addEventListener('change', function() {
+    detailEl.style.display = 'block';
+  });
+  // Update hints with role names
+  const roleA = getRadioOrCustom('a-role', 'a-role-custom') || 'A';
+  const roleB = getRadioOrCustom('b-role', 'b-role-custom') || 'B';
+  document.getElementById('crisis-state-a-hint').textContent = `${roleA} 现在是什么状态？`;
+  document.getElementById('crisis-state-b-hint').textContent = `${roleB} 现在是什么状态？`;
+}
+
+function initProgress() {
+  const el = document.getElementById('progress');
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.createElement('div');
+    dot.className = 'dot' + (i === 1 ? ' active' : '');
+    dot.id = 'dot-' + i;
+    el.appendChild(dot);
+  }
+}
+
+function updateProgress() {
+  for (let i = 1; i <= TOTAL_STEPS; i++) {
+    const dot = document.getElementById('dot-' + i);
+    dot.className = 'dot' + (i === currentStep ? ' active' : '') + (i < currentStep ? ' done' : '');
+  }
+}
+
+function goToStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step-' + n).classList.add('active');
+  currentStep = n;
+  updateProgress();
+}
+
+function nextStep() {
+  if (!validateStep(currentStep)) return;
+  if (currentStep === 3) renderCrisisOptions();
+  goToStep(currentStep + 1);
+}
+
+function prevStep() { goToStep(currentStep - 1); }
+
+function getRadioOrCustom(name, customId) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`);
+  if (!checked) return '';
+  if (checked.value === '__custom') return document.getElementById(customId).value.trim();
+  return checked.value;
+}
+
+function getCheckedValues(name, customId) {
+  const checked = [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(i => i.value).filter(v => v !== '__custom');
+  const customEl = document.getElementById(customId);
+  if (customEl && customEl.style.display !== 'none') {
+    const custom = customEl.value.trim();
+    if (custom) checked.push(...custom.split(/[,，]/).map(s => s.trim()).filter(Boolean));
+  }
+  return checked;
+}
+
+function validateStep(step) {
+  if (step === 1) {
+    const rt = getRelType();
+    if (!rt) { alert('请选择关系类型'); return false; }
+    if (rt === '__custom' && !document.getElementById('rel-custom').value.trim()) { alert('请输入自定义关系类型'); return false; }
+    if (rt !== '__custom') {
+      const detail = getRadioOrCustom('rel-detail', 'rel-detail-custom');
+      if (!detail) { alert('请选择关系时长/背景'); return false; }
+    }
+  }
+  if (step === 2 || step === 3) {
+    const prefix = step === 2 ? 'a' : 'b';
+    const role = getRadioOrCustom(`${prefix}-role`, `${prefix}-role-custom`);
+    if (!role) { alert('请选择角色'); return false; }
+    const genderField = document.getElementById(`${prefix}-gender-field`);
+    if (genderField.style.display !== 'none') {
+      if (!document.querySelector(`input[name="${prefix}-gender"]:checked`)) { alert('请选择性别'); return false; }
+    }
+    const dims = [`${prefix}-ei`, `${prefix}-sn`, `${prefix}-tf`, `${prefix}-jp`];
+    for (const d of dims) {
+      if (!document.querySelector(`input[name="${d}"]:checked`)) { alert('请完成 MBTI 所有维度的选择'); return false; }
+    }
+    if (!document.querySelector(`input[name="${prefix}-attach"]:checked`)) { alert('请选择依恋类型'); return false; }
+    const traits = getTraits(prefix);
+    if (traits.length < 2) { alert('请至少选择 2 个核心特质'); return false; }
+    if (traits.length > 5) { alert('核心特质最多选 5 个'); return false; }
+    const triggers = getCheckedValues(`${prefix}-trigger`, `${prefix}-trigger-custom`);
+    if (triggers.length === 0) { alert('请至少选择 1 个触发点'); return false; }
+    const behaviors = getCheckedValues(`${prefix}-behavior`, `${prefix}-behavior-custom`);
+    if (behaviors.length === 0) { alert('请至少选择 1 个典型行为'); return false; }
+  }
+  if (step === 4) {
+    const event = getRadioOrCustom('crisis-event', 'crisis-event-custom');
+    if (!event) { alert('请选择导火索事件'); return false; }
+    const stateA = getRadioOrCustom('crisis-state-a', 'crisis-state-a-custom');
+    if (!stateA) { alert('请选择 A 的当前状态'); return false; }
+    const stateB = getRadioOrCustom('crisis-state-b', 'crisis-state-b-custom');
+    if (!stateB) { alert('请选择 B 的当前状态'); return false; }
+    const focus = getCheckedValues('crisis-focus', 'crisis-focus-custom');
+    if (focus.length === 0) { alert('请至少选择 1 个预测关注点'); return false; }
+  }
+  return true;
+}
+
+function getMbti(prefix) {
+  return ['ei','sn','tf','jp'].map(d => document.querySelector(`input[name="${prefix}-${d}"]:checked`).value).join('');
+}
+
+function getTraits(prefix) {
+  const checked = [...document.querySelectorAll(`#${prefix}-traits input:checked`)].map(i => i.value);
+  const custom = document.getElementById(`${prefix}-traits-custom`).value.trim();
+  if (custom) checked.push(...custom.split(/[,，]/).map(s => s.trim()).filter(Boolean));
+  return checked;
+}
+
+function escYaml(s) { return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"'); }
+
+function generateYaml() {
+  if (!validateStep(4)) return;
+
+  const relType = getRelType() === '__custom'
+    ? document.getElementById('rel-custom').value.trim()
+    : getRelType();
+  const relDetail = getRadioOrCustom('rel-detail', 'rel-detail-custom');
+  const fullRelType = relDetail ? `${relType}（${relDetail}）` : relType;
+  const slug = SLUG_MAP[relType] || 'custom';
+  const caseId = `case_new_${slug}`;
+
+  function personYaml(prefix) {
+    const role = getRadioOrCustom(`${prefix}-role`, `${prefix}-role-custom`);
+    const genderField = document.getElementById(`${prefix}-gender-field`);
+    let gender;
+    if (genderField.style.display === 'none') {
+      gender = ROLE_GENDER_MAP[role] || '不指定';
+    } else {
+      const genderChecked = document.querySelector(`input[name="${prefix}-gender"]:checked`);
+      gender = genderChecked ? genderChecked.value : '不指定';
+    }
+    const mbti = getMbti(prefix);
+    const attach = document.querySelector(`input[name="${prefix}-attach"]:checked`).value;
+    const traits = getTraits(prefix);
+    const triggers = getCheckedValues(`${prefix}-trigger`, `${prefix}-trigger-custom`);
+    const behaviors = getCheckedValues(`${prefix}-behavior`, `${prefix}-behavior-custom`);
+    const traitsStr = traits.map(t => `"${escYaml(t)}"`).join(', ');
+    const triggerStr = triggers.join('；');
+    const behaviorStr = behaviors.join('；');
+    return `  role: "${escYaml(role)}"
+  gender: "${escYaml(gender)}"
+  mbti: "${mbti}"
+  attachment_style: "${escYaml(attach)}"
+  core_traits: [${traitsStr}]
+  trigger_points: "${escYaml(triggerStr)}"
+  typical_behavior: "${escYaml(behaviorStr)}"`;
+  }
+
+  const event = getRadioOrCustom('crisis-event', 'crisis-event-custom');
+  const eventDetail = document.getElementById('crisis-event-detail').value.trim();
+  const fullEvent = eventDetail ? `${event}（${eventDetail}）` : event;
+  const stateA = getRadioOrCustom('crisis-state-a', 'crisis-state-a-custom');
+  const stateB = getRadioOrCustom('crisis-state-b', 'crisis-state-b-custom');
+  const roleA = getRadioOrCustom('a-role', 'a-role-custom') || 'A';
+  const roleB = getRadioOrCustom('b-role', 'b-role-custom') || 'B';
+  const state = `${roleA}${stateA}，${roleB}${stateB}`;
+  const focusList = getCheckedValues('crisis-focus', 'crisis-focus-custom');
+  const focus = focusList.join(' ');
+
+  yamlContent = `case_id: "${caseId}"
+relationship_type: "${escYaml(fullRelType)}"
+
+person_a:
+${personYaml('a')}
+
+person_b:
+${personYaml('b')}
+
+current_crisis:
+  event: "${escYaml(fullEvent)}"
+  current_state: "${escYaml(state)}"
+
+evaluator_focus: |
+  ${focus}
+`;
+
+  document.getElementById('preview-output').textContent = yamlContent;
+  goToStep(5);
+}
+
+function downloadYaml() {
+  const blob = new Blob([yamlContent], { type: 'text/yaml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'case_new.yaml';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('文件已下载');
+}
+
+function copyYaml() {
+  navigator.clipboard.writeText(yamlContent).then(() => showToast('已复制到剪贴板'));
+}
+
+function copyCmd() {
+  const cmd = document.getElementById('import-cmd').textContent;
+  navigator.clipboard.writeText(cmd).then(() => showToast('命令已复制'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => { t.style.display = 'none'; }, 2000);
+}
+
+// Initialization
+document.getElementById('rel-type-group').addEventListener('change', function(e) {
+  const val = e.target.value;
+  document.getElementById('rel-custom').style.display = val === '__custom' ? 'block' : 'none';
+  renderRelDetailOptions();
+  renderRoleOptions('a');
+  renderRoleOptions('b');
+  renderAttachmentOptions('a');
+  renderAttachmentOptions('b');
+  renderTraits('a');
+  renderTraits('b');
+  renderTriggerOptions('a');
+  renderTriggerOptions('b');
+  renderBehaviorOptions('a');
+  renderBehaviorOptions('b');
+});
+
+initProgress();
+</script>
+</body>
+</html>
