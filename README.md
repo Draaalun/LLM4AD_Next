@@ -26,18 +26,28 @@ LLM4AD is a modular platform that combines Large Language Models (LLMs) with evo
 
 ## Features
 
-- **LLM-Powered Design** - Leverage state-of-the-art language models for algorithm ideation and generation
-- **Evolutionary Optimization** - Apply genetic algorithms to improve algorithm performance over generations
-- **Interactive Configuration** - AI-powered consultant guides you through pipeline setup via conversation, generating a complete runnable application (evaluator, algorithm, config, debug runner)
-- **Evolve-Block Advisor** - On-demand feasibility/significance/concerns/suggestions for a user-selected code block versus a stated evolution goal
-- **Evolve-Block Recommender** - Point the platform at a repo + a goal and get ranked candidate blocks to evolve, each pre-scored by the advisor
-- **Flexible Evaluation** - Define custom evaluation metrics and benchmarks with the registry-based evaluator system
-- **Multi-Provider Support** - Use OpenAI, Anthropic, or any OpenAI-compatible LLM providers
-- **Distributed Computing** - Scale experiments using Ray infrastructure
-- **YAML Configuration** - Declarative configuration with global settings and environment variable support
-- **Checkpoint & Resume** - Automatic checkpointing to resume interrupted experiments
+- 🧠 **LLM-Powered Design** - Leverage state-of-the-art language models for algorithm ideation and generation
+- 🧬 **Evolutionary Optimization** - Apply genetic algorithms to improve algorithm performance over generations
+- 💬 **Interactive Configuration** - AI-powered consultant guides you through pipeline setup via conversation, generating a complete runnable application (evaluator, algorithm, config, debug runner)
+- 🔍 **Evolve-Block Advisor** - On-demand feasibility/significance/concerns/suggestions for a user-selected code block versus a stated evolution goal
+- 🎯 **Evolve-Block Recommender** - Point the platform at a repo + a goal and get ranked candidate blocks to evolve, each pre-scored by the advisor
+- 📊 **Flexible Evaluation** - Define custom evaluation metrics and benchmarks with the registry-based evaluator system
+- 🔌 **Multi-Provider Support** - Use OpenAI, Anthropic, or any OpenAI-compatible LLM providers
+- 🚀 **Distributed Computing** - Scale experiments using Ray infrastructure
+- 📝 **YAML Configuration** - Declarative configuration with global settings and environment variable support
+- 💾 **Checkpoint & Resume** - Automatic checkpointing to resume interrupted experiments
 
 ## Quick Start
+
+### Option A: Online Demo (No Installation Required)
+
+Visit our free web service to try LLM4AD_Next instantly:
+
+👉 **[点击这里](http://8.163.71.37/)**
+
+No setup, no API key needed — just open the link and start designing algorithms.
+
+### Option B: Local Installation
 
 ```bash
 # Clone the repository
