@@ -23,7 +23,7 @@ LLM4AD treats the LLM as a **proposer** and evolutionary computation as the **ev
 ## Quick start
 
 ```bash
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd llm4ad
 uv sync
 
@@ -89,5 +89,5 @@ This project is released under the MIT license — see [LICENSE](license.md).
 ## Support
 
 - 📖 [Documentation site](https://llm4ad.readthedocs.io)
-- 💬 [GitHub Discussions](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [Issue Tracker](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [GitHub Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

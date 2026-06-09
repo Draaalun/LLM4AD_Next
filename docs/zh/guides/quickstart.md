@@ -38,7 +38,7 @@ providers:
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-如果用 Anthropic，把 `type` 改为 `"anthropic"`、`api_key` 用 `${ANTHROPIC_API_KEY}`。完整样例见 [`examples/config/settings.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/settings.yaml)。
+如果用 Anthropic，把 `type` 改为 `"anthropic"`、`api_key` 用 `${ANTHROPIC_API_KEY}`。完整样例见 [`examples/config/settings.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/settings.yaml)。
 
 ### A.2 — 运行向导
 
@@ -422,5 +422,5 @@ evaluator:
 ## 获取帮助
 
 - 📖 [完整文档](https://llm4ad.readthedocs.io)
-- 💬 [讨论](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [问题跟踪](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [讨论](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [问题跟踪](https://github.com/Optima-CityU/LLM4AD_Next/issues)

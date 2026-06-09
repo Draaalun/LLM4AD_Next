@@ -337,7 +337,7 @@ metrics = {
 
 参考文件：
 
-- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/llm4ad/llm4ad/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)
+- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)
 
 这个样例现在同时返回：
 
@@ -434,4 +434,4 @@ metrics = {
 - `src/llm4ad/evaluator/dispatcher.py`
 - `src/llm4ad/infra/state.py`
 - `src/llm4ad/planner/base.py`
-- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/llm4ad/llm4ad/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)
+- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)

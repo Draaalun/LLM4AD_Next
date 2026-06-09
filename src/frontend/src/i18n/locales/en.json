@@ -49,7 +49,7 @@
     "providerNameRequired": "Name is required"
   },
   "login": {
-    "pageTitle": "Login - LLM4AD",
+    "pageTitle": "Login - LLM4AD_Next",
     "title": "Login",
     "subtitle": "Sign in to your account to continue",
     "emailLabel": "Email",
@@ -61,9 +61,9 @@
     "signupLink": "Sign up"
   },
   "signup": {
-    "pageTitle": "Sign Up - LLM4AD",
+    "pageTitle": "Sign Up - LLM4AD_Next",
     "title": "Sign Up",
-    "subtitle": "Create your LLM4AD account",
+    "subtitle": "Create your LLM4AD_Next account",
     "nameLabel": "Full Name",
     "namePlaceholder": "Enter your name",
     "emailLabel": "Email",
@@ -90,7 +90,7 @@
     "close": "Close"
   },
   "verifyEmail": {
-    "pageTitle": "Email Verification - LLM4AD",
+    "pageTitle": "Email Verification - LLM4AD_Next",
     "title": "Email Verification",
     "subtitle": "A verification code has been sent to {{email}}",
     "codeLabel": "Verification Code",
@@ -104,7 +104,7 @@
     "autoFilledHint": "The verification code has been auto-filled. Simply click Verify to proceed."
   },
   "recoverPassword": {
-    "pageTitle": "Recover Password - LLM4AD",
+    "pageTitle": "Recover Password - LLM4AD_Next",
     "title": "Recover Password",
     "subtitle": "Enter your email and we'll send you a reset link",
     "emailLabel": "Email",
@@ -114,7 +114,7 @@
     "successToast": "Password reset email sent"
   },
   "resetPassword": {
-    "pageTitle": "Reset Password - LLM4AD",
+    "pageTitle": "Reset Password - LLM4AD_Next",
     "title": "Reset Password",
     "subtitle": "Set your new password",
     "newPasswordLabel": "New Password",
@@ -155,7 +155,7 @@
     "liveCode": "Group QR"
   },
   "projects": {
-    "pageTitle": "Projects - LLM4AD",
+    "pageTitle": "Projects - LLM4AD_Next",
     "title": "Projects",
     "subtitle": "Manage your evolution projects, click a card to view details",
     "emptyTitle": "No projects yet",
@@ -201,7 +201,7 @@
     "lastUpdated": "Updated {{time}}"
   },
   "admin": {
-    "pageTitle": "Admin - LLM4AD",
+    "pageTitle": "Admin - LLM4AD_Next",
     "usersTitle": "Users",
     "usersSubtitle": "Manage user accounts and permissions",
     "addUser": "Add User",
@@ -260,7 +260,7 @@
     "deleteConfirmDescription": "All account data will be **permanently deleted.** If you are sure, click **\"Delete\"** to continue. This action is irreversible."
   },
   "llmProvider": {
-    "pageTitle": "LLM Providers - LLM4AD",
+    "pageTitle": "LLM Providers - LLM4AD_Next",
     "title": "LLM Provider Management",
     "subtitle": "Manage your LLM provider configurations",
     "emptyTitle": "No providers configured",
@@ -694,7 +694,7 @@
       },
       "score": "Score",
       "goal": "Evolution Goal",
-      "goalPlaceholder": "Enter the goal you want LLM4AD to achieve, e.g., reduce TSP tour length",
+      "goalPlaceholder": "Enter the goal you want LLM4AD_Next to achieve, e.g., reduce TSP tour length",
       "goalRequired": "Please enter an evolution goal",
       "dataNotReady": "Please complete data preparation before generating recommendations or marking blocks",
       "provider": "Provider",
@@ -1075,7 +1075,7 @@
     }
   },
   "landing": {
-    "pageTitle": "LLM4AD - Algorithm Design with Large Language Models",
+    "pageTitle": "LLM4AD_Next - Algorithm Design with Large Language Models",
     "nav": {
       "features": "Features",
       "domains": "Domains",
@@ -1161,7 +1161,7 @@
       }
     },
     "footer": {
-      "copyright": "LLM4AD - Algorithm Design with Large Language Models",
+      "copyright": "LLM4AD_Next - Algorithm Design with Large Language Models",
       "team": "",
       "resources": "Resources"
     }
@@ -1339,7 +1339,7 @@
     }
   },
   "feedback": {
-    "pageTitle": "Feedback - LLM4AD",
+    "pageTitle": "Feedback - LLM4AD_Next",
     "title": "Feedback",
     "subtitle": "View and manage feedback records",
     "fab": {
@@ -1453,9 +1453,9 @@
     }
   },
   "userManual": {
-    "pageTitle": "User Manual - LLM4AD",
+    "pageTitle": "User Manual - LLM4AD_Next",
     "title": "User Manual",
-    "subtitle": "Learn how to use LLM4AD",
+    "subtitle": "Learn how to use LLM4AD_Next",
     "openInNewWindow": "Open in New Window",
     "openOnGithub": "View on GitHub",
     "enterFullscreen": "Fullscreen",
@@ -1582,7 +1582,7 @@
     "wechatUnavailable": "This QR code is temporarily unavailable, please try again later"
   },
   "research": {
-    "pageTitle": "Research - LLM4AD",
+    "pageTitle": "Research - LLM4AD_Next",
     "title": "Research",
     "sidebar": {
       "title": "Research",

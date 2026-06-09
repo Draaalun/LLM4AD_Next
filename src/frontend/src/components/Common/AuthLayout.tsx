@@ -47,7 +47,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
             <div className="mb-6 flex flex-col items-center gap-3">
               <Logo variant="icon" className="size-12" asLink={false} />
               <span className="text-lg font-bold tracking-[0.15em] uppercase landing-gradient">
-                LLM4AD
+                LLM4AD_Next
               </span>
             </div>
 
@@ -57,7 +57,7 @@ export function AuthLayout({ children }: AuthLayoutProps) {
 
           {/* Footer */}
           <p className="mt-4 text-center text-xs text-muted-foreground">
-            LLM4AD - {new Date().getFullYear()}
+            LLM4AD_Next - {new Date().getFullYear()}
           </p>
         </div>
       </div>

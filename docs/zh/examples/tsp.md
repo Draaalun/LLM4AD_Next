@@ -1,6 +1,6 @@
 # TSP 基准
 
-[`examples/applications/tsp_benchmark_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/tsp_benchmark_python) 的端到端走读。任务是进化一个 TSP 求解器（最近邻 + 局部搜索风格），让它在涵盖小型随机、聚集型布局和大型随机三类实例的多样化数据集上把巡回距离最小化。
+[`examples/applications/tsp_benchmark_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/tsp_benchmark_python) 的端到端走读。任务是进化一个 TSP 求解器（最近邻 + 局部搜索风格），让它在涵盖小型随机、聚集型布局和大型随机三类实例的多样化数据集上把巡回距离最小化。
 
 这是仓库里**唯一**自带三套不同编排器配置的示例 — 同任务直接对比 Island GA、DyCA 和 MEoH 一目了然。
 

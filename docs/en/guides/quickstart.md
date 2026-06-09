@@ -38,7 +38,7 @@ Then export the key:
 export OPENAI_API_KEY="your-openai-api-key"
 ```
 
-For Anthropic, set `type: "anthropic"` and `${ANTHROPIC_API_KEY}` instead. A full example lives in [`examples/config/settings.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/settings.yaml).
+For Anthropic, set `type: "anthropic"` and `${ANTHROPIC_API_KEY}` instead. A full example lives in [`examples/config/settings.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/settings.yaml).
 
 ### A.2 — Run the wizard
 
@@ -422,5 +422,5 @@ evaluator:
 ## Getting Help
 
 - 📖 [Full Documentation](https://llm4ad.readthedocs.io)
-- 💬 [Discussions](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [Issue Tracker](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

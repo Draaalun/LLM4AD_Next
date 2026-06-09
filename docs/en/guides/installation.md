@@ -38,7 +38,7 @@ This method allows you to modify the code and contribute to the project.
 
 ```bash
 # Clone the repository
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd LLM4AD
 
 # Install in editable mode with all dependencies
@@ -163,7 +163,7 @@ If you plan to contribute to LLM4AD, set up the development environment:
 
 ```bash
 # Clone the repository
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd LLM4AD
 
 # Install with development dependencies
@@ -278,5 +278,5 @@ After installation, proceed to:
 If you encounter issues not covered here:
 
 - 📖 [Full Documentation](https://llm4ad.readthedocs.io)
-- 💬 [Discussions](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [Issue Tracker](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

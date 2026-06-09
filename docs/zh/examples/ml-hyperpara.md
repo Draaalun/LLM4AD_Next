@@ -1,6 +1,6 @@
 # ML 超参数搜索
 
-[`examples/applications/ml_hyperpara_benchmark/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/ml_hyperpara_benchmark) 的端到端走读。任务是为一条 ML 流水线进化一个超参数调优函数，在固定算力预算内把基准数据集上的测试准确率最大化。
+[`examples/applications/ml_hyperpara_benchmark/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/ml_hyperpara_benchmark) 的端到端走读。任务是为一条 ML 流水线进化一个超参数调优函数，在固定算力预算内把基准数据集上的测试准确率最大化。
 
 这个示例展示 LLM4AD 如何超出经典"算法设计"走向 **AutoML 式的搜索**：EVOLVE 块是一个调优函数，不再是排序例程，但流水线（Island GA、评估器、EVOLVE 标记）完全不变。
 
@@ -61,7 +61,7 @@ Best snapshot: runs/ml_hyperpara_benchmark/<run_id>/best
 
 ## 一个姊妹示例
 
-[`ml_feature_benchmark/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/ml_feature_benchmark) 结构一致，但进化的是**特征选择**例程。当瓶颈来自特征工程而不是超参数时很有用。
+[`ml_feature_benchmark/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/ml_feature_benchmark) 结构一致，但进化的是**特征选择**例程。当瓶颈来自特征工程而不是超参数时很有用。
 
 ## 可以试的变体
 

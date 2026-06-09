@@ -26,7 +26,7 @@ export const Route = createFileRoute("/_layout/llm_rovider")({
   head: () => ({
     meta: [
       {
-        title: "LLM Provider - LLM4AD",
+        title: "LLM Provider - LLM4AD_Next",
       },
     ],
   }),

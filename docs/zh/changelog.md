@@ -78,5 +78,5 @@ LLM4AD 目前处于 alpha 阶段（`0.1.x`），尚未发布带 tag 的版本。
 
 ## 相关链接
 
-- [贡献指南](contributing/guidelines.md) — 驱动本日志的提交格式
-- [GitHub 上的最新提交](https://github.com/llm4ad/llm4ad/commits/main) — 完整事实源
+- [贡献指南](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/docs/zh/contributing/guidelines.md) — 驱动本日志的提交格式
+- [GitHub 上的最新提交](https://github.com/Optima-CityU/LLM4AD_Next/commits/main) — 完整事实源

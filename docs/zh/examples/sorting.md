@@ -1,6 +1,6 @@
 # 排序基准
 
-[`examples/applications/sorting_benchmark_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/sorting_benchmark_python) 的端到端走读。任务是进化一个 Python 排序函数，让其在一组整数列表测试样例上最小化执行时间和操作数。
+[`examples/applications/sorting_benchmark_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/sorting_benchmark_python) 的端到端走读。任务是进化一个 Python 排序函数，让其在一组整数列表测试样例上最小化执行时间和操作数。
 
 ## 进化对象
 

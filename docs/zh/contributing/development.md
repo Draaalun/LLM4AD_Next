@@ -14,7 +14,7 @@
 ## clone + install
 
 ```bash
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd llm4ad
 
 # 一次性装齐（dev + docs + all extras + provider SDK）

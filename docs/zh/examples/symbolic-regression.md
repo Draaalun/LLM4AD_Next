@@ -1,6 +1,6 @@
 # 符号回归（双层优化）
 
-[`examples/applications/symbolic_regression_bilevel_predefined_constant/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/symbolic_regression_bilevel_predefined_constant) 的端到端走读。任务是从含三个输入变量 `x0, x1, x2` 的数值数据中**发现一个数学表达式**，让其均方误差（MSE）最小。
+[`examples/applications/symbolic_regression_bilevel_predefined_constant/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/symbolic_regression_bilevel_predefined_constant) 的端到端走读。任务是从含三个输入变量 `x0, x1, x2` 的数值数据中**发现一个数学表达式**，让其均方误差（MSE）最小。
 
 ## 关键想法：双层优化
 

@@ -205,7 +205,7 @@ const MOCK_ALGORITHM_CODE = `import numpy as np
 from typing import List
 
 def heuristic(distance_matrix: np.ndarray) -> List[int]:
-    """Adaptive TSP heuristic evolved by LLM4AD."""
+    """Adaptive TSP heuristic evolved by LLM4AD_Next."""
     n = len(distance_matrix)
     visited = [False] * n
     tour = [0]

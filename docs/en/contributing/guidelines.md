@@ -8,7 +8,7 @@ If you are setting up your environment for the first time, start with [Developme
 
 | Type | Where it goes |
 |---|---|
-| Bug report | [GitHub Issues](https://github.com/llm4ad/llm4ad/issues) with reproduction steps |
+| Bug report | [GitHub Issues](https://github.com/Optima-CityU/LLM4AD_Next/issues) with reproduction steps |
 | Feature request | GitHub Issues with motivation and example use case |
 | Code change | Pull request against `main` |
 | New example | `examples/applications/<your_example>/` + a walkthrough page under `docs/{en,zh}/examples/` |

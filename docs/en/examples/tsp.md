@@ -1,6 +1,6 @@
 # TSP Benchmark
 
-End-to-end walkthrough of [`examples/applications/tsp_benchmark_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/tsp_benchmark_python). The task is to evolve a Traveling Salesman Problem solver (a nearest-neighbor / local-search style routine) that minimizes tour length on a diverse dataset covering small random, clustered, and large random instances.
+End-to-end walkthrough of [`examples/applications/tsp_benchmark_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/tsp_benchmark_python). The task is to evolve a Traveling Salesman Problem solver (a nearest-neighbor / local-search style routine) that minimizes tour length on a diverse dataset covering small random, clustered, and large random instances.
 
 This is the only shipped example that ships **three orchestrator configurations** for the same task. It's the easiest way to see Island GA, DyCA, and MEoH side-by-side.
 

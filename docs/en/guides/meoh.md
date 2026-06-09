@@ -267,7 +267,7 @@ Without `codebleu` installed, `meoh` fails during the similarity step.
 
 ## 9. Minimal example config
 
-The repo ships a minimal example at [`examples/config/config.meoh.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/config.meoh.yaml). The key block:
+The repo ships a minimal example at [`examples/config/config.meoh.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/config.meoh.yaml). The key block:
 
 ```yaml
 evolution:
@@ -371,4 +371,4 @@ If your goal is "fully reproduce the external paper or repo", this is just the f
 - `src/llm4ad/orchestrator/meoh_population.py`
 - `src/llm4ad/planner/meoh_evolution.py`
 - `src/llm4ad/planner/sampler/meoh_prompt_templates.py`
-- [`examples/config/config.meoh.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/config.meoh.yaml)
+- [`examples/config/config.meoh.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/config.meoh.yaml)

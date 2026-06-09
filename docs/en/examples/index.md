@@ -16,7 +16,7 @@ The walkthroughs below dive into the most representative ones. The full table at
 
 ## Full example index
 
-Source root: [`examples/applications/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications).
+Source root: [`examples/applications/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications).
 
 | Example | Path | Multimodal | Notes |
 |---|---|---|---|
@@ -36,7 +36,7 @@ Source root: [`examples/applications/`](https://github.com/llm4ad/llm4ad/tree/ma
 | task_template_python | `examples/applications/task_template_python/` | — | Minimal scaffold to copy when starting fresh |
 | task_template_python_multimodal | `examples/applications/task_template_python_multimodal/` | ✓ | Multimodal scaffold |
 
-Auto-generated examples (produced by `llm4ad chat`, kept under [`examples/auto_applications/`](https://github.com/llm4ad/llm4ad/tree/main/examples/auto_applications)) demonstrate the [Auto Builder](../guides/auto-builder.md) flow end-to-end.
+Auto-generated examples (produced by `llm4ad chat`, kept under [`examples/auto_applications/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/auto_applications)) demonstrate the [Auto Builder](../guides/auto-builder.md) flow end-to-end.
 
 ## How to run any example
 

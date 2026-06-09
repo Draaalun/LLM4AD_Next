@@ -1,6 +1,6 @@
 # Symbolic Regression (Bilevel)
 
-End-to-end walkthrough of [`examples/applications/symbolic_regression_bilevel_predefined_constant/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/symbolic_regression_bilevel_predefined_constant). The task is to **discover a mathematical expression** from numerical data with three inputs `x0, x1, x2`, minimizing mean squared error (MSE).
+End-to-end walkthrough of [`examples/applications/symbolic_regression_bilevel_predefined_constant/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/symbolic_regression_bilevel_predefined_constant). The task is to **discover a mathematical expression** from numerical data with three inputs `x0, x1, x2`, minimizing mean squared error (MSE).
 
 ## Key idea: bilevel optimization
 

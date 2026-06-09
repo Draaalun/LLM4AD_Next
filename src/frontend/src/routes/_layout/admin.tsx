@@ -34,7 +34,7 @@ export const Route = createFileRoute("/_layout/admin")({
   head: () => ({
     meta: [
       {
-        title: "Admin - LLM4AD",
+        title: "Admin - LLM4AD_Next",
       },
     ],
   }),

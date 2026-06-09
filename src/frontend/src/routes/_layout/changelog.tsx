@@ -35,7 +35,7 @@ import { loadChangelog } from "@/data/changelog"
 export const Route = createFileRoute("/_layout/changelog")({
   component: ChangelogPage,
   head: () => ({
-    meta: [{ title: "Changelog - LLM4AD" }],
+    meta: [{ title: "Changelog - LLM4AD_Next" }],
   }),
 })
 

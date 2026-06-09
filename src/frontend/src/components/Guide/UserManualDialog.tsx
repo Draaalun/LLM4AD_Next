@@ -28,7 +28,7 @@ export function UserManualDialog({
 
   const handleOpenOnGithub = () => {
     window.open(
-      "https://github.com/Optima-CityU/LLM4AD/blob/main/docs/index.md",
+      "https://github.com/Optima-CityU/LLM4AD_Next/blob/main/docs/index.md",
       "_blank",
     )
   }

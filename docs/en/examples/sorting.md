@@ -1,6 +1,6 @@
 # Sorting Benchmark
 
-End-to-end walkthrough of [`examples/applications/sorting_benchmark_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/sorting_benchmark_python). The task is to evolve a Python sorting routine that minimizes execution time and operation counts on a directory of integer-list test cases.
+End-to-end walkthrough of [`examples/applications/sorting_benchmark_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/sorting_benchmark_python). The task is to evolve a Python sorting routine that minimizes execution time and operation counts on a directory of integer-list test cases.
 
 ## What evolves
 

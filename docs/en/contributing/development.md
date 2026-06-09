@@ -14,7 +14,7 @@ Optional: **make**, **ripgrep** (fast searching), an LLM API key if you want to 
 ## Clone and install
 
 ```bash
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd llm4ad
 
 # Install everything (dev + docs + all extras + provider SDKs)

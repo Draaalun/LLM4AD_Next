@@ -1,6 +1,6 @@
 # ML Hyperparameter Search
 
-End-to-end walkthrough of [`examples/applications/ml_hyperpara_benchmark/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/ml_hyperpara_benchmark). The task is to evolve a hyperparameter-tuning routine for an ML pipeline that maximizes test accuracy on a benchmark dataset within a fixed compute budget.
+End-to-end walkthrough of [`examples/applications/ml_hyperpara_benchmark/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/ml_hyperpara_benchmark). The task is to evolve a hyperparameter-tuning routine for an ML pipeline that maximizes test accuracy on a benchmark dataset within a fixed compute budget.
 
 This example shows how LLM4AD scales beyond classic algorithm design into **AutoML-style search**: the EVOLVE block is a tuning function rather than a sorting routine, but the pipeline (Island GA, evaluator, EVOLVE markers) is unchanged.
 
@@ -61,7 +61,7 @@ The evaluator wraps each instance in a `BenchmarkEvaluator.evaluate_instance`:
 
 ## A sister example
 
-[`ml_feature_benchmark/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/ml_feature_benchmark) is structured the same way but evolves a **feature-selection** routine instead of a tuner. Useful when accuracy is bottlenecked by feature engineering rather than hyperparameters.
+[`ml_feature_benchmark/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/ml_feature_benchmark) is structured the same way but evolves a **feature-selection** routine instead of a tuner. Useful when accuracy is bottlenecked by feature engineering rather than hyperparameters.
 
 ## Variations to try
 

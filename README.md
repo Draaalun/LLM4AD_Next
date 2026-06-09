@@ -1,4 +1,4 @@
-# LLM4AD
+# LLM4AD_Next
 
 <p align="center">
   <strong>LLM for Algorithm Design</strong><br>
@@ -12,11 +12,11 @@
   <a href="https://pypi.org/project/llm4ad/">
     <img src="https://img.shields.io/pypi/pyversions/llm4ad" alt="Python Versions">
   </a>
-  <a href="https://github.com/Optima-CityU/LLM4AD/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/zhufangzhou/LLM4AD" alt="License">
+  <a href="https://github.com/Optima-CityU/LLM4AD_Next/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/Optima-CityU/LLM4AD_Next" alt="License">
   </a>
-  <a href="https://github.com/Optima-CityU/LLM4AD/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/zhufangzhou/LLM4AD/ci" alt="CI">
+  <a href="https://github.com/Optima-CityU/LLM4AD_Next/actions/workflows/ci.yml">
+    <img src="https://img.shields.io/github/actions/workflow/status/Optima-CityU/LLM4AD_Next/ci" alt="CI">
   </a>
 </p>
 
@@ -41,8 +41,8 @@ LLM4AD is a modular platform that combines Large Language Models (LLMs) with evo
 
 ```bash
 # Clone the repository
-git clone https://github.com/Optima-CityU/LLM4AD.git
-cd LLM4AD
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
+cd LLM4AD_Next
 
 # Install dependencies
 uv sync
@@ -81,8 +81,8 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 ```bash
 # Clone and install in development mode
-git clone https://github.com/Optima-CityU/LLM4AD.git
-cd LLM4AD
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
+cd LLM4AD_Next
 uv sync
 ```
 
@@ -303,5 +303,5 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 ## Support
 
 - [Documentation](https://llm4ad.readthedocs.io)
-- [Discussions](https://github.com/Optima-CityU/LLM4AD/discussions)
-- [Issue Tracker](https://github.com/Optima-CityU/LLM4AD/issues)
+- [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

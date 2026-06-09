@@ -38,7 +38,7 @@ source ~/.bashrc  # 或 ~/.zshrc
 
 ```bash
 # 克隆仓库
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd LLM4AD
 
 # 以可编辑模式安装并包含所有依赖
@@ -163,7 +163,7 @@ source ~/.bashrc  # 或 ~/.zshrc
 
 ```bash
 # 克隆仓库
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd LLM4AD
 
 # 安装开发依赖
@@ -278,5 +278,5 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 如果您遇到此处未涵盖的问题：
 
 - 📖 [完整文档](https://llm4ad.readthedocs.io)
-- 💬 [讨论](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [问题跟踪](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [讨论](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [问题跟踪](https://github.com/Optima-CityU/LLM4AD_Next/issues)

@@ -23,7 +23,7 @@ export async function logInUser(page: Page, email: string, password: string) {
   await page.getByTestId("password-input").fill(password)
   await page.getByRole("button", { name: "Log In" }).click()
   await page.waitForURL("/")
-  await expect(page.getByText("欢迎使用 LLM4AD！")).toBeVisible()
+  await expect(page.getByText("欢迎使用 LLM4AD_Next！")).toBeVisible()
 }
 
 export async function logOutUser(page: Page) {
