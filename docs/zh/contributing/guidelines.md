@@ -8,7 +8,7 @@ LLM4AD 以 MIT 开源协议发布，欢迎各种贡献 — bug 报告、修复�
 
 | 类型 | 去哪儿 |
 |---|---|
-| Bug 报告 | [GitHub Issues](https://github.com/llm4ad/llm4ad/issues)，附复现步骤 |
+| Bug 报告 | [GitHub Issues](https://github.com/Optima-CityU/LLM4AD_Next/issues)，附复现步骤 |
 | 特性请求 | GitHub Issues，附动机与示例用例 |
 | 代码改动 | 针对 `main` 提 Pull Request |
 | 新示例 | `examples/applications/<your_example>/` + 在 `docs/{en,zh}/examples/` 下加一页走读 |

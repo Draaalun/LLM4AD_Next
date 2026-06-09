@@ -16,9 +16,9 @@ interface LogoProps {
 function LogoText() {
   return (
     <svg
-      viewBox="0 0 260 32"
-      className="logo-text-svg h-6 w-auto group-data-[collapsible=icon]:hidden"
-      aria-label="LLM4AD WEB"
+      viewBox="0 0 200 32"
+      className="logo-text-svg h-6 w-auto shrink-0 group-data-[collapsible=icon]:hidden"
+      aria-label="LLM4AD_Next"
     >
       <defs>
         {/* Animated gradient fill */}
@@ -70,37 +70,13 @@ function LogoText() {
         x="0"
         y="24"
         fontFamily="'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif"
-        fontSize="26"
-        fontWeight="900"
-        letterSpacing="2"
+        fontSize="22"
+        fontWeight="600"
+        letterSpacing="0.5"
         fill="url(#logo-grad)"
         filter="url(#logo-glow)"
       >
-        LLM4AD
-      </text>
-
-      {/* Separator dot */}
-      <circle cx="168" cy="20" r="2.5" fill="#00d4ff" opacity="0.6">
-        <animate
-          attributeName="opacity"
-          values="0.3;0.8;0.3"
-          dur="2s"
-          repeatCount="indefinite"
-        />
-      </circle>
-
-      {/* "WEB" — lighter weight, spaced */}
-      <text
-        x="180"
-        y="24"
-        fontFamily="'Inter', 'SF Pro Display', -apple-system, system-ui, sans-serif"
-        fontSize="20"
-        fontWeight="400"
-        letterSpacing="4"
-        fill="#8ca0bc"
-        opacity="0.85"
-      >
-        WEB
+        LLM4AD_Next
       </text>
     </svg>
   )
@@ -118,7 +94,7 @@ export function Logo({
         <div className="flex items-center gap-3">
           <img
             src={logo}
-            alt="LLM4AD"
+            alt="LLM4AD_Next"
             className={cn(
               "h-14 w-auto group-data-[collapsible=icon]:hidden",
               className,
@@ -128,7 +104,7 @@ export function Logo({
         </div>
         <img
           src={icon}
-          alt="LLM4AD"
+          alt="LLM4AD_Next"
           className={cn(
             "size-5 hidden group-data-[collapsible=icon]:block",
             className,
@@ -138,7 +114,7 @@ export function Logo({
     ) : (
       <img
         src={variant === "full" ? logo : icon}
-        alt="LLM4AD"
+        alt="LLM4AD_Next"
         className={cn(variant === "full" ? "h-6 w-auto" : "size-5", className)}
       />
     )

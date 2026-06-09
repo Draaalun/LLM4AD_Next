@@ -1,6 +1,6 @@
 # LunarLander (Reinforcement Learning Policy)
 
-End-to-end walkthrough of [`examples/applications/lunarlander_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/lunarlander_python). The task is to evolve a control policy for the OpenAI Gym LunarLander environment that safely lands at `(0, 0)` across diverse initial conditions.
+End-to-end walkthrough of [`examples/applications/lunarlander_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/lunarlander_python). The task is to evolve a control policy for the OpenAI Gym LunarLander environment that safely lands at `(0, 0)` across diverse initial conditions.
 
 This example is the showcase for **RL policy search via LLM4AD**: the LLM proposes a policy (a `choose_action(observation)` function), the evaluator runs episodes in the gym environment, and the orchestrator selects the best generalizing policy.
 
@@ -69,7 +69,7 @@ Aggregation across 35 instances is mean reward — that's what the orchestrator 
 
 ## Multimodal variant
 
-[`lunarlander_python_multimodal/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/lunarlander_python_multimodal) renders the trajectory as an image and feeds it into mutation prompts via the multimodal samplers. Useful when the LLM benefits from "seeing" why a policy crashes (e.g. drifting too far before braking).
+[`lunarlander_python_multimodal/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/lunarlander_python_multimodal) renders the trajectory as an image and feeds it into mutation prompts via the multimodal samplers. Useful when the LLM benefits from "seeing" why a policy crashes (e.g. drifting too far before braking).
 
 ```bash
 llm4ad run examples/applications/lunarlander_python_multimodal/config.yaml

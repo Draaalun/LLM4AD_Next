@@ -49,7 +49,7 @@
     "providerNameRequired": "名称不能为空"
   },
   "login": {
-    "pageTitle": "登录 - LLM4AD",
+    "pageTitle": "登录 - LLM4AD_Next",
     "title": "登录",
     "subtitle": "登录你的账号以继续",
     "emailLabel": "邮箱",
@@ -61,9 +61,9 @@
     "signupLink": "注册"
   },
   "signup": {
-    "pageTitle": "注册 - LLM4AD",
+    "pageTitle": "注册 - LLM4AD_Next",
     "title": "注册账号",
-    "subtitle": "创建你的 LLM4AD 账号",
+    "subtitle": "创建你的 LLM4AD_Next 账号",
     "nameLabel": "姓名",
     "namePlaceholder": "请输入姓名",
     "emailLabel": "邮箱",
@@ -90,7 +90,7 @@
     "close": "关闭"
   },
   "verifyEmail": {
-    "pageTitle": "邮箱验证 - LLM4AD",
+    "pageTitle": "邮箱验证 - LLM4AD_Next",
     "title": "邮箱验证",
     "subtitle": "验证码已发送至 {{email}}",
     "codeLabel": "验证码",
@@ -104,7 +104,7 @@
     "autoFilledHint": "当前环境已自动填充验证码，直接点击验证即可完成。"
   },
   "recoverPassword": {
-    "pageTitle": "找回密码 - LLM4AD",
+    "pageTitle": "找回密码 - LLM4AD_Next",
     "title": "找回密码",
     "subtitle": "输入你的邮箱，我们将发送重置链接",
     "emailLabel": "邮箱",
@@ -114,7 +114,7 @@
     "successToast": "密码重置邮件已发送"
   },
   "resetPassword": {
-    "pageTitle": "重置密码 - LLM4AD",
+    "pageTitle": "重置密码 - LLM4AD_Next",
     "title": "重置密码",
     "subtitle": "设置你的新密码",
     "newPasswordLabel": "新密码",
@@ -155,7 +155,7 @@
     "liveCode": "群活码"
   },
   "projects": {
-    "pageTitle": "项目 - LLM4AD",
+    "pageTitle": "项目 - LLM4AD_Next",
     "title": "项目",
     "subtitle": "管理你的演化项目，点击卡片进入项目详情",
     "emptyTitle": "暂无项目",
@@ -201,7 +201,7 @@
     "lastUpdated": "更新于 {{time}}"
   },
   "admin": {
-    "pageTitle": "Admin - LLM4AD",
+    "pageTitle": "Admin - LLM4AD_Next",
     "usersTitle": "用户",
     "usersSubtitle": "管理用户账号和权限",
     "addUser": "添加用户",
@@ -260,7 +260,7 @@
     "deleteConfirmDescription": "你所有的账户数据都会被 **永久删除。** 如果您确定要删除账户，请 点击 **\"删除\"** 继续。此操作不可恢复。"
   },
   "llmProvider": {
-    "pageTitle": "模型供应商管理 - LLM4AD",
+    "pageTitle": "模型供应商管理 - LLM4AD_Next",
     "title": "模型供应商管理",
     "subtitle": "管理你的 LLM 模型供应商配置",
     "emptyTitle": "暂无供应商配置",
@@ -694,7 +694,7 @@
       },
       "score": "评分",
       "goal": "演化目标",
-      "goalPlaceholder": "请输入您希望LLM4AD为您达成的目标，如：减少TSP路径长度",
+      "goalPlaceholder": "请输入您希望LLM4AD_Next为您达成的目标，如：减少TSP路径长度",
       "goalRequired": "请输入演化目标",
       "dataNotReady": "请先完成数据准备后再生成推荐或标注演化块",
       "provider": "模型供应商",
@@ -1076,7 +1076,7 @@
     }
   },
   "landing": {
-    "pageTitle": "LLM4AD - 基于大语言模型的算法设计工具",
+    "pageTitle": "LLM4AD_Next - 基于大语言模型的算法设计工具",
     "nav": {
       "features": "核心特性",
       "domains": "应用领域",
@@ -1162,7 +1162,7 @@
       }
     },
     "footer": {
-      "copyright": "LLM4AD - 基于大语言模型的算法设计工具",
+      "copyright": "LLM4AD_Next - 基于大语言模型的算法设计工具",
       "team": "",
       "resources": "资源"
     }
@@ -1340,7 +1340,7 @@
     }
   },
   "feedback": {
-    "pageTitle": "意见反馈 - LLM4AD",
+    "pageTitle": "意见反馈 - LLM4AD_Next",
     "title": "意见反馈",
     "subtitle": "查看和管理反馈记录",
     "fab": {
@@ -1454,9 +1454,9 @@
     }
   },
   "userManual": {
-    "pageTitle": "使用手册 - LLM4AD",
+    "pageTitle": "使用手册 - LLM4AD_Next",
     "title": "使用手册",
-    "subtitle": "了解如何使用 LLM4AD",
+    "subtitle": "了解如何使用 LLM4AD_Next",
     "openInNewWindow": "在新窗口中打开",
     "openOnGithub": "在 GitHub 上查看",
     "enterFullscreen": "全屏",
@@ -1583,7 +1583,7 @@
     "wechatUnavailable": "该二维码暂不可用，请稍后再试"
   },
   "research": {
-    "pageTitle": "研究 - LLM4AD",
+    "pageTitle": "研究 - LLM4AD_Next",
     "title": "Research",
     "sidebar": {
       "title": "研究",

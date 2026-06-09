@@ -12,7 +12,7 @@ export const Route = createFileRoute("/_layout/settings")({
   head: () => ({
     meta: [
       {
-        title: "Settings - LLM4AD",
+        title: "Settings - LLM4AD_Next",
       },
     ],
   }),

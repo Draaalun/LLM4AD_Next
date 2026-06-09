@@ -101,10 +101,10 @@ all = [
 llm4ad = "llm4ad.frontend.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/llm4ad/llm4ad"
+Homepage = "https://github.com/Optima-CityU/LLM4AD_Next"
 Documentation = "https://llm4ad.readthedocs.io"
-Repository = "https://github.com/llm4ad/llm4ad"
-Issues = "https://github.com/llm4ad/llm4ad/issues"
+Repository = "https://github.com/Optima-CityU/LLM4AD_Next"
+Issues = "https://github.com/Optima-CityU/LLM4AD_Next/issues"
 
 [build-system]
 requires = ["hatchling"]

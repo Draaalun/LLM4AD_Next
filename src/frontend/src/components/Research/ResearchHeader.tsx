@@ -32,13 +32,13 @@ export default function ResearchHeader({ title }: { title: string }) {
         <div className="relative">
           <img
             src={icon}
-            alt="LLM4AD"
+            alt="LLM4AD_Next"
             className="h-8 w-auto landing-spin-periodic"
           />
           <div className="absolute inset-0 rounded-full bg-primary/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
         </div>
         <span className="text-base font-bold tracking-wider landing-gradient-animated">
-          LLM4AD
+          LLM4AD_Next
         </span>
         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
           Research

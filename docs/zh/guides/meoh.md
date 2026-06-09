@@ -301,7 +301,7 @@ uv sync --extra meoh --extra tsp
 
 仓库中已经提供了一个最小示例：
 
-- [`examples/config/config.meoh.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/config.meoh.yaml)
+- [`examples/config/config.meoh.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/config.meoh.yaml)
 
 核心片段如下：
 
@@ -421,4 +421,4 @@ uv run llm4ad run .\examples\config\config.meoh.yaml
 - `src/llm4ad/orchestrator/meoh_population.py`
 - `src/llm4ad/planner/meoh_evolution.py`
 - `src/llm4ad/planner/sampler/meoh_prompt_templates.py`
-- [`examples/config/config.meoh.yaml`](https://github.com/llm4ad/llm4ad/blob/main/examples/config/config.meoh.yaml)
+- [`examples/config/config.meoh.yaml`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/config/config.meoh.yaml)

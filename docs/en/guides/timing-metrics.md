@@ -285,7 +285,7 @@ Old and new logic both keep working.
 
 ## How the TSP example wires it
 
-See [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/llm4ad/llm4ad/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py). It returns:
+See [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py). It returns:
 
 - `tour_length`
 - `execution_time_ms`
@@ -362,4 +362,4 @@ These should generally **not** become optimization targets:
 - `src/llm4ad/evaluator/dispatcher.py`
 - `src/llm4ad/infra/state.py`
 - `src/llm4ad/planner/base.py`
-- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/llm4ad/llm4ad/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)
+- [`examples/applications/tsp_benchmark_python/tsp_evaluator.py`](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/examples/applications/tsp_benchmark_python/tsp_evaluator.py)

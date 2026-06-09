@@ -1,4 +1,4 @@
-# LLM4AD - Frontend
+# LLM4AD_Next - Frontend
 
 ## 环境要求
 

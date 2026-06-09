@@ -44,7 +44,7 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       {
-        title: "LLM4AD - Algorithm Design with Large Language Models",
+        title: "LLM4AD_Next - Algorithm Design with Large Language Models",
       },
     ],
   }),
@@ -301,11 +301,11 @@ function Navbar() {
           <div className="flex items-center gap-3">
             <img
               src={icon}
-              alt="LLM4AD"
+              alt="LLM4AD_Next"
               className="h-8 w-auto landing-spin-periodic"
             />
             <span className="text-lg font-bold tracking-wider landing-gradient-animated">
-              LLM4AD
+              LLM4AD_Next
             </span>
           </div>
 
@@ -484,7 +484,7 @@ function HeroSection() {
             className="min-w-44 px-8 py-6 text-base hover:-translate-y-0.5 transition-all"
             onClick={() =>
               window.open(
-                "https://github.com/Optima-CityU/LLM4AD",
+                "https://github.com/Optima-CityU/LLM4AD_Next",
                 "_blank",
                 "noopener,noreferrer",
               )
@@ -774,9 +774,9 @@ function LandingFooter() {
         <div className="flex flex-col sm:flex-row items-start justify-between gap-8">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <img src={icon} alt="LLM4AD" className="h-6 w-auto" />
+              <img src={icon} alt="LLM4AD_Next" className="h-6 w-auto" />
               <span className="text-sm font-medium text-foreground">
-                LLM4AD
+                LLM4AD_Next
               </span>
             </div>
             <p className="text-xs text-muted-foreground/70 whitespace-nowrap">
@@ -814,7 +814,7 @@ function LandingFooter() {
 
         <div className="mt-8 pt-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground/50">
-            &copy; {new Date().getFullYear()} LLM4AD Team. All rights reserved.
+            &copy; {new Date().getFullYear()} LLM4AD_Next Team. All rights reserved.
           </p>
           {t("landing.footer.team") && (
             <p className="text-xs text-muted-foreground/50">

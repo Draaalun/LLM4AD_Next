@@ -55,7 +55,7 @@ import useAuth from "@/hooks/useAuth"
 export const Route = createFileRoute("/_layout/feedback")({
   component: FeedbackPage,
   head: () => ({
-    meta: [{ title: "Feedback - LLM4AD" }],
+    meta: [{ title: "Feedback - LLM4AD_Next" }],
   }),
 })
 

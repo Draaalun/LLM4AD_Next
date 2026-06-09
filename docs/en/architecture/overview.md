@@ -29,17 +29,17 @@ flowchart LR
     style Orchestrator fill:#e8f5e9,stroke:#4caf50
 ```
 
-The diagram is the entire system. There is no hidden middleware, no implicit global state, and no out-of-band data flow. Each edge corresponds to a typed Python call whose definition resides in [`src/llm4ad/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad).
+The diagram is the entire system. There is no hidden middleware, no implicit global state, and no out-of-band data flow. Each edge corresponds to a typed Python call whose definition resides in [`src/llm4ad/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad).
 
 ## The five components
 
 | Role | Responsibility | Built-in implementations | Source |
 |---|---|---|---|
-| **Provider** | Presents a single `chat()` interface over OpenAI, Anthropic, and OpenAI-compatible endpoints. Encapsulates retries, rate limiting, multimodal `ContentPart` payloads, and DeepSeek `reasoning_content` propagation. | `openai_compatible`, `anthropic`, `mock` | [`provider/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/infra/provider) |
-| **Planner** | Drives a configurable chain of *samplers* (init, mutation, crossover, multimodal variants, DyCA `e1`/`e2`/`m1`/`m2`/`summary`, and `meoh_*`). Each sampler combines one prompt template with one Provider call. | `llm_evolution`, `meoh_evolution` | [`planner/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/planner) |
-| **Coder** | Materializes a proposed idea as source code. Edits are confined to `EVOLVE_START` / `EVOLVE_END` blocks within a per-individual git worktree. | `custom` (diff-based), `claude_code`, `opencode` | [`coder/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/coder) |
-| **Evaluator** | Executes the generated code and returns a scalar `score`, named metrics, and optional behavior data such as rendered images or trajectories. | `PythonEvaluator`, `ExecutableEvaluator`, `BenchmarkEvaluator`, `LLMJudgeEvaluator` | [`evaluator/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/evaluator) |
-| **Orchestrator** | Implements the search loop: sampler dispatch, parent selection, survivor selection, checkpoint cadence. | `island_ga`, `dyca`, `meoh` | [`orchestrator/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/orchestrator) |
+| **Provider** | Presents a single `chat()` interface over OpenAI, Anthropic, and OpenAI-compatible endpoints. Encapsulates retries, rate limiting, multimodal `ContentPart` payloads, and DeepSeek `reasoning_content` propagation. | `openai_compatible`, `anthropic`, `mock` | [`provider/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/infra/provider) |
+| **Planner** | Drives a configurable chain of *samplers* (init, mutation, crossover, multimodal variants, DyCA `e1`/`e2`/`m1`/`m2`/`summary`, and `meoh_*`). Each sampler combines one prompt template with one Provider call. | `llm_evolution`, `meoh_evolution` | [`planner/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/planner) |
+| **Coder** | Materializes a proposed idea as source code. Edits are confined to `EVOLVE_START` / `EVOLVE_END` blocks within a per-individual git worktree. | `custom` (diff-based), `claude_code`, `opencode` | [`coder/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/coder) |
+| **Evaluator** | Executes the generated code and returns a scalar `score`, named metrics, and optional behavior data such as rendered images or trajectories. | `PythonEvaluator`, `ExecutableEvaluator`, `BenchmarkEvaluator`, `LLMJudgeEvaluator` | [`evaluator/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/evaluator) |
+| **Orchestrator** | Implements the search loop: sampler dispatch, parent selection, survivor selection, checkpoint cadence. | `island_ga`, `dyca`, `meoh` | [`orchestrator/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/orchestrator) |
 
 Each built-in implementation represents one valid realization of its role. New implementations are introduced via `@register_*` decorators and selected by name in YAML; no fork or core modification is required.
 

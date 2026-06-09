@@ -7,10 +7,10 @@ export function Footer() {
     <footer className="py-4 px-6 border-t border-border">
       <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
         <p className="text-muted-foreground text-sm">
-          &copy; {currentYear} LLM4AD Team. All rights reserved.
+          &copy; {currentYear} LLM4AD_Next Team. All rights reserved.
         </p>
         <a
-          href="https://github.com/Optima-CityU/LLM4AD"
+          href="https://github.com/Optima-CityU/LLM4AD_Next"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="GitHub"

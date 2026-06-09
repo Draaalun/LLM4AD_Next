@@ -25,7 +25,7 @@ LLM4AD 把 LLM 当作"提案者"，把进化计算当作"评估与选择者"，�
 5 分钟内跑通你的第一个进化：
 
 ```bash
-git clone https://github.com/llm4ad/llm4ad.git
+git clone https://github.com/Optima-CityU/LLM4AD_Next.git
 cd llm4ad
 uv sync
 
@@ -91,5 +91,5 @@ LLM4AD/
 ## 支持
 
 - 📖 [文档站](https://llm4ad.readthedocs.io)
-- 💬 [GitHub Discussions](https://github.com/llm4ad/llm4ad/discussions)
-- 🐛 [Issue Tracker](https://github.com/llm4ad/llm4ad/issues)
+- 💬 [GitHub Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
+- 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

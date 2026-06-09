@@ -1,7 +1,7 @@
 # MkDocs configuration for LLM4AD documentation
 # https://www.mkdocs.org/user-guide/configuration/
 
-site_name: LLM4AD
+site_name: LLM4AD_Next
 site_description: LLM for Algorithm Design - Automated Algorithm Design powered by Large Language Models and Evolutionary Computation
 site_author: LLM4AD Contributors
 site_url: https://llm4ad.readthedocs.io
@@ -9,8 +9,8 @@ site_url: https://llm4ad.readthedocs.io
 copyright: Copyright &copy; 2026 LLM4AD Contributors
 
 # Repository
-repo_name: llm4ad/llm4ad
-repo_url: https://github.com/zhufangzhou/LLM4AD
+repo_name: Optima-CityU/LLM4AD_Next
+repo_url: https://github.com/Optima-CityU/LLM4AD_Next
 edit_uri: edit/main/docs/
 
 # Theme configuration
@@ -66,7 +66,7 @@ theme:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/zhufangzhou/LLM4AD
+      link: https://github.com/Optima-CityU/LLM4AD_Next
     - icon: fontawesome/brands/python
       link: https://pypi.org/project/llm4ad
   version:

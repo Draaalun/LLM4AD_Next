@@ -29,17 +29,17 @@ flowchart LR
     style Orchestrator fill:#e8f5e9,stroke:#4caf50
 ```
 
-该图即为系统的全部。不存在隐藏的中间件、隐式的全局状态，或带外的数据通路。每条边对应一次有类型签名的 Python 调用，其定义可在 [`src/llm4ad/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad) 中查阅。
+该图即为系统的全部。不存在隐藏的中间件、隐式的全局状态，或带外的数据通路。每条边对应一次有类型签名的 Python 调用，其定义可在 [`src/llm4ad/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad) 中查阅。
 
 ## 五个组件
 
 | 角色 | 职责 | 内置实现 | 源码 |
 |---|---|---|---|
-| **Provider** | 在 OpenAI、Anthropic、OpenAI 兼容端点之上提供统一的 `chat()` 接口；封装重试、限流、多模态 `ContentPart` 载荷以及 DeepSeek `reasoning_content` 透传。 | `openai_compatible`、`anthropic`、`mock` | [`provider/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/infra/provider) |
-| **Planner** | 驱动一条可配置的 *sampler 链*（init、mutation、crossover、多模态变种、DyCA 的 `e1`/`e2`/`m1`/`m2`/`summary`、以及 `meoh_*`）。每个 sampler 由一份 prompt 模板与一次 Provider 调用组成。 | `llm_evolution`、`meoh_evolution` | [`planner/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/planner) |
-| **Coder** | 将所提出的想法实现为源代码。编辑严格限定在 `EVOLVE_START` / `EVOLVE_END` 块内，并在每个个体专属的 git worktree 中进行。 | `custom`（基于 diff）、`claude_code`、`opencode` | [`coder/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/coder) |
-| **Evaluator** | 执行生成的代码，返回标量 `score`、命名指标，以及可选的行为数据（如渲染图像或轨迹）。 | `PythonEvaluator`、`ExecutableEvaluator`、`BenchmarkEvaluator`、`LLMJudgeEvaluator` | [`evaluator/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/evaluator) |
-| **Orchestrator** | 实现搜索循环：sampler 调度、父代选择、存活选择、checkpoint 节奏。 | `island_ga`、`dyca`、`meoh` | [`orchestrator/`](https://github.com/llm4ad/llm4ad/tree/main/src/llm4ad/orchestrator) |
+| **Provider** | 在 OpenAI、Anthropic、OpenAI 兼容端点之上提供统一的 `chat()` 接口；封装重试、限流、多模态 `ContentPart` 载荷以及 DeepSeek `reasoning_content` 透传。 | `openai_compatible`、`anthropic`、`mock` | [`provider/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/infra/provider) |
+| **Planner** | 驱动一条可配置的 *sampler 链*（init、mutation、crossover、多模态变种、DyCA 的 `e1`/`e2`/`m1`/`m2`/`summary`、以及 `meoh_*`）。每个 sampler 由一份 prompt 模板与一次 Provider 调用组成。 | `llm_evolution`、`meoh_evolution` | [`planner/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/planner) |
+| **Coder** | 将所提出的想法实现为源代码。编辑严格限定在 `EVOLVE_START` / `EVOLVE_END` 块内，并在每个个体专属的 git worktree 中进行。 | `custom`（基于 diff）、`claude_code`、`opencode` | [`coder/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/coder) |
+| **Evaluator** | 执行生成的代码，返回标量 `score`、命名指标，以及可选的行为数据（如渲染图像或轨迹）。 | `PythonEvaluator`、`ExecutableEvaluator`、`BenchmarkEvaluator`、`LLMJudgeEvaluator` | [`evaluator/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/evaluator) |
+| **Orchestrator** | 实现搜索循环：sampler 调度、父代选择、存活选择、checkpoint 节奏。 | `island_ga`、`dyca`、`meoh` | [`orchestrator/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/src/llm4ad/orchestrator) |
 
 每个内置实现仅是其对应角色的一种合法实现。新实现通过 `@register_*` 装饰器引入，由 YAML 中的名称选定，无需 fork 或修改核心代码。
 

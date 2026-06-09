@@ -78,5 +78,5 @@ Foundational work prior to the April rollout — initial multi-objective MEoH, D
 
 ## See also
 
-- [Contribution Guidelines](contributing/guidelines.md) — commit format that drives this changelog
-- [Latest commits on GitHub](https://github.com/llm4ad/llm4ad/commits/main) — the full source of truth
+- [Contribution Guidelines](https://github.com/Optima-CityU/LLM4AD_Next/blob/main/docs/en/contributing/guidelines.md) — commit format that drives this changelog
+- [Latest commits on GitHub](https://github.com/Optima-CityU/LLM4AD_Next/commits/main) — the full source of truth

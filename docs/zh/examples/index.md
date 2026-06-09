@@ -16,7 +16,7 @@ LLM4AD 在 `examples/applications/` 下提供了 17 个可直接运行的示例�
 
 ## 完整示例清单
 
-源码根：[`examples/applications/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications)。
+源码根：[`examples/applications/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications)。
 
 | 示例 | 路径 | 多模态 | 说明 |
 |---|---|---|---|
@@ -36,7 +36,7 @@ LLM4AD 在 `examples/applications/` 下提供了 17 个可直接运行的示例�
 | task_template_python | `examples/applications/task_template_python/` | — | 从零开始时的最小脚手架 |
 | task_template_python_multimodal | `examples/applications/task_template_python_multimodal/` | ✓ | 多模态脚手架 |
 
-自动生成示例（`llm4ad chat` 产出，置于 [`examples/auto_applications/`](https://github.com/llm4ad/llm4ad/tree/main/examples/auto_applications)）端到端演示了[自动构建](../guides/auto-builder.md)流程。
+自动生成示例（`llm4ad chat` 产出，置于 [`examples/auto_applications/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/auto_applications)）端到端演示了[自动构建](../guides/auto-builder.md)流程。
 
 ## 运行任意示例
 

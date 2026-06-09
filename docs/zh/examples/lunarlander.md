@@ -1,6 +1,6 @@
 # LunarLander（强化学习策略）
 
-[`examples/applications/lunarlander_python/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/lunarlander_python) 的端到端走读。任务是为 OpenAI Gym 的 LunarLander 环境进化一个控制策略，让飞船在不同初始条件下都能安全降落到 `(0, 0)`。
+[`examples/applications/lunarlander_python/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/lunarlander_python) 的端到端走读。任务是为 OpenAI Gym 的 LunarLander 环境进化一个控制策略，让飞船在不同初始条件下都能安全降落到 `(0, 0)`。
 
 这个示例是 **LLM4AD 用于 RL 策略搜索** 的范例：LLM 提出策略（一个 `choose_action(observation)` 函数），评估器在 gym 环境里跑回合，编排器选出泛化最好的策略。
 
@@ -69,7 +69,7 @@ llm4ad run examples/applications/lunarlander_python/lunarlander_dyca_config.yaml
 
 ## 多模态变体
 
-[`lunarlander_python_multimodal/`](https://github.com/llm4ad/llm4ad/tree/main/examples/applications/lunarlander_python_multimodal) 把轨迹渲染成图像，通过多模态采样器送进变异提示词。LLM 能直接"看到"策略为什么坠毁（比如刹车前漂得太远）时收益最大。
+[`lunarlander_python_multimodal/`](https://github.com/Optima-CityU/LLM4AD_Next/tree/main/examples/applications/lunarlander_python_multimodal) 把轨迹渲染成图像，通过多模态采样器送进变异提示词。LLM 能直接"看到"策略为什么坠毁（比如刹车前漂得太远）时收益最大。
 
 ```bash
 llm4ad run examples/applications/lunarlander_python_multimodal/config.yaml

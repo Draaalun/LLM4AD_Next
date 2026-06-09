@@ -57,7 +57,7 @@ export const Route = createFileRoute("/_layout/live-codes")({
     }
   },
   head: () => ({
-    meta: [{ title: "Group QR - LLM4AD" }],
+    meta: [{ title: "Group QR - LLM4AD_Next" }],
   }),
 })
 
