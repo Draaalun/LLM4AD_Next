@@ -3,10 +3,12 @@ import tailwindcss from "@tailwindcss/vite"
 import { tanstackRouter } from "@tanstack/router-plugin/vite"
 import react from "@vitejs/plugin-react-swc"
 import { defineConfig, loadEnv } from "vite"
+import { visualizer } from "rollup-plugin-visualizer"
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, __dirname, "")
+  const analyze = env.ANALYZE === "true"
   return {
     resolve: {
       alias: {
@@ -21,6 +23,14 @@ export default defineConfig(({ mode }) => {
       }),
       react(),
       tailwindcss(),
+      analyze &&
+        visualizer({
+          filename: "dist/stats.html",
+          template: "treemap",
+          gzipSize: true,
+          brotliSize: true,
+          open: true,
+        }),
     ],
     build: {
       // 1.5MB warning to surface oversize chunks early
@@ -30,6 +40,15 @@ export default defineConfig(({ mode }) => {
           // Group heavy/independent libraries into their own chunks so they can
           // be cached separately and skipped on routes that don't need them.
           manualChunks(id) {
+            // Keep Rollup/Vite's shared runtime helpers (e.g. the
+            // __vitePreload module used by every dynamic import) in a tiny
+            // dedicated chunk. Otherwise Rollup co-locates the helper into
+            // whichever vendor chunk it picks first — here it landed in
+            // vendor-monaco, forcing the entry to statically import the whole
+            // Monaco editor just to grab the preload helper, so every page
+            // (including the landing page) downloaded Monaco.
+            if (id.includes("vite/preload-helper") || id.includes("commonjsHelpers"))
+              return "vendor-helpers"
             if (!id.includes("node_modules")) return
             if (id.includes("/d3") || id.includes("\\d3")) return "vendor-d3"
             if (id.includes("monaco-editor") || id.includes("@monaco-editor"))

@@ -19,6 +19,7 @@ import {
   Menu,
   MessageSquareText,
   Network,
+  Play,
   Sigma,
   Trophy,
   Workflow,
@@ -283,6 +284,7 @@ function Navbar() {
   const scrolled = scrollY > 12
 
   const navLinks = [
+    { label: t("landing.nav.demo"), href: "#demo" },
     { label: t("landing.nav.features"), href: "#features" },
     { label: t("landing.nav.domains"), href: "#domains" },
     { label: t("landing.nav.achievements"), href: "#achievements" },
@@ -507,6 +509,93 @@ function HeroSection() {
       </div>
 
       <UserManualDialog open={manualOpen} onOpenChange={setManualOpen} />
+    </section>
+  )
+}
+
+const DEMO_VIDEO_SRC = "/assets/videos/llm4ad-intro-zh-v2-202606101810.mp4"
+const DEMO_POSTER_SRC = "/assets/videos/llm4ad-intro-zh-v2.webp"
+
+function DemoSection() {
+  const { t } = useTranslation()
+  const { ref, visible } = useReveal<HTMLDivElement>()
+  const videoRef = useRef<HTMLVideoElement | null>(null)
+  // Defer loading the (large) video file until the user explicitly starts
+  // playback, so the landing page first paint stays fast.
+  const [activated, setActivated] = useState(false)
+
+  const handlePlay = () => {
+    setActivated(true)
+    // Wait for the <video> to mount before kicking off playback.
+    requestAnimationFrame(() => {
+      videoRef.current?.play().catch(() => {
+        /* Autoplay may be blocked; native controls remain available. */
+      })
+    })
+  }
+
+  return (
+    <section
+      id="demo"
+      ref={ref}
+      className="relative z-10 py-24 px-4 sm:px-6 lg:px-8 scroll-mt-20"
+    >
+      <div className="max-w-5xl mx-auto">
+        <div
+          className={`text-center mb-12 landing-reveal ${visible ? "is-visible" : ""}`}
+        >
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-foreground">
+            {t("landing.demo.title")}
+          </h2>
+          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+            {t("landing.demo.subtitle")}
+          </p>
+        </div>
+
+        <div
+          className={`group relative aspect-video w-full overflow-hidden rounded-2xl border border-border/60 bg-card/60 shadow-lg shadow-primary/5 backdrop-blur-xl landing-reveal ${visible ? "is-visible" : ""}`}
+          style={{ transitionDelay: "0.15s" }}
+        >
+          {activated ? (
+            // Pure-narration intro; no caption track exists yet.
+            // biome-ignore lint/a11y/useMediaCaption: no captions available
+            <video
+              ref={videoRef}
+              className="absolute inset-0 size-full bg-black"
+              src={DEMO_VIDEO_SRC}
+              poster={DEMO_POSTER_SRC}
+              controls
+              controlsList="nodownload"
+              playsInline
+              preload="auto"
+              onEnded={() => setActivated(false)}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={handlePlay}
+              aria-label={t("landing.demo.play")}
+              className="absolute inset-0 flex size-full flex-col items-center justify-center gap-5 bg-cover bg-center"
+              style={{ backgroundImage: `url(${DEMO_POSTER_SRC})` }}
+            >
+              {/* Scrim: darkens the cover and lifts on hover for affordance. */}
+              <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 transition-colors duration-300 group-hover:from-black/70 group-hover:via-black/35" />
+
+              {/* Play button: rippling ring + transparent disc with white border. */}
+              <span className="relative flex items-center justify-center">
+                <span className="absolute size-20 rounded-full border-2 border-white/60 landing-play-ripple" />
+                <span className="relative flex size-20 items-center justify-center rounded-full border-2 border-white/80 bg-white/5 backdrop-blur-sm shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:border-white group-hover:bg-white/15">
+                  <Play className="size-8 translate-x-0.5 fill-white text-white drop-shadow" />
+                </span>
+              </span>
+
+              <span className="relative text-sm font-medium text-white/95 tracking-wide drop-shadow-lg">
+                {t("landing.demo.play")}
+              </span>
+            </button>
+          )}
+        </div>
+      </div>
     </section>
   )
 }
@@ -814,7 +903,8 @@ function LandingFooter() {
 
         <div className="mt-8 pt-4 border-t border-border/30 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-xs text-muted-foreground/50">
-            &copy; {new Date().getFullYear()} LLM4AD_Next Team. All rights reserved.
+            &copy; {new Date().getFullYear()} LLM4AD_Next Team. All rights
+            reserved.
           </p>
           {t("landing.footer.team") && (
             <p className="text-xs text-muted-foreground/50">
@@ -842,6 +932,7 @@ function LandingPage() {
       <IslandBackground variant={isDark ? "dark" : "light"} />
       <Navbar />
       <HeroSection />
+      <DemoSection />
       <FeaturesSection />
       <NetworkDivider />
       <DomainsSection />
