@@ -1078,6 +1078,7 @@
   "landing": {
     "pageTitle": "LLM4AD_Next - 基于大语言模型的算法设计工具",
     "nav": {
+      "demo": "演示视频",
       "features": "核心特性",
       "domains": "应用领域",
       "achievements": "研究成果",
@@ -1092,6 +1093,11 @@
       "research": "研究",
       "docs": "查看文档",
       "github": "GitHub"
+    },
+    "demo": {
+      "title": "一分钟了解 LLM4AD_Next",
+      "subtitle": "通过演示视频快速了解平台：项目介绍与核心操作说明。",
+      "play": "播放介绍视频"
     },
     "features": {
       "title": "核心特性",

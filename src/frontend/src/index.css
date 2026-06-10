@@ -387,6 +387,26 @@
   animation: landing-bounce-soft 2.5s ease-in-out infinite;
 }
 
+/* Expanding ripple ring behind the demo play button. */
+@keyframes landing-play-ripple {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+.landing-play-ripple {
+  animation: landing-play-ripple 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-play-ripple {
+    animation: none;
+  }
+}
+
 .landing-gradient-animated {
   background: linear-gradient(
     90deg,

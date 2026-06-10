@@ -1077,6 +1077,7 @@
   "landing": {
     "pageTitle": "LLM4AD_Next - Algorithm Design with Large Language Models",
     "nav": {
+      "demo": "Demo",
       "features": "Features",
       "domains": "Domains",
       "achievements": "Research Achievements",
@@ -1091,6 +1092,11 @@
       "research": "Research",
       "docs": "Documentation",
       "github": "GitHub"
+    },
+    "demo": {
+      "title": "See It in Action",
+      "subtitle": "A quick tour of the platform — project overview and key operations walkthrough.",
+      "play": "Play intro video"
     },
     "features": {
       "title": "Core Features",
