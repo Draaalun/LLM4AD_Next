@@ -22,15 +22,33 @@
 
 ## Overview
 
-LLM4AD is a modular platform that combines Large Language Models (LLMs) with evolutionary computation to automatically design and optimize algorithms. It provides a flexible framework for leveraging AI to explore, generate, and evolve algorithm implementations.
+LLM4AD is a modular platform that combines Large Language Models (LLMs) with evolutionary computation to automatically
+design and optimize algorithms. It provides a flexible framework for leveraging AI to explore, generate, and evolve
+algorithm implementations.
+
+<p style="text-align: center;">
+  <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.youtube.com/vi/x47kEosu0jk/maxresdefault.jpg" 
+         alt="Watch the instruction video thumbnail" 
+         style="max-width: 100%;">
+    <br><br>
+    <p style="text-align: center;">
+      <img src="https://img.shields.io/badge/Watch%20on-YouTube-FF0000?logo=youtube&logoColor=white" 
+         alt="YouTube badge">
+    </p>
+  </a>
+</p>
 
 ## Features
 
 - 🧠 **LLM-Powered Design** - Leverage state-of-the-art language models for algorithm ideation and generation
 - 🧬 **Evolutionary Optimization** - Apply genetic algorithms to improve algorithm performance over generations
-- 💬 **Interactive Configuration** - AI-powered consultant guides you through pipeline setup via conversation, generating a complete runnable application (evaluator, algorithm, config, debug runner)
-- 🔍 **Evolve-Block Advisor** - On-demand feasibility/significance/concerns/suggestions for a user-selected code block versus a stated evolution goal
-- 🎯 **Evolve-Block Recommender** - Point the platform at a repo + a goal and get ranked candidate blocks to evolve, each pre-scored by the advisor
+- 💬 **Interactive Configuration** - AI-powered consultant guides you through pipeline setup via conversation, generating
+  a complete runnable application (evaluator, algorithm, config, debug runner)
+- 🔍 **Evolve-Block Advisor** - On-demand feasibility/significance/concerns/suggestions for a user-selected code block
+  versus a stated evolution goal
+- 🎯 **Evolve-Block Recommender** - Point the platform at a repo + a goal and get ranked candidate blocks to evolve, each
+  pre-scored by the advisor
 - 📊 **Flexible Evaluation** - Define custom evaluation metrics and benchmarks with the registry-based evaluator system
 - 🔌 **Multi-Provider Support** - Use OpenAI, Anthropic, or any OpenAI-compatible LLM providers
 - 🚀 **Distributed Computing** - Scale experiments using Ray infrastructure
@@ -100,14 +118,14 @@ uv sync
 
 Install specific groups based on your needs:
 
-| Group | Description |
-|-------|-------------|
-| `infra` | Distributed computing (Ray, Prometheus) |
-| `providers` | LLM provider integrations |
-| `eval` | Evaluation and benchmarking tools |
-| `dev` | Development tools (testing, linting) |
-| `docs` | Documentation tools |
-| `all` | All optional dependencies |
+| Group       | Description                             |
+|-------------|-----------------------------------------|
+| `infra`     | Distributed computing (Ray, Prometheus) |
+| `providers` | LLM provider integrations               |
+| `eval`      | Evaluation and benchmarking tools       |
+| `dev`       | Development tools (testing, linting)    |
+| `docs`      | Documentation tools                     |
+| `all`       | All optional dependencies               |
 
 ```bash
 # Install with specific extras
@@ -168,17 +186,20 @@ Task configs then only need the provider name — credentials and model are reso
 
 ### Interactive Chat (Task Builder)
 
-`llm4ad chat` is an interactive assistant that guides you through building a complete LLM4AD application. It runs a three-phase pipeline:
+`llm4ad chat` is an interactive assistant that guides you through building a complete LLM4AD application. It runs a
+three-phase pipeline:
 
 1. **Needs Gathering** - Conversational interview to understand your problem
 2. **Building** - Generates evaluator, algorithm skeleton with `EVOLVE` markers, YAML config, and debug runner
 3. **Review** - Presents the generated code for confirmation or modification
 
-For existing projects, the chat can detect and reuse your evaluator, algorithm, config, and dataset — only generating what's missing.
+For existing projects, the chat can detect and reuse your evaluator, algorithm, config, and dataset — only generating
+what's missing.
 
 ### Evolve-Block Advisor
 
-The advisor answers: **"Is THIS block worth evolving for THIS goal?"** It runs a single LLM call on a user-selected block and returns structured advice — feasibility, significance, concerns, suggestions, rationale.
+The advisor answers: **"Is THIS block worth evolving for THIS goal?"** It runs a single LLM call on a user-selected
+block and returns structured advice — feasibility, significance, concerns, suggestions, rationale.
 
 ```bash
 # Analyze a specific block by file + line range
@@ -209,7 +230,8 @@ print(advice.feasibility, advice.significance)
 
 ### Evolve-Block Recommender
 
-When a user arrives with only a repo and a goal — no specific selection yet — the recommender **proposes** which block(s) to evolve. It returns three tiers:
+When a user arrives with only a repo and a goal — no specific selection yet — the recommender **proposes** which block(
+s) to evolve. It returns three tiers:
 
 - **core**: the single most promising minimal block
 - **expanded**: 0-3 widenings of core (same file, include helpers)
@@ -243,11 +265,13 @@ print(result.core.file_path, result.core.line_start, result.core.line_end)
 import asyncio
 from llm4ad import LLM4AD
 
+
 async def main():
     llm4ad = LLM4AD("config.yaml")
     result = await llm4ad.run()
     if result.best_individual:
         print(f"Best score: {result.best_individual.score:.4f}")
+
 
 asyncio.run(main())
 ```
