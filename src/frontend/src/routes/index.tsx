@@ -517,20 +517,25 @@ const DEMO_VIDEO = {
   zh: {
     src: "/assets/videos/llm4ad-intro-zh-v2-202606101810.mp4",
     poster: "/assets/videos/llm4ad-intro-zh-v2.webp",
+    posterLight: "/assets/videos/llm4ad-intro-zh-v2_light.webp",
   },
   en: {
     src: "/assets/videos/llm4ad-intro-en-v2-202606101810.mp4",
     poster: "/assets/videos/llm4ad-intro-en-v2.webp",
+    posterLight: "/assets/videos/llm4ad-intro-en-v2_light.webp",
   },
 } as const
 
 function DemoSection() {
   const { t, i18n } = useTranslation()
+  const { resolvedTheme } = useTheme()
   const { ref, visible } = useReveal<HTMLDivElement>()
   const videoRef = useRef<HTMLVideoElement | null>(null)
-  const { src: videoSrc, poster: posterSrc } = i18n.language?.startsWith("zh")
-    ? DEMO_VIDEO.zh
-    : DEMO_VIDEO.en
+  const variant = i18n.language?.startsWith("zh") ? DEMO_VIDEO.zh : DEMO_VIDEO.en
+  const videoSrc = variant.src
+  // Swap to the light-mode cover so the poster matches the active theme.
+  const posterSrc =
+    resolvedTheme === "dark" ? variant.poster : variant.posterLight
   // Defer loading the (large) video file until the user explicitly starts
   // playback, so the landing page first paint stays fast.
   const [activated, setActivated] = useState(false)
@@ -596,8 +601,11 @@ function DemoSection() {
               className="absolute inset-0 flex size-full flex-col items-center justify-center gap-5 bg-cover bg-center"
               style={{ backgroundImage: `url(${posterSrc})` }}
             >
-              {/* Scrim: darkens the cover and lifts on hover for affordance. */}
-              <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 transition-colors duration-300 group-hover:from-black/70 group-hover:via-black/35" />
+              {/* Scrim: darkens the cover and lifts on hover for affordance.
+                  Skipped in light mode so the lighter cover stays vivid. */}
+              {resolvedTheme === "dark" && (
+                <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 transition-colors duration-300 group-hover:from-black/70 group-hover:via-black/35" />
+              )}
 
               {/* Play button: rippling ring + transparent disc with white border. */}
               <span className="relative flex items-center justify-center">
