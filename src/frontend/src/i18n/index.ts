@@ -6,7 +6,16 @@ import zh from "./locales/zh.json"
 
 const STORAGE_KEY = "llm4ad-language"
 
-const savedLang = (localStorage.getItem(STORAGE_KEY) as "zh" | "en") ?? "zh"
+const detectLang = (): "zh" | "en" => {
+  const saved = localStorage.getItem(STORAGE_KEY) as "zh" | "en" | null
+  if (saved) return saved
+  // First visit: use browser language. Chinese -> zh, otherwise -> en.
+  const browserLang =
+    typeof navigator !== "undefined" ? navigator.language : ""
+  return browserLang.toLowerCase().startsWith("zh") ? "zh" : "en"
+}
+
+const savedLang = detectLang()
 
 i18n.use(initReactI18next).init({
   resources: {
