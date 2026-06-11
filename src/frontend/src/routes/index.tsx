@@ -513,16 +513,34 @@ function HeroSection() {
   )
 }
 
-const DEMO_VIDEO_SRC = "/assets/videos/llm4ad-intro-zh-v2-202606101810.mp4"
-const DEMO_POSTER_SRC = "/assets/videos/llm4ad-intro-zh-v2.webp"
+const DEMO_VIDEO = {
+  zh: {
+    src: "/assets/videos/llm4ad-intro-zh-v2-202606101810.mp4",
+    poster: "/assets/videos/llm4ad-intro-zh-v2.webp",
+  },
+  en: {
+    src: "/assets/videos/llm4ad-intro-en-v2-202606101810.mp4",
+    poster: "/assets/videos/llm4ad-intro-en-v2.webp",
+  },
+} as const
 
 function DemoSection() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { ref, visible } = useReveal<HTMLDivElement>()
   const videoRef = useRef<HTMLVideoElement | null>(null)
+  const { src: videoSrc, poster: posterSrc } = i18n.language?.startsWith("zh")
+    ? DEMO_VIDEO.zh
+    : DEMO_VIDEO.en
   // Defer loading the (large) video file until the user explicitly starts
   // playback, so the landing page first paint stays fast.
   const [activated, setActivated] = useState(false)
+
+  // Reset to the poster when the language switches so the newly selected
+  // (localized) video is shown instead of a stale one.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset on language change only
+  useEffect(() => {
+    setActivated(false)
+  }, [i18n.language])
 
   const handlePlay = () => {
     setActivated(true)
@@ -562,8 +580,8 @@ function DemoSection() {
             <video
               ref={videoRef}
               className="absolute inset-0 size-full bg-black"
-              src={DEMO_VIDEO_SRC}
-              poster={DEMO_POSTER_SRC}
+              src={videoSrc}
+              poster={posterSrc}
               controls
               controlsList="nodownload"
               playsInline
@@ -576,7 +594,7 @@ function DemoSection() {
               onClick={handlePlay}
               aria-label={t("landing.demo.play")}
               className="absolute inset-0 flex size-full flex-col items-center justify-center gap-5 bg-cover bg-center"
-              style={{ backgroundImage: `url(${DEMO_POSTER_SRC})` }}
+              style={{ backgroundImage: `url(${posterSrc})` }}
             >
               {/* Scrim: darkens the cover and lifts on hover for affordance. */}
               <span className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/25 to-black/40 transition-colors duration-300 group-hover:from-black/70 group-hover:via-black/35" />
