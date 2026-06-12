@@ -26,16 +26,61 @@ LLM4AD is a modular platform that combines Large Language Models (LLMs) with evo
 design and optimize algorithms. It provides a flexible framework for leveraging AI to explore, generate, and evolve
 algorithm implementations.
 
+## Quick Start
+
+<table>
+  <tr>
+    <td align="center" width="33%">
+      <strong>Try Online</strong><br>
+    </td>
+    <td align="center" width="33%">
+      <strong>Watch Instruction</strong><br>
+    </td>
+    <td align="center" width="33%">
+      <strong>Read Docs</strong><br>
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      Run LLM4AD_Next in your browser. No installation or API key required.
+    </td>
+    <td align="center" width="33%">
+      Watch the introduction before installing or configuring a local environment.
+    </td>
+    <td align="center" width="33%">
+      Use the documentation path map for setup, configuration, examples, and Web UI deployment.
+    </td>
+  </tr>
+  <tr>
+    <td align="center" width="33%">
+      <a href="http://8.163.71.37/">
+        <img src="https://img.shields.io/badge/Launch%20Online%20Demo-Open%20Now-2ea44f?style=for-the-badge"
+             alt="Launch Online Demo">
+      </a>
+    </td>
+    <td align="center" width="33%">
+      <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
+        <img src="https://img.shields.io/badge/Watch%20Instruction-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white"
+             alt="Watch the instruction video on YouTube">
+      </a>
+    </td>
+    <td align="center" width="33%">
+      <a href="docs/en/index.md">
+        <img src="https://img.shields.io/badge/Open%20Documentation-Read%20Now-0969da?style=for-the-badge"
+             alt="Open Documentation">
+      </a>
+    </td>
+  </tr>
+</table>
+
+## Instruction Video
+
 <div align="center">
   <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
     <img src="https://img.youtube.com/vi/x47kEosu0jk/maxresdefault.jpg"
          alt="LLM4AD_Next instruction video"
-         width="720">
-  </a>
-  <br>
-  <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/Watch%20the%20Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white"
-         alt="Watch the demo on YouTube">
+         width="720"
+         height="405">
   </a>
 </div>
 
@@ -55,22 +100,14 @@ algorithm implementations.
 - 📝 **YAML Configuration** - Declarative configuration with global settings and environment variable support
 - 💾 **Checkpoint & Resume** - Automatic checkpointing to resume interrupted experiments
 
-## Quick Start
+## Run LLM4AD
 
 ### Option A: Online Demo (No Installation Required)
 
-<table>
-  <tr>
-    <td align="center">
-      <strong>Try LLM4AD_Next Online</strong><br>
-      Start designing algorithms in your browser. No installation or API key required.<br><br>
-      <a href="http://8.163.71.37/">
-        <img src="https://img.shields.io/badge/Launch%20Online%20Demo-Open%20Now-2ea44f?style=for-the-badge"
-             alt="Launch Online Demo">
-      </a>
-    </td>
-  </tr>
-</table>
+Use the online demo from [Quick Start](#quick-start), or open it directly:
+[Launch Online Demo](http://8.163.71.37/).
+
+No setup, no API key needed — just open the link and start designing algorithms.
 
 ### Option B: Local Installation
 

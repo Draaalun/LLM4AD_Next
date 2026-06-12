@@ -421,6 +421,6 @@ evaluator:
 
 ## 获取帮助
 
-- 📖 [完整文档](https://llm4ad.readthedocs.io)
+- 📖 [文档首页](../index.md)
 - 💬 [讨论](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - 🐛 [问题跟踪](https://github.com/Optima-CityU/LLM4AD_Next/issues)

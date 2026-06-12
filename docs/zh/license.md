@@ -1,18 +1,17 @@
 # 许可证
 
-LLM4AD 采用 MIT 许可证。
+LLM4AD 采用 BSD 3-Clause 许可证。
 
-## MIT 许可证
+## BSD 3-Clause License
 
-版权所有 (c) 2026 Fangzhou Zhu
+Copyright (c) 2026, Huawei Technologies Co., Ltd. and City University of Hong Kong
 
-特此免费授予获得本软件及相关文档文件（"软件"）副本的任何人不受限制地处理本软件的权利，
-包括但不限于使用、复制、修改、合并、发布、分发、再许可和/或出售本软件副本，
-并允许获得本软件的人员在满足以下条件的情况下这样做：
+All rights reserved.
 
-上述版权声明和本许可声明应包含在本软件的所有副本或重要部分中。
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 
-本软件按"原样"提供，不提供任何形式的明示或暗示保证，
-包括但不限于对适销性、特定用途适用性和非侵权的保证。
-在任何情况下，作者或版权持有人均不对任何索赔、损害或其他责任负责，
-无论是在合同、侵权或其他诉讼中，均由本软件或本软件的使用或其他交易引起或与之相关。
+1. Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
