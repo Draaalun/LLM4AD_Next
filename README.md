@@ -10,10 +10,10 @@
     <img src="https://img.shields.io/pypi/v/llm4ad?color=blue" alt="PyPI Version">
   </a>
   <a href="https://pypi.org/project/llm4ad/">
-    <img src="https://img.shields.io/pypi/pyversions/llm4ad" alt="Python Versions">
+    <img src="https://img.shields.io/badge/python-3.10%2B-blue" alt="Python Versions">
   </a>
   <a href="https://github.com/Optima-CityU/LLM4AD_Next/blob/main/LICENSE">
-    <img src="https://img.shields.io/github/license/Optima-CityU/LLM4AD_Next" alt="License">
+    <img src="https://img.shields.io/badge/license-BSD--3--Clause-blue" alt="License">
   </a>
   <a href="https://github.com/Optima-CityU/LLM4AD_Next/actions/workflows/ci.yml">
     <img src="https://img.shields.io/github/actions/workflow/status/Optima-CityU/LLM4AD_Next/ci" alt="CI">
@@ -26,18 +26,18 @@ LLM4AD is a modular platform that combines Large Language Models (LLMs) with evo
 design and optimize algorithms. It provides a flexible framework for leveraging AI to explore, generate, and evolve
 algorithm implementations.
 
-<p style="text-align: center;">
+<div align="center">
   <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.youtube.com/vi/x47kEosu0jk/maxresdefault.jpg" 
-         alt="Watch the instruction video thumbnail" 
-         style="max-width: 100%;">
-    <br><br>
-    <p style="text-align: center;">
-      <img src="https://img.shields.io/badge/Watch%20on-YouTube-FF0000?logo=youtube&logoColor=white" 
-         alt="YouTube badge">
-    </p>
+    <img src="https://img.youtube.com/vi/x47kEosu0jk/maxresdefault.jpg"
+         alt="LLM4AD_Next instruction video"
+         width="720">
   </a>
-</p>
+  <br>
+  <a href="https://youtu.be/x47kEosu0jk" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/Watch%20the%20Demo-YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white"
+         alt="Watch the demo on YouTube">
+  </a>
+</div>
 
 ## Features
 
@@ -59,11 +59,18 @@ algorithm implementations.
 
 ### Option A: Online Demo (No Installation Required)
 
-Visit our free web service to try LLM4AD_Next instantly:
-
-👉 **[点击这里](http://8.163.71.37/)**
-
-No setup, no API key needed — just open the link and start designing algorithms.
+<table>
+  <tr>
+    <td align="center">
+      <strong>Try LLM4AD_Next Online</strong><br>
+      Start designing algorithms in your browser. No installation or API key required.<br><br>
+      <a href="http://8.163.71.37/">
+        <img src="https://img.shields.io/badge/Launch%20Online%20Demo-Open%20Now-2ea44f?style=for-the-badge"
+             alt="Launch Online Demo">
+      </a>
+    </td>
+  </tr>
+</table>
 
 ### Option B: Local Installation
 
@@ -278,7 +285,7 @@ asyncio.run(main())
 
 ## Documentation
 
-- [Full Documentation](https://llm4ad.readthedocs.io)
+- [Documentation Home](docs/en/index.md)
 - [Quick Start Guide](docs/en/guides/quickstart.md)
 - [Configuration Guide](docs/en/guides/configuration.md)
 - [Writing Evaluators](docs/en/guides/evaluators.md)
@@ -336,6 +343,6 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 
 ## Support
 
-- [Documentation](https://llm4ad.readthedocs.io)
+- [Documentation](docs/en/index.md)
 - [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)
