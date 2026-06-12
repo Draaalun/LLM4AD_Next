@@ -277,6 +277,6 @@ export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
 
 如果您遇到此处未涵盖的问题：
 
-- 📖 [完整文档](https://llm4ad.readthedocs.io)
+- 📖 [文档首页](../index.md)
 - 💬 [讨论](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - 🐛 [问题跟踪](https://github.com/Optima-CityU/LLM4AD_Next/issues)

@@ -84,10 +84,10 @@ Recent highlights (full list in [Changelog](changelog.md)):
 
 ## License
 
-This project is released under the MIT license — see [LICENSE](license.md).
+This project is released under the BSD 3-Clause License — see [LICENSE](license.md).
 
 ## Support
 
-- 📖 [Documentation site](https://llm4ad.readthedocs.io)
+- 📖 [Quick Start Guide](guides/quickstart.md)
 - 💬 [GitHub Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-LLM4AD is open source under the MIT license. Contributions are welcome — bug reports, fixes, new providers / coders / orchestrators / evaluators, docs improvements, and example projects.
+LLM4AD is open source under the BSD 3-Clause License. Contributions are welcome — bug reports, fixes, new providers / coders / orchestrators / evaluators, docs improvements, and example projects.
 
 If you are setting up your environment for the first time, start with [Development Setup](development.md). For style conventions see [Code Style](style.md).
 
@@ -85,7 +85,7 @@ Be respectful. Assume good faith. Keep technical discussions technical. The main
 
 ## License
 
-All contributions are accepted under the MIT license that covers the rest of the repository (see [LICENSE](../license.md)). By submitting a pull request you confirm that you have the right to do so.
+All contributions are accepted under the BSD 3-Clause License that covers the rest of the repository (see [LICENSE](../license.md)). By submitting a pull request you confirm that you have the right to do so.
 
 ## See also
 

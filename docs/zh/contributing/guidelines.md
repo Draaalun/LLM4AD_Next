@@ -1,6 +1,6 @@
 # 贡献指南
 
-LLM4AD 以 MIT 开源协议发布，欢迎各种贡献 — bug 报告、修复、新增 provider / coder / orchestrator / evaluator、文档改进、示例项目等。
+LLM4AD 以 BSD 3-Clause 开源协议发布，欢迎各种贡献 — bug 报告、修复、新增 provider / coder / orchestrator / evaluator、文档改进、示例项目等。
 
 如果是第一次配置环境，先看[开发环境](development.md)。代码风格参见[代码风格](style.md)。
 
@@ -85,7 +85,7 @@ git log 是[更新日志](../changelog.md)的事实源，所以请把标题写�
 
 ## 许可
 
-所有贡献都在仓库统一的 MIT 许可证下接受（见[许可证](../license.md)）。提交 PR 即表示你确认有权这样做。
+所有贡献都在仓库统一的 BSD 3-Clause 许可证下接受（见[许可证](../license.md)）。提交 PR 即表示你确认有权这样做。
 
 ## 相关链接
 

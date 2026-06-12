@@ -86,10 +86,10 @@ LLM4AD/
 
 ## 许可
 
-本项目以 MIT 许可证开源 — 详见 [LICENSE](license.md)。
+本项目以 BSD 3-Clause 许可证开源 — 详见 [LICENSE](license.md)。
 
 ## 支持
 
-- 📖 [文档站](https://llm4ad.readthedocs.io)
+- 📖 [快速入门](guides/quickstart.md)
 - 💬 [GitHub Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)

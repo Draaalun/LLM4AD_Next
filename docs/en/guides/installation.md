@@ -277,6 +277,6 @@ After installation, proceed to:
 
 If you encounter issues not covered here:
 
-- 📖 [Full Documentation](https://llm4ad.readthedocs.io)
+- 📖 [Documentation Home](../index.md)
 - 💬 [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - 🐛 [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)
