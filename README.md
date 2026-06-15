@@ -383,3 +383,7 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 - [Documentation](docs/en/index.md)
 - [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Optima-CityU/LLM4AD_Next&type=Date)](https://www.star-history.com/#Optima-CityU/LLM4AD_Next&Date)
