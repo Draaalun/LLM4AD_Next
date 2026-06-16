@@ -124,6 +124,8 @@ bun run dev                               # http://localhost:5173
 
 要更接近生产，用 Docker Compose；详见 [Web UI 概览](../web-ui/overview.md)。前端也可以通过 `bun run build` 构建成静态资源、用 nginx 提供（`src/frontend/Dockerfile`）。
 
+如果要用 Docker 辅助本地开发，推荐在 macOS/Linux 使用 `docker/dev.sh infra`，在 Windows 使用 `docker/dev.ps1 infra` 启动共享基础设施，然后在宿主机运行后端和前端。完整栈调试端口和镜像部署方式见 [Docker 本地启动](docker-local.md)。
+
 ## 主要目录
 
 | 路径 | 用途 |
@@ -149,6 +151,7 @@ bun run dev                               # http://localhost:5173
 ## 相关链接
 
 - [贡献指南](guidelines.md) — PR 流程、commit 格式
+- [Docker 本地启动](docker-local.md) — 本地基础设施、完整栈调试、镜像部署命令
 - [代码风格](style.md) — Python / 前端 / markdown 规范
 - [CLI 参考](../guides/cli.md)
 - [配置指南](../guides/configuration.md)

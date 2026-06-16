@@ -299,6 +299,11 @@ export const guideNav: GuideNavItem[] = [
         labelEn: "Development",
       },
       {
+        key: "contributing/docker-local",
+        labelZh: "Docker 本地启动",
+        labelEn: "Docker Local Startup",
+      },
+      {
         key: "contributing/style",
         labelZh: "代码风格",
         labelEn: "Style Guide",
