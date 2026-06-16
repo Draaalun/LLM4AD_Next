@@ -199,6 +199,7 @@ nav:
   - Contributing:
       - Guidelines: en/contributing/guidelines.md
       - Development Setup: en/contributing/development.md
+      - Docker Local Startup: en/contributing/docker-local.md
       - Code Style: en/contributing/style.md
   - Changelog: en/changelog.md
   - License: en/license.md
@@ -252,6 +253,7 @@ nav:
       - 贡献指南:
           - 规范: zh/contributing/guidelines.md
           - 开发: zh/contributing/development.md
+          - Docker 本地启动: zh/contributing/docker-local.md
           - 代码风格: zh/contributing/style.md
       - 更新日志: zh/changelog.md
       - 许可证: zh/license.md

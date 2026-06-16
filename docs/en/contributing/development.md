@@ -124,6 +124,8 @@ bun run dev                               # http://localhost:5173
 
 For a production-like run use Docker Compose; see [Web UI Overview](../web-ui/overview.md). The frontend can also be built into static assets via `bun run build`, served by nginx (`src/frontend/Dockerfile`).
 
+For Docker-assisted local development, start the shared infrastructure with `docker/dev.sh infra` on macOS/Linux or `docker/dev.ps1 infra` on Windows, then run backend/frontend on the host. For full-stack debug ports or image-based deployment, see [Docker Local Startup](docker-local.md).
+
 ## Useful directories
 
 | Path | Purpose |
@@ -149,6 +151,7 @@ For a production-like run use Docker Compose; see [Web UI Overview](../web-ui/ov
 ## See also
 
 - [Contribution Guidelines](guidelines.md) — PR flow, commit format
+- [Docker Local Startup](docker-local.md) — local infrastructure, full-stack debug, and image deployment commands
 - [Code Style](style.md) — Python / frontend / markdown style
 - [CLI Reference](../guides/cli.md)
 - [Configuration Guide](../guides/configuration.md)
