@@ -142,20 +142,22 @@ def init_all():
 
 
 def backfill_user_default_models() -> tuple[int, int]:
-    """为历史用户补齐默认模型配置，并填补已有行中为空的槽位。
+    """为历史用户补齐默认模型配置，并刷新指向内置供应商的槽位。
 
     两段处理：
     1. 用户没有 UserDefaultModel 行 → 新建一条（四槽全部指向内置）。
-    2. 用户已有 UserDefaultModel 行但某些槽位的 ``*_provider_id`` 为空 →
-       只填空槽位，绝不覆盖用户已选的非空槽位。
+    2. 用户已有 UserDefaultModel 行，逐槽位处理：
+       - 槽位供应商为空 → 补齐为内置默认（含模型名）。
+       - 槽位指向内置供应商 → 将模型名刷新为最新的内置默认模型（即使非空也覆盖）。
+       - 槽位指向非内置供应商 → 保持不变，绝不覆盖用户已选。
 
-    若当前数据库没有可用的内置供应商，则跳过对空槽位的补齐（新建依然可执行，
+    若当前数据库没有可用的内置供应商，则跳过对空槽位的补齐与刷新（新建依然可执行，
     但槽位会留空，与 ``build_default_init_kwargs`` 的行为一致）。
 
     可幂等重复执行。
 
     Returns:
-        (新建 UserDefaultModel 行数, 填补的槽位数)。
+        (新建 UserDefaultModel 行数, 填补/刷新的槽位数)。
     """
     from app.services.user_default_model_service import build_default_init_kwargs
 
@@ -182,29 +184,39 @@ def backfill_user_default_models() -> tuple[int, int]:
             session.add(models.UserDefaultModel(**init_kwargs))
             created += 1
 
-        # 2) 已有行中存在空槽位 → 只补空位
+        # 2) 已有行逐槽位处理：补空位 + 刷新内置槽位的模型名
+        #    模板的 provider_id / model_name 与 user_id 无关，循环外查一次即可。
         slots_filled = 0
-        existing_stmt = select(models.UserDefaultModel)
-        for config in session.exec(existing_stmt).all():
-            null_prefixes = [
-                p for p in slot_prefixes
-                if getattr(config, f"{p}_provider_id") is None
-            ]
-            if not null_prefixes:
-                continue
-            template = build_default_init_kwargs(session, config.user_id)
-            # 内置不存在时模板里没有 *_provider_id 字段，跳过
-            if "planner_provider_id" not in template:
-                continue
-            for prefix in null_prefixes:
-                setattr(config, f"{prefix}_provider_id", template[f"{prefix}_provider_id"])
-                setattr(config, f"{prefix}_model_name", template[f"{prefix}_model_name"])
-                slots_filled += 1
-            session.add(config)
+        existing = session.exec(select(models.UserDefaultModel)).all()
+        template = (
+            build_default_init_kwargs(session, existing[0].user_id)
+            if existing
+            else {}
+        )
+        # 内置不存在时模板里没有 *_provider_id 字段，无可补齐/刷新
+        if existing and "planner_provider_id" in template:
+            builtin_id = template["planner_provider_id"]
+            for config in existing:
+                for prefix in slot_prefixes:
+                    pid = getattr(config, f"{prefix}_provider_id")
+                    # 空槽位 → 补齐；指向内置 → 刷新模型名；非内置 → 保持不变
+                    if pid is not None and pid != builtin_id:
+                        continue
+                    new_pid = template[f"{prefix}_provider_id"]
+                    new_model = template[f"{prefix}_model_name"]
+                    if (
+                        pid == new_pid
+                        and getattr(config, f"{prefix}_model_name") == new_model
+                    ):
+                        continue
+                    setattr(config, f"{prefix}_provider_id", new_pid)
+                    setattr(config, f"{prefix}_model_name", new_model)
+                    slots_filled += 1
+                session.add(config)
 
         if created or slots_filled:
             session.commit()
         logger.success(
-            f"backfill UserDefaultModel：新建 {created} 行，补齐 {slots_filled} 个空槽位",
+            f"backfill UserDefaultModel：新建 {created} 行，补齐/刷新 {slots_filled} 个槽位",
         )
         return created, slots_filled
