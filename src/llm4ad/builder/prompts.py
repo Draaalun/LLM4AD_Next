@@ -1149,9 +1149,9 @@ spare package (small) is much lower than the cost of a mid-run pip install.
 
 ### Cheat sheet by problem_type
 - `combinatorial_optimization`: numpy, scipy, networkx, ortools, pulp,
-  python-mip, numba
+  mip, numba
 - `sorting`: numpy
-- `scheduling`: numpy, scipy, networkx, ortools, pandas, python-mip
+- `scheduling`: numpy, scipy, networkx, ortools, pandas, mip
 - `ml`: numpy, pandas, scikit-learn, scipy, matplotlib, joblib
 - `rl`: numpy, scipy, gymnasium, torch, matplotlib, stable-baselines3
 - `regression`: numpy, pandas, scikit-learn, scipy, statsmodels, matplotlib
