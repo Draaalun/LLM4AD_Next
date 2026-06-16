@@ -38,6 +38,47 @@ const MARGIN = { top: 28, right: 20, bottom: 36, left: 54 }
 const MAX_COLOR = "#00d4ff"
 const AVG_COLOR = "#a66cff"
 
+/**
+ * Compute a left margin wide enough to fit the y-axis tick labels without
+ * clipping them at the chart edge.
+ *
+ * The axis is rendered into a temporary (later removed) group so the real
+ * label widths can be measured via `getBBox`, then the widest label width
+ * plus padding for the tick marks is returned. Falls back to `MARGIN.left`
+ * if measurement is unavailable (e.g. detached SVG).
+ *
+ * @param g - The chart's root `<g>` selection to measure within.
+ * @param yScale - The y axis scale used to generate the ticks.
+ * @param tickCount - Approximate number of ticks (matches the rendered axis).
+ * @returns The left margin in pixels (never smaller than `MARGIN.left`).
+ */
+function measureAxisLeftMargin(
+  g: d3.Selection<SVGGElement, unknown, null, undefined>,
+  yScale: d3.ScaleLinear<number, number>,
+  tickCount: number,
+): number {
+  const probe = g.append("g").call(d3.axisLeft(yScale).ticks(tickCount))
+  probe.selectAll(".tick text").style("font-size", "10px")
+
+  let maxLabelW = 0
+  probe.selectAll<SVGTextElement, unknown>(".tick text").each(function () {
+    // getBBox can throw on a not-yet-laid-out element in some browsers; a
+    // failed measurement just leaves maxLabelW at 0 and falls back below.
+    try {
+      const w = this.getBBox().width
+      if (w > maxLabelW) maxLabelW = w
+    } catch {
+      // ignore — fall back to the default margin
+    }
+  })
+  probe.remove()
+
+  if (maxLabelW === 0) return MARGIN.left
+  // Label width + gap between label and tick line + tick mark length.
+  const needed = Math.ceil(maxLabelW + 12)
+  return Math.max(MARGIN.left, needed)
+}
+
 const SUB_VIEWS: Array<{ value: ViewMode; labelKey: string }> = [
   { value: "global", labelKey: "evolution.panel.trend.globalTrend" },
   { value: "instance", labelKey: "evolution.panel.trend.instanceTrend" },
@@ -168,19 +209,13 @@ export default function TrendPanel() {
       return
     }
 
-    const innerW = width - MARGIN.left - MARGIN.right
     const innerH = height - MARGIN.top - MARGIN.bottom
-    if (innerW <= 0 || innerH <= 0) return
+    if (innerH <= 0) return
 
     const allScores = globalTrendData.flatMap((d) => [d.maxScore, d.avgScore])
     const yMin = Math.min(...allScores)
     const yMax = Math.max(...allScores)
     const yPad = (yMax - yMin) * 0.08 || 1
-
-    const xScale = d3
-      .scaleLinear()
-      .domain([0, Math.max(currentGeneration, 1)])
-      .range([MARGIN.left, width - MARGIN.right])
 
     const yScale = d3
       .scaleLinear()
@@ -190,12 +225,23 @@ export default function TrendPanel() {
 
     const g = svg.append("g")
 
+    // Derive a left margin wide enough for the actual y-axis labels so that
+    // long numeric ticks are never clipped at the chart's left edge.
+    const marginLeft = measureAxisLeftMargin(g, yScale, 5)
+    const innerW = width - marginLeft - MARGIN.right
+    if (innerW <= 0) return
+
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, Math.max(currentGeneration, 1)])
+      .range([marginLeft, width - MARGIN.right])
+
     // grid
     const yTicks = yScale.ticks(5)
     g.selectAll(".grid-line")
       .data(yTicks)
       .join("line")
-      .attr("x1", MARGIN.left)
+      .attr("x1", marginLeft)
       .attr("x2", width - MARGIN.right)
       .attr("y1", (d) => yScale(d))
       .attr("y2", (d) => yScale(d))
@@ -220,7 +266,7 @@ export default function TrendPanel() {
       .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
 
     g.append("g")
-      .attr("transform", `translate(${MARGIN.left},0)`)
+      .attr("transform", `translate(${marginLeft},0)`)
       .call(yAxis)
       .call((sel) => sel.select(".domain").attr("class", "text-border"))
       .call((sel) =>
@@ -286,7 +332,7 @@ export default function TrendPanel() {
     // legend
     const legend = g
       .append("g")
-      .attr("transform", `translate(${MARGIN.left + 8}, ${MARGIN.top - 12})`)
+      .attr("transform", `translate(${marginLeft + 8}, ${MARGIN.top - 12})`)
 
     legend
       .append("line")
@@ -349,7 +395,7 @@ export default function TrendPanel() {
 
     const overlay = g
       .append("rect")
-      .attr("x", MARGIN.left)
+      .attr("x", marginLeft)
       .attr("y", MARGIN.top)
       .attr("width", innerW)
       .attr("height", innerH)
@@ -427,9 +473,8 @@ export default function TrendPanel() {
       return
     }
 
-    const innerW = width - MARGIN.left - MARGIN.right
     const innerH = height - MARGIN.top - MARGIN.bottom
-    if (innerW <= 0 || innerH <= 0) return
+    if (innerH <= 0) return
 
     const allScores = instanceTrendData.flatMap((line) =>
       line.points.map((p) => p.rawScore),
@@ -437,11 +482,6 @@ export default function TrendPanel() {
     const yMin = Math.min(...allScores)
     const yMax = Math.max(...allScores)
     const yPad = (yMax - yMin) * 0.08 || 1
-
-    const xScale = d3
-      .scaleLinear()
-      .domain([0, Math.max(currentGeneration, 1)])
-      .range([MARGIN.left, width - MARGIN.right])
 
     const yScale = d3
       .scaleLinear()
@@ -451,12 +491,23 @@ export default function TrendPanel() {
 
     const g = svg.append("g")
 
+    // Derive a left margin wide enough for the actual y-axis labels so that
+    // long numeric ticks are never clipped at the chart's left edge.
+    const marginLeft = measureAxisLeftMargin(g, yScale, 5)
+    const innerW = width - marginLeft - MARGIN.right
+    if (innerW <= 0) return
+
+    const xScale = d3
+      .scaleLinear()
+      .domain([0, Math.max(currentGeneration, 1)])
+      .range([marginLeft, width - MARGIN.right])
+
     // grid
     const yTicks = yScale.ticks(5)
     g.selectAll(".grid-line")
       .data(yTicks)
       .join("line")
-      .attr("x1", MARGIN.left)
+      .attr("x1", marginLeft)
       .attr("x2", width - MARGIN.right)
       .attr("y1", (d) => yScale(d))
       .attr("y2", (d) => yScale(d))
@@ -481,7 +532,7 @@ export default function TrendPanel() {
       .call((sel) => sel.selectAll(".tick line").attr("class", "text-border"))
 
     g.append("g")
-      .attr("transform", `translate(${MARGIN.left},0)`)
+      .attr("transform", `translate(${marginLeft},0)`)
       .call(yAxis)
       .call((sel) => sel.select(".domain").attr("class", "text-border"))
       .call((sel) =>
@@ -525,7 +576,7 @@ export default function TrendPanel() {
     // legend
     const legendG = g
       .append("g")
-      .attr("transform", `translate(${MARGIN.left + 8}, ${MARGIN.top - 12})`)
+      .attr("transform", `translate(${marginLeft + 8}, ${MARGIN.top - 12})`)
 
     let lx = 0
     for (const line of instanceTrendData) {
@@ -574,7 +625,7 @@ export default function TrendPanel() {
 
     const overlay = g
       .append("rect")
-      .attr("x", MARGIN.left)
+      .attr("x", marginLeft)
       .attr("y", MARGIN.top)
       .attr("width", innerW)
       .attr("height", innerH)
