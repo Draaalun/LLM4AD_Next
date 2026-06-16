@@ -122,15 +122,21 @@ export default function TrendPanel() {
       if (!genMap.has(node.generation)) genMap.set(node.generation, [])
       genMap.get(node.generation)!.push(node.rawScore)
     }
+    const generations = Array.from(genMap.keys()).sort((a, b) => a - b)
     const result: GenerationStats[] = []
-    for (const [gen, scores] of genMap) {
+    // Accumulate scores up to and including each generation so that max/avg
+    // are computed over all individuals from the first generation through the
+    // current one (cumulative), preventing the max line from decreasing.
+    const cumulative: number[] = []
+    for (const gen of generations) {
+      cumulative.push(...genMap.get(gen)!)
       result.push({
         generation: gen,
-        maxScore: Math.max(...scores),
-        avgScore: scores.reduce((a, b) => a + b, 0) / scores.length,
+        maxScore: Math.max(...cumulative),
+        avgScore: cumulative.reduce((a, b) => a + b, 0) / cumulative.length,
       })
     }
-    return result.sort((a, b) => a.generation - b.generation)
+    return result
   }, [evolutionData.nodes, currentGeneration])
 
   const availableNodes = useMemo<NodeNameInfo[]>(() => {
