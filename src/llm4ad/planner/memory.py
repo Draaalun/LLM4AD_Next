@@ -18,7 +18,7 @@ from typing import Any, Literal
 
 import yaml
 from loguru import logger
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class MemoryType(Enum):
@@ -297,8 +297,16 @@ class MemoryExtractor:
         try:
 
             class _InsightSchema(BaseModel):
-                title: str = Field(..., description="Concise title (3-8 words)")
-                content: str = Field(..., description="Actionable insight (2-5 sentences)")
+                title: str = Field(
+                    ...,
+                    description="Concise title (3-8 words)",
+                    validation_alias=AliasChoices("title", "name"),
+                )
+                content: str = Field(
+                    ...,
+                    description="Actionable insight (2-5 sentences)",
+                    validation_alias=AliasChoices("content", "description"),
+                )
 
             response = await self.provider.generate(
                 prompt,
@@ -384,8 +392,16 @@ class MemoryExtractor:
         try:
 
             class _LessonSchema(BaseModel):
-                title: str = Field(..., description="Concise title (3-8 words)")
-                content: str = Field(..., description="Actionable lesson (2-5 sentences)")
+                title: str = Field(
+                    ...,
+                    description="Concise title (3-8 words)",
+                    validation_alias=AliasChoices("title", "name"),
+                )
+                content: str = Field(
+                    ...,
+                    description="Actionable lesson (2-5 sentences)",
+                    validation_alias=AliasChoices("content", "description"),
+                )
 
             response = await self.provider.generate(
                 prompt,
@@ -456,8 +472,16 @@ class MemoryExtractor:
         try:
 
             class _FailureSchema(BaseModel):
-                title: str = Field(..., description="Concise title (3-8 words)")
-                content: str = Field(..., description="Actionable lesson (2-5 sentences)")
+                title: str = Field(
+                    ...,
+                    description="Concise title (3-8 words)",
+                    validation_alias=AliasChoices("title", "name"),
+                )
+                content: str = Field(
+                    ...,
+                    description="Actionable lesson (2-5 sentences)",
+                    validation_alias=AliasChoices("content", "description"),
+                )
 
             response = await self.provider.generate(
                 prompt,

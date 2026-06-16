@@ -112,6 +112,7 @@ class TaskSpecificConfig(BaseModel):
     model: str | None = Field(default=None, description="Model name for this specific task")
     base_url: str | None = Field(default=None, description="Custom base URL for this task")
     api_key: str | None = Field(default=None, description="API key for this task")
+    timeout: float | None = Field(default=None, gt=0, description="Request timeout in seconds for this task")
 
 class EmbeddingConfig(BaseModel):
     """Embedding provider configuration.
@@ -133,6 +134,7 @@ class EmbeddingConfig(BaseModel):
     api_key: str = Field(default="")
     model: str = Field(default="text-embedding-3-small")
     dim: int = Field(default=3072, ge=1)
+    timeout: float = Field(default=60.0, gt=0, description="Embedding request timeout in seconds")
     embedding_func_max_async: int = Field(default=2, ge=1)
 
     # New fields for 'local' type
