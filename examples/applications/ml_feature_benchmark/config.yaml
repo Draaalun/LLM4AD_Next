@@ -10,8 +10,8 @@
 project_name: "ml_feature_benchmark"
 
 # Short descriptions for frontend display (English / Chinese)
-description_en: "Evolve feature transformation pipelines feeding a fixed weighted-KNN classifier on small 3-class CSV datasets."
-description_zh: "为固定的加权 KNN 分类器进化特征变换流水线，在小样本三分类 CSV 数据集上提升精度与 F1。"
+description_en: "Evolve feature transformation pipelines feeding a fixed XGBRegressor on the Kaggle House Prices regression dataset."
+description_zh: "为固定的 XGBRegressor 进化特征变换流水线，在 Kaggle House Prices 回归数据集上降低 RMSE。"
 
 # Background description of the task, passed to LLM for context
 background: |
@@ -181,17 +181,45 @@ coder:
     - Output exactly ONE fenced code block: ```python:src/classifier.py ...```
     - Do NOT output any other files.
     - Modify ONLY the code between `# EVOLVE_START` and `# EVOLVE_END`.
-    - Keep everything outside the EVOLVE region identical to the base file in {insight}.
+    - Keep everything outside the EVOLVE region identical to the base file shown in the reference context.
     - The evolvable region MUST define exactly these two functions (same names/signatures):
       - fit_features(x_train: np.ndarray, y_train: np.ndarray)
       - transform_features(x: np.ndarray, state) -> np.ndarray
     - `transform_features` must return a 2D float array with the same number of rows as `x`
       and all finite values.
+    - Treat `fit_features` and `transform_features` as a strict train/serve pair:
+      `fit_features` may learn constants, column indices, masks, means, stds, and projections
+      from `x_train`/`y_train`; `transform_features` must only reuse state learned by
+      `fit_features` and must not recompute target-based selection.
     - You may use numpy only (no sklearn or pandas).
     - CRITICAL: The baseline RMSE is 25178.23. Your goal is to achieve a STRICTLY LOWER RMSE.
     - CRITICAL: Ensure all variables used are defined. Do NOT reference undefined variables.
     - CRITICAL: Avoid direct eigen-decomposition/PCA unless you sanitize all inputs and catch np.linalg.LinAlgError.
     - CRITICAL: Always use np.nan_to_num before divisions, logs, correlations, and matrix decompositions.
+    - CRITICAL: Boolean masks must match the current matrix width exactly before indexing columns.
+    - CRITICAL: Do not create a mask before appending engineered features and then apply it after appending features.
+    - CRITICAL: Build engineered features in exactly the same order in `fit_features` and `transform_features`.
+    - CRITICAL: Do not drop rows. Preserve `x.shape[0]` in every returned feature matrix.
+    - CRITICAL: If a shape check fails, return a sanitized 2D fallback with the original row count instead of raising.
+
+    Shape-safety advice for weak models:
+    - The error "boolean index did not match indexed array along axis 1" means a boolean mask length
+      does not equal the number of columns in the matrix being indexed.
+    - Common failure: creating a 79-column mask from raw `x_train`, appending engineered columns,
+      then applying the old 79-length mask to the wider engineered matrix.
+    - Safe order:
+      1. sanitize raw `x`
+      2. build the same engineered feature matrix in both functions
+      3. create masks/statistics from that final engineered matrix in `fit_features`
+      4. in `transform_features`, rebuild the same engineered matrix before applying stored masks/statistics
+    - Store widths such as `raw_n_features` and `engineered_n_features` in state when useful.
+    - Prefer integer `selected_idx` arrays over boolean masks; filter indices to valid column ranges before indexing.
+
+    Safe weak-model pattern:
+    - Learn `selected_idx`, `mean`, and `std` from the final engineered matrix in `fit_features`.
+    - Rebuild the final engineered matrix in `transform_features` before applying `selected_idx`.
+    - Use `std_safe = np.where(std == 0, 1.0, std)`.
+    - Always return `np.nan_to_num(result, nan=0.0, posinf=0.0, neginf=0.0)`.
 
     Feature engineering guidance (proven strategies for this dataset):
     1. Create aggregated area features: TotalArea = GrLivArea + TotalBsmtSF
