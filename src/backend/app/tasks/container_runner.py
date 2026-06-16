@@ -112,6 +112,13 @@ def main() -> None:
         data = merge_with_global_settings(load_global_settings(), data)
         config = AppConfig.from_dict(data)
 
+        # 切换工作目录到挂载的数据目录：配置以内存 AppConfig 对象传入，
+        # LLM4AD 的 _config_dir 为 None，dataset/自定义评估器模块等相对路径
+        # 会回退到 CWD 解析。若不切换，CWD 为镜像 WORKDIR(/app/backend)，
+        # 相对路径将解析到错误位置（FileNotFoundError）。切到 DATA_DIR 后
+        # 所有相对路径都落到挂载目录。
+        os.chdir(DATA_DIR)
+
         llm4ad = LLM4AD(config)
         llm4ad.print_run_summary()
 
