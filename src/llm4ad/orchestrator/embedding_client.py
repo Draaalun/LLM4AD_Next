@@ -54,11 +54,21 @@ class EmbeddingClient:
                 raise ValueError("text_config and code_config must be provided for 'local' type")
 
             self._task_clients['text'] = (
-                AsyncOpenAI(api_key=config.text_config.api_key, base_url=config.text_config.base_url, max_retries=0),
+                AsyncOpenAI(
+                    api_key=config.text_config.api_key,
+                    base_url=config.text_config.base_url,
+                    timeout=config.text_config.timeout or config.timeout,
+                    max_retries=0,
+                ),
                 config.text_config.model
             )
             self._task_clients['code'] = (
-                AsyncOpenAI(api_key=config.code_config.api_key, base_url=config.code_config.base_url, max_retries=0),
+                AsyncOpenAI(
+                    api_key=config.code_config.api_key,
+                    base_url=config.code_config.base_url,
+                    timeout=config.code_config.timeout or config.timeout,
+                    max_retries=0,
+                ),
                 config.code_config.model
             )
         else:
@@ -67,7 +77,7 @@ class EmbeddingClient:
             if self._type == 'jina':
                 base_url = "https://api.jina.ai/v1"
 
-            client = AsyncOpenAI(api_key=config.api_key, base_url=base_url, max_retries=0)
+            client = AsyncOpenAI(api_key=config.api_key, base_url=base_url, timeout=config.timeout, max_retries=0)
             # Both task types use the same client/model
             self._task_clients['text'] = (client, config.model)
             self._task_clients['code'] = (client, config.model)
