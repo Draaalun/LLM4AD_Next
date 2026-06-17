@@ -2,6 +2,7 @@ import {
   Bot,
   Check,
   ChevronsUpDown,
+  ClipboardCheck,
   Code,
   Info,
   Settings,
@@ -504,6 +505,148 @@ export default function EvolutionProviderSelect({
           onUpdate={(fields) => handleUpdate("coder", fields)}
           t={t}
           defaultHint={coderHint}
+        />
+      </div>
+    </div>
+  )
+}
+
+interface EvaluatorProviderSelectProps {
+  evaluatorProvider: string
+  evaluatorModel: string
+  onEvaluatorChange: (provider: string, model: string) => void
+  compact?: boolean
+}
+
+/**
+ * Provider/model selector for the evaluator step.
+ *
+ * Mirrors the planner/coder rows of {@link EvolutionProviderSelect}, but binds
+ * to a single role whose values are stored under ``evaluator.provider`` and
+ * ``evaluator.provider_model``.
+ */
+export function EvaluatorProviderSelect({
+  evaluatorProvider,
+  evaluatorModel,
+  onEvaluatorChange,
+  compact,
+}: EvaluatorProviderSelectProps) {
+  const { t } = useTranslation()
+  const [defaultModelOpen, setDefaultModelOpen] = useState(false)
+
+  const { data: providers, isLoading } = useProviders()
+
+  const { data: defaultModels } = useUserDefaultModels()
+
+  const providerList = providers?.items ?? []
+
+  // The evaluator has no dedicated default-model slot, so it falls back to the
+  // user's "other" default — same hint format as the planner/coder rows.
+  const evaluatorHint = [
+    defaultModels?.other_provider_name,
+    defaultModels?.other_model_name,
+  ]
+    .filter(Boolean)
+    .join(", ")
+
+  const handleUpdate = (fields: Record<string, string>) => {
+    const nextProvider =
+      "provider" in fields ? fields.provider : evaluatorProvider
+    const nextModel = "model" in fields ? fields.model : evaluatorModel
+    onEvaluatorChange(nextProvider, nextModel)
+  }
+
+  if (isLoading) {
+    return (
+      <div className={compact ? "space-y-2" : "space-y-3"}>
+        {!compact && <Skeleton className="h-5 w-48" />}
+        <Skeleton className={compact ? "h-8 w-full" : "h-9 w-full"} />
+      </div>
+    )
+  }
+
+  if (compact) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-end">
+          <button
+            type="button"
+            onClick={() => setDefaultModelOpen(true)}
+            className="flex items-center gap-1 text-[10px] text-primary hover:text-primary/80 transition-colors"
+          >
+            <Settings className="size-3" />
+            <span>{t("llmProvider.defaultModel.title")}</span>
+          </button>
+          <DefaultModelSettings
+            open={defaultModelOpen}
+            onOpenChange={setDefaultModelOpen}
+          />
+        </div>
+        <ProviderModelRow
+          icon={<ClipboardCheck className="size-4" />}
+          label={t("evolution.providerSelect.evaluatorLabel")}
+          providers={providerList}
+          providerValue={evaluatorProvider}
+          modelValue={evaluatorModel}
+          onUpdate={handleUpdate}
+          t={t}
+          defaultHint={evaluatorHint}
+          compact
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-semibold">
+          {t("evolution.providerSelect.title")}
+        </h4>
+        <div className="flex items-center gap-3">
+          {!evaluatorProvider && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Info className="size-3.5" />
+              <span>{t("evolution.providerSelect.defaultHint")}</span>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setDefaultModelOpen(true)}
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors"
+          >
+            <Settings className="size-3" />
+            <span>{t("llmProvider.defaultModel.title")}</span>
+          </button>
+          <DefaultModelSettings
+            open={defaultModelOpen}
+            onOpenChange={setDefaultModelOpen}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[120px_1fr_1fr] gap-3 mb-2">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {t("evolution.providerSelect.roleHeader")}
+        </div>
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {t("evolution.providerSelect.providerHeader")}
+        </div>
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          {t("evolution.providerSelect.modelHeader")}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        <ProviderModelRow
+          icon={<ClipboardCheck className="size-4" />}
+          label={t("evolution.providerSelect.evaluatorLabel")}
+          providers={providerList}
+          providerValue={evaluatorProvider}
+          modelValue={evaluatorModel}
+          onUpdate={handleUpdate}
+          t={t}
+          defaultHint={evaluatorHint}
         />
       </div>
     </div>

@@ -26,7 +26,9 @@ import { getDefaultValue } from "./schema-form/resolveSchema"
 import AdvancedStep from "./steps/AdvancedStep"
 import ConfirmStep from "./steps/ConfirmStep"
 import DataPreparationStep from "./steps/DataPreparationStep"
-import EvolutionProviderSelect from "./steps/EvolutionProviderSelect"
+import EvolutionProviderSelect, {
+  EvaluatorProviderSelect,
+} from "./steps/EvolutionProviderSelect"
 import EvolveAnnotationStep from "./steps/EvolveAnnotationStep"
 import SchemaStepForm from "./steps/SchemaStepForm"
 
@@ -348,6 +350,26 @@ export default function UninitializedView({
                     provider_model: model,
                   }
                   handleSchemaChange("coder", coder)
+                }}
+              />
+            ) : schemaKey === "evaluator" ? (
+              <EvaluatorProviderSelect
+                evaluatorProvider={
+                  ((configValues.evaluator as Record<string, unknown>)
+                    ?.provider as string) || ""
+                }
+                evaluatorModel={
+                  ((configValues.evaluator as Record<string, unknown>)
+                    ?.provider_model as string) || ""
+                }
+                onEvaluatorChange={(provider, model) => {
+                  const evaluator = {
+                    ...((configValues.evaluator as Record<string, unknown>) ??
+                      {}),
+                    provider,
+                    provider_model: model,
+                  }
+                  handleSchemaChange("evaluator", evaluator)
                 }}
               />
             ) : undefined
