@@ -631,6 +631,13 @@ export const ChatTuneTurnStartRequestSchema = {
                 }
             ],
             description: '显式指定本轮要执行的阶段（gathering/build/review），用于前端覆盖后端的默认分发；为 None 时由后端按会话状态自动判断。仅 start_turn 接受此参数；retry_turn 不受影响。'
+        },
+        language: {
+            type: 'string',
+            enum: ['zh', 'en'],
+            title: 'Language',
+            description: '本轮对话使用的语言（zh/en），驱动 LLM 回答语言',
+            default: 'zh'
         }
     },
     type: 'object',

@@ -2,7 +2,7 @@
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -52,6 +52,10 @@ class ChatTuneTurnStartRequest(BaseModel):
             "覆盖后端的默认分发；为 None 时由后端按会话状态自动判断。"
             "仅 start_turn 接受此参数；retry_turn 不受影响。"
         ),
+    )
+    language: Literal["zh", "en"] = Field(
+        default="zh",
+        description="本轮对话使用的语言（zh/en），驱动 LLM 回答语言",
     )
 
     @model_validator(mode="after")

@@ -114,6 +114,20 @@ def _safe_error_message(exc: Exception, max_len: int = 2000) -> str:
     return msg[:max_len]
 
 
+def _t(language: str | None, zh: str, en: str) -> str:
+    """按语言挑选面向用户的文案，缺省回退中文。
+
+    Args:
+        language: 语言码（'zh'/'en' 等），通常取自 ``gathering_context['language']``。
+        zh: 中文文案。
+        en: 英文文案。
+
+    Returns:
+        ``language == 'en'`` 时返回英文，否则返回中文。
+    """
+    return en if (language or "zh") == "en" else zh
+
+
 @dataclass
 class TurnStreamContext:
     """stream_turn 路由所需的上下文数据。
@@ -443,6 +457,20 @@ def start_turn(
     set_chat_tune_generation_id(session.id, turn_id, generation_id)
     delete_chat_tune_stream(session.id, turn_id)
 
+    def _ctx_with_language() -> dict[str, Any]:
+        """在上一轮持久化的 gathering_context 上覆写本轮前端传入的 language。
+
+        首轮 session.gathering_context 为空，返回仅含 language 的 dict 即可——
+        容器内 runner 用 ``gctx.get(...)`` 带默认值取字段，不影响首轮判定。
+        """
+        ctx = (
+            copy.deepcopy(session.gathering_context)
+            if session.gathering_context
+            else {}
+        )
+        ctx["language"] = request.language
+        return ctx
+
     try:
         if generation_kind is ChatTuneGenerationKind.REVIEW:
             asyncio.create_task(
@@ -454,9 +482,7 @@ def start_turn(
                     task_id=task.id,
                     provider_config=provider_config,
                     user_content=llm_user_content,
-                    gathering_context=copy.deepcopy(session.gathering_context)
-                    if session.gathering_context
-                    else None,
+                    gathering_context=_ctx_with_language(),
                     input_data_path=task.input_data_path,
                 )
             )
@@ -469,9 +495,7 @@ def start_turn(
                     generation_id=generation_id,
                     task_id=task.id,
                     provider_config=provider_config,
-                    gathering_context=copy.deepcopy(session.gathering_context)
-                    if session.gathering_context
-                    else None,
+                    gathering_context=_ctx_with_language(),
                     input_data_path=task.input_data_path,
                 )
             )
@@ -485,9 +509,7 @@ def start_turn(
                     user_content=llm_user_content,
                     base_config=copy.deepcopy(session.latest_config or {}),
                     generation_id=generation_id,
-                    gathering_context=copy.deepcopy(session.gathering_context)
-                    if session.gathering_context
-                    else None,
+                    gathering_context=_ctx_with_language(),
                     input_data_path=task.input_data_path,
                 )
             )
@@ -857,6 +879,7 @@ async def _run_ai_build(
     """后台协程：在隔离容器中执行 AI 构建，并把事件转发到 Redis。"""
     from app.services import container_service
 
+    language = (gathering_context or {}).get("language") or "zh"
     content_buffer = ""
     blueprint_data: dict[str, Any] | None = None
     cancelled = False
@@ -898,7 +921,10 @@ async def _run_ai_build(
         if not await _wait_chat_tune_ready(
             client, base_url, settings.CHAT_TUNE_CONTAINER_READY_TIMEOUT
         ):
-            raise RuntimeError("构建容器启动超时，请重试")
+            raise RuntimeError(_t(
+                language, "构建容器启动超时，请重试",
+                "Build container timed out while starting. Please retry.",
+            ))
 
         body = {
             "provider_config": provider_config,
@@ -944,7 +970,10 @@ async def _run_ai_build(
                             turn_id=turn_id,
                         )
                     elif etype == "error":
-                        raise RuntimeError(event.get("error") or "构建容器执行失败")
+                        raise RuntimeError(event.get("error") or _t(
+                            language, "构建容器执行失败",
+                            "Build container execution failed",
+                        ))
                     elif etype == "done":
                         stream_done = True
                         break
@@ -1060,6 +1089,7 @@ async def _run_review_generation(
     """后台协程：在隔离容器中执行 review 对话，并把事件转发到 Redis。"""
     from app.services import container_service
 
+    language = (gathering_context or {}).get("language") or "zh"
     content_buffer = ""
     cancelled = False
     container_id: str | None = None
@@ -1101,7 +1131,10 @@ async def _run_review_generation(
         if not await _wait_chat_tune_ready(
             client, base_url, settings.CHAT_TUNE_CONTAINER_READY_TIMEOUT
         ):
-            raise RuntimeError("Review 容器启动超时，请重试")
+            raise RuntimeError(_t(
+                language, "Review 容器启动超时，请重试",
+                "Review container timed out while starting. Please retry.",
+            ))
 
         body = {
             "provider_config": provider_config,
@@ -1148,7 +1181,10 @@ async def _run_review_generation(
                             turn_id=turn_id,
                         )
                     elif etype == "error":
-                        raise RuntimeError(event.get("error") or "Review 容器执行失败")
+                        raise RuntimeError(event.get("error") or _t(
+                            language, "Review 容器执行失败",
+                            "Review container execution failed",
+                        ))
                     elif etype == "done":
                         stream_done = True
                         break
@@ -1260,6 +1296,7 @@ async def _run_chat_tune_generation(
     """
     from app.services import container_service
 
+    language = (gathering_context or {}).get("language") or "zh"
     content_buffer = ""
     payload: dict[str, Any] | None = None
     updated_messages: list[dict[str, Any]] | None = None
@@ -1311,7 +1348,10 @@ async def _run_chat_tune_generation(
         if not await _wait_chat_tune_ready(
             client, base_url, settings.CHAT_TUNE_CONTAINER_READY_TIMEOUT
         ):
-            raise RuntimeError("调参容器启动超时，请重试")
+            raise RuntimeError(_t(
+                language, "调参容器启动超时，请重试",
+                "Chat-tune container timed out while starting. Please retry.",
+            ))
 
         body = {
             "provider_config": provider_config,
@@ -1365,7 +1405,7 @@ async def _run_chat_tune_generation(
                         if event.get("response_type") == "choices":
                             payload = _build_choice_payload(event.get("choices") or [])
                         elif event.get("response_type") == "complete":
-                            payload = _build_confirm_build_payload()
+                            payload = _build_confirm_build_payload(language)
                             needs_profile = event.get("needs_profile")
                             await asyncio.to_thread(
                                 _update_session_stage,
@@ -1375,7 +1415,10 @@ async def _run_chat_tune_generation(
                                 turn_id=turn_id,
                             )
                     elif etype == "error":
-                        raise RuntimeError(event.get("error") or "调参容器执行失败")
+                        raise RuntimeError(event.get("error") or _t(
+                            language, "调参容器执行失败",
+                            "Chat-tune container execution failed",
+                        ))
                     elif etype == "done":
                         stream_done = True
                         break
@@ -1520,24 +1563,36 @@ _CONFIRM_BUILD_VALUE = "confirm_build"
 _DECLINE_BUILD_VALUE = "decline_build"
 
 
-def _build_confirm_build_payload() -> dict[str, Any]:
-    """构造确认是否开始 AI 构建的表单 payload。"""
+def _build_confirm_build_payload(language: str = "zh") -> dict[str, Any]:
+    """构造确认是否开始 AI 构建的表单 payload。
+
+    Args:
+        language: 语言码（'zh'/'en'），决定表单文案语言；缺省中文。
+    """
     return {
         "cardId": f"card-{uuid.uuid4().hex[:8]}",
         "kind": "choice",
         "stage": "confirm_build",
-        "prompt": "需求分析已完成，是否开始 AI 构建？",
+        "prompt": _t(
+            language, "需求分析已完成，是否开始 AI 构建？",
+            "Needs analysis is complete. Start the AI build?",
+        ),
         "hint": "",
         "options": [
             {
                 "value": _CONFIRM_BUILD_VALUE,
-                "label": "确认构建",
-                "description": "开始 AI 自动构建任务配置",
+                "label": _t(language, "确认构建", "Start build"),
+                "description": _t(
+                    language, "开始 AI 自动构建任务配置",
+                    "Let the AI build the task configuration automatically",
+                ),
             },
             {
                 "value": _DECLINE_BUILD_VALUE,
-                "label": "暂不构建",
-                "description": "继续调参对话",
+                "label": _t(language, "暂不构建", "Not now"),
+                "description": _t(
+                    language, "继续调参对话", "Keep chatting to tune the configuration",
+                ),
             },
         ],
     }
@@ -1549,7 +1604,9 @@ def _build_gathering_context(
 ) -> dict[str, Any]:
     """根据本轮更新后的对话历史拼装可持久化的 gathering_context。
 
-    ``user_context`` / ``language`` 在单轮内不变，沿用上一轮快照（首轮缺省）。
+    ``user_context`` 在单轮内不变，沿用上一轮快照（首轮缺省）。
+    ``language`` 取本轮 ``incoming`` 注入值（由 ``start_turn`` 从前端请求写入），
+    使每轮都能按前端选择的语言回答；缺省回退到 ``"zh"``。
     ``user_input`` 为每轮瞬时字段，不持久化。
     """
     incoming = incoming or {}

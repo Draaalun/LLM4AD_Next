@@ -224,7 +224,7 @@ export default function ChatTuneView({
   readOnly = false,
   onSwitchToStepper,
 }: ChatTuneViewProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const {
     setIsConfiguring,
     setIsViewingParams,
@@ -623,6 +623,7 @@ export default function ChatTuneView({
             provider_id: providerId || undefined,
             model_name: modelName || undefined,
             target_stage: targetStage,
+            language: i18n.language?.startsWith("zh") ? "zh" : "en",
           },
         })
         // The backend has accepted the turn; if the user has since switched
@@ -683,6 +684,7 @@ export default function ChatTuneView({
       targetStage,
       connectToStream,
       refetchSession,
+      i18n.language,
       t,
     ],
   )

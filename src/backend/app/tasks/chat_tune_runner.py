@@ -239,6 +239,20 @@ def _sse(obj: dict[str, Any]) -> str:
     return f"data: {json.dumps(obj, ensure_ascii=False, default=str)}\n\n"
 
 
+def _t(language: str | None, zh: str, en: str) -> str:
+    """按语言挑选进度/状态文案，缺省回退中文。
+
+    Args:
+        language: 语言码（'zh'/'en' 等），来自 ``gathering_context['language']``。
+        zh: 中文文案。
+        en: 英文文案。
+
+    Returns:
+        ``language == 'en'`` 时返回英文，否则返回中文。
+    """
+    return en if (language or "zh") == "en" else zh
+
+
 def _serialize_response(response: Any) -> dict[str, Any]:
     """把 ``NeedsGatheringResponse`` 序列化为可回传的事件 dict。
 
@@ -348,33 +362,55 @@ async def _build_event_stream(req: BuildRequest) -> AsyncIterator[str]:
 
     try:
         ctx = req.gathering_context or {}
+        language = ctx.get("language") or "zh"
         needs_dict = ctx.get("needs_profile")
         if not needs_dict:
-            yield _sse({"type": "error", "error": "缺少 needs_profile，无法构建"})
+            yield _sse({"type": "error", "error": _t(
+                language, "缺少 needs_profile，无法构建",
+                "Missing needs_profile; cannot build",
+            )})
             return
 
-        yield _sse({"type": "chunk", "content": "🔨 **开始 AI 构建**\n\n"})
-        yield _sse({"type": "chunk", "content": "正在初始化构建环境...\n\n"})
+        yield _sse({"type": "chunk", "content": _t(
+            language, "🔨 **开始 AI 构建**\n\n", "🔨 **Starting AI build**\n\n",
+        )})
+        yield _sse({"type": "chunk", "content": _t(
+            language, "正在初始化构建环境...\n\n",
+            "Initializing build environment...\n\n",
+        )})
 
         provider = BaseProvider.create(
             req.provider_config["type"], config=req.provider_config
         )
         needs = NeedsProfile.from_dict(needs_dict)
 
-        yield _sse({"type": "chunk", "content": "正在分析需求并生成代码...\n\n"})
+        yield _sse({"type": "chunk", "content": _t(
+            language, "正在分析需求并生成代码...\n\n",
+            "Analyzing requirements and generating code...\n\n",
+        )})
 
         try:
             builder = BuildOrchestrator(provider, console=None, max_repair_attempts=10)
             blueprint = await builder.build(needs)
         except BuildError as exc:
-            yield _sse({"type": "chunk", "content": f"\n❌ **构建失败**：{exc}\n"})
+            yield _sse({"type": "chunk", "content": _t(
+                language, f"\n❌ **构建失败**：{exc}\n",
+                f"\n❌ **Build failed**: {exc}\n",
+            )})
             yield _sse({"type": "error", "error": str(exc)[:_MAX_ERROR_LEN]})
             return
 
-        yield _sse({"type": "chunk", "content": "正在写入任务文件...\n\n"})
+        yield _sse({"type": "chunk", "content": _t(
+            language, "正在写入任务文件...\n\n", "Writing task files...\n\n",
+        )})
         write_task_directory(blueprint, DATA_DIR)
 
-        yield _sse({"type": "chunk", "content": "\n✅ **构建完成！**你可以继续对话来 review 和调整配置。\n"})
+        yield _sse({"type": "chunk", "content": _t(
+            language,
+            "\n✅ **构建完成！**你可以继续对话来 review 和调整配置。\n",
+            "\n✅ **Build complete!** You can keep chatting to review and "
+            "adjust the configuration.\n",
+        )})
         yield _sse({"type": "build_result", "blueprint_data": asdict(blueprint)})
         yield _sse({"type": "done"})
     except Exception as exc:
@@ -426,10 +462,14 @@ async def _review_event_stream(req: ReviewRequest) -> AsyncIterator[str]:
     stream = None
     try:
         ctx = req.gathering_context or {}
+        language = ctx.get("language") or "zh"
         blueprint_data = ctx.get("blueprint_data")
         needs_dict = ctx.get("needs_profile")
         if not blueprint_data or not needs_dict:
-            yield _sse({"type": "error", "error": "缺少构建产物或需求分析结果"})
+            yield _sse({"type": "error", "error": _t(
+                language, "缺少构建产物或需求分析结果",
+                "Missing build artifact or needs analysis result",
+            )})
             return
 
         provider = BaseProvider.create(
@@ -439,7 +479,6 @@ async def _review_event_stream(req: ReviewRequest) -> AsyncIterator[str]:
         needs = NeedsProfile.from_dict(needs_dict)
 
         review_messages: list[dict[str, str]] = ctx.get("review_messages", [])
-        language = ctx.get("language") or "zh"
 
         is_first_review = len(review_messages) == 0
         initial_message = None
@@ -471,33 +510,54 @@ async def _review_event_stream(req: ReviewRequest) -> AsyncIterator[str]:
                 review_response = item
 
         if review_response is None:
-            yield _sse({"type": "error", "error": "review 流未返回 ReviewResponse"})
+            yield _sse({"type": "error", "error": _t(
+                language, "review 流未返回 ReviewResponse",
+                "Review stream did not return a ReviewResponse",
+            )})
             return
 
         action = review_response.action
 
         if action == ReviewAction.MODIFY_EVALUATOR and review_response.modification_text:
-            yield _sse({"type": "chunk", "content": "\n\n🔧 正在修改评估器...\n"})
+            yield _sse({"type": "chunk", "content": _t(
+                language, "\n\n🔧 正在修改评估器...\n",
+                "\n\n🔧 Modifying evaluator...\n",
+            )})
             try:
                 builder = BuildOrchestrator(provider, console=None)
                 await builder.rebuild_evaluator(
                     blueprint, review_response.modification_text, needs
                 )
-                yield _sse({"type": "chunk", "content": "✅ 评估器已更新。\n"})
+                yield _sse({"type": "chunk", "content": _t(
+                    language, "✅ 评估器已更新。\n", "✅ Evaluator updated.\n",
+                )})
             except BuildError as exc:
-                yield _sse({"type": "chunk", "content": f"⚠️ 修改失败：{exc}\n"})
+                yield _sse({"type": "chunk", "content": _t(
+                    language, f"⚠️ 修改失败：{exc}\n",
+                    f"⚠️ Modification failed: {exc}\n",
+                )})
 
         elif action == ReviewAction.REGENERATE:
-            yield _sse({"type": "chunk", "content": "\n\n🔄 正在重新构建...\n"})
+            yield _sse({"type": "chunk", "content": _t(
+                language, "\n\n🔄 正在重新构建...\n", "\n\n🔄 Rebuilding...\n",
+            )})
             try:
                 builder = BuildOrchestrator(provider, console=None)
                 blueprint = await builder.build(needs)
-                yield _sse({"type": "chunk", "content": "✅ 重新构建完成。\n"})
+                yield _sse({"type": "chunk", "content": _t(
+                    language, "✅ 重新构建完成。\n", "✅ Rebuild complete.\n",
+                )})
             except BuildError as exc:
-                yield _sse({"type": "chunk", "content": f"⚠️ 重新构建失败：{exc}\n"})
+                yield _sse({"type": "chunk", "content": _t(
+                    language, f"⚠️ 重新构建失败：{exc}\n",
+                    f"⚠️ Rebuild failed: {exc}\n",
+                )})
 
         elif action == ReviewAction.CONFIRMED:
-            yield _sse({"type": "chunk", "content": "\n\n✅ **配置已确认。**\n"})
+            yield _sse({"type": "chunk", "content": _t(
+                language, "\n\n✅ **配置已确认。**\n",
+                "\n\n✅ **Configuration confirmed.**\n",
+            )})
             write_task_directory(blueprint, DATA_DIR)
 
         yield _sse(_serialize_review_response(review_response, asdict(blueprint)))
