@@ -11,7 +11,6 @@ export interface SchemaUi {
   description?: { zh?: string; en?: string }
   hidden?: boolean
   user_required?: boolean
-  is_path?: boolean
   multiline?: boolean
 }
 
@@ -83,10 +82,6 @@ export function isUserRequired(schema: JsonSchema): boolean {
 
 export function isUiRequired(schema: JsonSchema): boolean {
   return schema.ui?.required === true
-}
-
-export function isPathField(schema: JsonSchema): boolean {
-  return schema.ui?.is_path === true
 }
 
 export function isMultiline(schema: JsonSchema): boolean {

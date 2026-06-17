@@ -569,104 +569,6 @@ def get_task_tree(
     )
 
 
-def _collect_is_path_fields(schema: dict) -> list[list[str]]:
-    """遍历 JSON Schema，收集 ui.is_path 为 True 的字段路径。
-
-    Args:
-        schema: 来自 AppConfig.model_json_schema() 的 JSON Schema。
-
-    Returns:
-        字段路径列表，每个路径为键名列表。
-    """
-    paths: list[list[str]] = []
-
-    def resolve_ref(ref: str) -> dict:
-        parts = ref.lstrip("#/").split("/")
-        node = schema
-        for p in parts:
-            node = node[p]
-        return node
-
-    def walk(node: dict, current_path: list[str]) -> None:
-        if "$ref" in node:
-            node = resolve_ref(node["$ref"])
-
-        if "allOf" in node:
-            for sub in node["allOf"]:
-                walk(sub, current_path)
-            return
-
-        for key in ("oneOf", "anyOf"):
-            if key in node:
-                for variant in node[key]:
-                    walk(variant, current_path)
-                return
-
-        for field_name, field_schema in node.get("properties", {}).items():
-            field_path = current_path + [field_name]
-
-            resolved = field_schema
-            if "$ref" in field_schema:
-                resolved = resolve_ref(field_schema["$ref"])
-
-            ui_meta = resolved.get("ui") or field_schema.get("ui")
-            if ui_meta and ui_meta.get("is_path"):
-                paths.append(field_path)
-
-            walk(field_schema, field_path)
-
-        if "items" in node:
-            walk(node["items"], current_path)
-
-    walk(schema, [])
-    seen: set[tuple[str, ...]] = set()
-    unique: list[list[str]] = []
-    for p in paths:
-        key = tuple(p)
-        if key not in seen:
-            seen.add(key)
-            unique.append(p)
-    return unique
-
-
-def _apply_run_dir_to_path_fields(data: dict, run_dir: str) -> dict:
-    """将 run_dir 前缀拼接到 Schema 中标记为 ui.is_path=True 的所有字段。
-
-    Args:
-        data: input_args 字典（原地修改）。
-        run_dir: 需要拼接的运行目录路径。
-
-    Returns:
-        修改后的 data 字典。
-    """
-    schema = AppConfig.model_json_schema()
-    path_fields = _collect_is_path_fields(schema)
-
-    def apply(obj: dict, path: list[str], idx: int) -> None:
-        if idx >= len(path):
-            return
-        key = path[idx]
-        if key not in obj:
-            return
-        if idx == len(path) - 1:
-            val = obj[key]
-            if isinstance(val, str) and val:
-                obj[key] = run_dir + val.lstrip("/")
-        else:
-            child = obj[key]
-            if isinstance(child, dict):
-                apply(child, path, idx + 1)
-            elif isinstance(child, list):
-                for item in child:
-                    if isinstance(item, dict):
-                        apply(item, path, idx + 1)
-
-    for field_path in path_fields:
-        apply(data, field_path, 0)
-
-    return data
-
-
 def _resolve_providers(
     db: Session,
     input_args: dict,
@@ -839,8 +741,6 @@ def run_task(
     user_home = f"{settings.DOCKER_PROJECT_HOME}{container_name}/"
     run_dir = f"{user_home}{task_id}/"
 
-    # 将 run_dir 拼接到 Schema 中标记为 is_path 的字段
-    _apply_run_dir_to_path_fields(input_args, run_dir)
     input_args["project_name"] = "llm4ad"
     input_args["base_dir"] = "/task/data/"
     input_args["run_id"] = "run"

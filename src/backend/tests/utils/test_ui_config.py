@@ -9,7 +9,7 @@ ui() parameter combination the frontend must handle:
   - Discriminated unions
   - dict, list[str], list[int], list[nested]
   - Constrained numerics (ge, le, gt, lt, multiple_of)
-  - Fields with user_required, is_path, hidden
+  - Fields with user_required, hidden
   - Fields with and without defaults
 """
 
@@ -266,7 +266,7 @@ class TestUIConfig(BaseModel):
     test_path_field: str = Field(
         default="/tmp/output",
         json_schema_extra=ui(
-            order=103, is_path=True,
+            order=103,
             label_zh="输出路径", label_en="Output Path",
             desc_zh="文件系统路径，前端应显示路径选择器",
             desc_en="Filesystem path; frontend should show a path picker",
@@ -275,7 +275,7 @@ class TestUIConfig(BaseModel):
     test_path_optional: str | None = Field(
         default=None,
         json_schema_extra=ui(
-            order=104, is_path=True,
+            order=104,
             label_zh="可选路径", label_en="Optional Path",
             desc_zh="可选的文件路径，为空则不使用",
             desc_en="Optional file path; None means not used",
@@ -509,13 +509,13 @@ class TestUIConfig(BaseModel):
         ),
     )
 
-    # --- Combination: user_required + is_path + required ---
+    # --- Combination: user_required + required ---
 
     test_user_required_path: str = Field(
         ..., description="A required path that the user must fill in",
         json_schema_extra=ui(
             required=True, order=190,
-            user_required=True, is_path=True,
+            user_required=True,
             label_zh="必填用户路径", label_en="Required User Path",
             desc_zh="用户必须手动填写的文件路径",
             desc_en="A file path that the user must manually provide",
