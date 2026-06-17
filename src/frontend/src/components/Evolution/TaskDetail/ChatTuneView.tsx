@@ -3272,7 +3272,8 @@ function ChatMarkdown({
   )
   return (
     <div
-      className="prose prose-sm dark:prose-invert max-w-none [overflow-wrap:anywhere]
+      className={cn(
+        `prose prose-sm dark:prose-invert max-w-none [overflow-wrap:anywhere]
         prose-p:my-1 prose-p:leading-relaxed
         prose-headings:my-2 prose-headings:font-semibold
         prose-ul:my-1 prose-ol:my-1 prose-li:my-0
@@ -3280,14 +3281,16 @@ function ChatMarkdown({
         prose-pre:my-2 prose-pre:rounded-lg prose-pre:text-[13px] prose-pre:leading-relaxed prose-pre:bg-code-block-bg prose-pre:text-foreground prose-pre:border prose-pre:border-border/50
         prose-a:text-primary prose-a:no-underline hover:prose-a:underline
         prose-blockquote:my-2 prose-blockquote:border-primary/30
-        [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
+        [&>*:first-child]:mt-0 [&>*:last-child]:mb-0`,
+        streaming && "chat-streaming-cursor",
+      )}
     >
       <Markdown
         remarkPlugins={MARKDOWN_REMARK_PLUGINS}
         rehypePlugins={MARKDOWN_REHYPE_PLUGINS}
         components={components}
       >
-        {streaming ? `${content} ▍` : content}
+        {content}
       </Markdown>
     </div>
   )
