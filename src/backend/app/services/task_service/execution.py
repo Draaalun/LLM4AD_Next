@@ -252,6 +252,8 @@ def run_task(
     # 清空上一次运行残留的报告与结果渲染缓存，避免与新一轮的产物错配
     task.reports = None
     task.result_render = None
+    celery_task_id = str(uuid.uuid4())
+    task.celery_task_id = celery_task_id
     task.updated_time = datetime.now(UTC)
     db.add(task)
     db.commit()
@@ -265,11 +267,8 @@ def run_task(
         },
     )
 
-    # 再提交 Celery 异步任务
-    celery_result = run_evolution.delay(task_args)
-    task.celery_task_id = celery_result.id
-    db.add(task)
-    db.commit()
+    # 使用预生成的 ID 派发 Celery 异步任务
+    celery_result = run_evolution.apply_async(args=[task_args], task_id=celery_task_id)
     db.refresh(task)
 
     return schemas.TaskRunResponse(
