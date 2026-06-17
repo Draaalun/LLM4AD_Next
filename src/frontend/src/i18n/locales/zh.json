@@ -821,6 +821,7 @@
       "plannerLabel": "规划器",
       "coderLabel": "编码器",
       "reporterLabel": "报告生成",
+      "evaluatorLabel": "评估器",
       "configureProviders": "供应商配置"
     },
     "advancedStep": {

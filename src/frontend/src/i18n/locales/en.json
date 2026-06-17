@@ -821,6 +821,7 @@
       "plannerLabel": "Planner",
       "coderLabel": "Coder",
       "reporterLabel": "Reporter",
+      "evaluatorLabel": "Evaluator",
       "configureProviders": "Configure Providers"
     },
     "advancedStep": {
