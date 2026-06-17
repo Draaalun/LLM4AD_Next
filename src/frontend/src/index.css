@@ -492,3 +492,26 @@
   background: transparent;
   padding: 0;
 }
+
+/* Blinking caret appended inline after the last block while streaming. */
+@keyframes chat-cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+.chat-streaming-cursor > :last-child::after {
+  content: "▍";
+  display: inline-block;
+  margin-left: 0.05em;
+  animation: chat-cursor-blink 1s step-end infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-streaming-cursor > :last-child::after {
+    animation: none;
+  }
+}
