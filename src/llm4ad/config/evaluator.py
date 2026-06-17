@@ -182,6 +182,16 @@ class CustomEvaluatorConfig(EvaluatorConfig):
             desc_en="Evaluator type identifier, fixed to custom",
         ),
     )
+    provider: str = Field(
+        default="default",
+        description="Name of the LLM provider to use for evaluation",
+        json_schema_extra=ui(
+            hidden=True,
+            label_zh="LLM 提供者", label_en="Provider",
+            desc_zh="用于评估阶段的 LLM 提供者名称，需在 providers 列表中预先配置",
+            desc_en="Name of the LLM provider for evaluation; must be defined in the providers list",
+        ),
+    )
     module: str = Field(
         default="", description="Module path for custom evaluator (format: module.path:ClassName)",
         json_schema_extra=ui(

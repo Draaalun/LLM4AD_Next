@@ -156,8 +156,7 @@ planner:
 evaluator:
   # --- Evaluator Type ---
   type: "custom"
-
-  # Custom evaluator module path
+  provider: "default"
   module: "relationship_evaluator.py:RelationshipOutcomeEvaluator"
 
   # --- Execution Settings ---

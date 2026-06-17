@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from llm4ad.coder.base import BaseCoder
-from llm4ad.config.schema import AppConfig
+from llm4ad.config.schema import AppConfig, CustomEvaluatorConfig
 from llm4ad.evaluator import BaseEvaluator, EvaluationDispatcher
 from llm4ad.infra.provider import BaseProvider
 from llm4ad.infra.repo_analyzer.base import AnalyzedRepository, BaseRepositoryAnalyzer
@@ -236,31 +236,24 @@ class LLM4AD:
         # Initialize evaluator
         evaluator_config = self.config.evaluator
 
-        # Auto-inject api_config from provider for custom evaluators
-        from llm4ad.config.schema import CustomEvaluatorConfig
-
-        if (
-            isinstance(evaluator_config, CustomEvaluatorConfig)
-            and not evaluator_config.model_extra.get("api_config")
-        ):
-            fallback_provider = next(
-                (p for p in self.config.providers if p.name == "default"),
-                self.config.providers[0] if self.config.providers else None,
+        # Resolve evaluator provider for custom evaluators
+        eval_provider_config = None
+        if isinstance(evaluator_config, CustomEvaluatorConfig):
+            eval_provider_name = evaluator_config.provider
+            if eval_provider_name not in self._providers:
+                raise ValueError(
+                    f"Evaluator provider '{eval_provider_name}' not found in providers configuration"
+                )
+            eval_provider_config = next(
+                p for p in self.config.providers if p.name == eval_provider_name
             )
-            if fallback_provider:
-                cfg_data = evaluator_config.model_dump()
-                cfg_data["api_config"] = {
-                    "base_url": fallback_provider.base_url or "",
-                    "api_key": fallback_provider.api_key,
-                    "model": fallback_provider.model,
-                }
-                evaluator_config = CustomEvaluatorConfig.model_validate(cfg_data)
 
         # Initilize dispatcher
         self._dispatcher = EvaluationDispatcher(
             config=evaluator_config,
             behavior_storage=self.config.multimodal.behavior_storage,
             config_dir=self._config_dir,
+            provider_config=eval_provider_config,
         )
 
         # Initialize version control if enabled
