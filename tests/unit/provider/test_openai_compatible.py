@@ -1,13 +1,12 @@
 """Unit tests for OpenAI-compatible provider."""
 
-from typing import List
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 from openai.types.chat import ChatCompletion, ChatCompletionChunk, ChatCompletionMessage
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from llm4ad.infra.provider.base import ChatMessage, GenerationResult
 from llm4ad.infra.provider.openai_compatible import OpenAICompatibleProvider
@@ -338,6 +337,186 @@ async def test_chat_with_schema_success(provider):
 
 
 @pytest.mark.asyncio
+async def test_chat_with_schema_enables_json_mode_for_deepseek(provider_config):
+    """DeepSeek schema calls should use JSON mode to reduce malformed output."""
+
+    class PersonInfo(BaseModel):
+        name: str = Field(..., description="Concise name for the algorithm")
+        age: int
+
+    deepseek_provider = OpenAICompatibleProvider({
+        **provider_config,
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-chat",
+    })
+    deepseek_provider.client = AsyncMock()
+    deepseek_provider.client.chat.completions.create.return_value = ChatCompletion(
+        id="schema-id-deepseek",
+        created=1234567890,
+        model="deepseek-chat",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": 30}'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    messages = [ChatMessage(role="user", content="Tell me about a person")]
+    result = await deepseek_provider.chat(messages, schema=PersonInfo)
+
+    assert result.parsed is not None
+    call_kwargs = deepseek_provider.client.chat.completions.create.call_args.kwargs
+    assert call_kwargs["response_format"] == {"type": "json_object"}
+    assert "Do not return a JSON Schema" in call_kwargs["messages"][0]["content"]
+    assert "Example JSON output" in call_kwargs["messages"][0]["content"]
+    assert '"name": "Concise name for the algorithm"' in call_kwargs["messages"][0]["content"]
+    assert "Do not output keys named" in call_kwargs["messages"][0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_retry_identifies_schema_echo_for_deepseek(provider_config):
+    """When DeepSeek echoes a JSON Schema, retry feedback should ask for an instance."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    deepseek_provider = OpenAICompatibleProvider({
+        **provider_config,
+        "base_url": "https://api.deepseek.com",
+        "model": "deepseek-chat",
+    })
+    deepseek_provider.client = AsyncMock()
+    schema_echo = ChatCompletion(
+        id="schema-echo-1",
+        created=1234567890,
+        model="deepseek-chat",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant",
+                    content='{"properties": {"name": {"type": "string"}}, "type": "object"}',
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+    valid_response = ChatCompletion(
+        id="schema-echo-2",
+        created=1234567891,
+        model="deepseek-chat",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": 30}'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 60, "completion_tokens": 20, "total_tokens": 80},
+        object="chat.completion",
+    )
+    deepseek_provider.client.chat.completions.create.side_effect = [schema_echo, valid_response]
+
+    result = await deepseek_provider.chat(
+        [ChatMessage(role="user", content="Tell me about a person")],
+        schema=PersonInfo,
+    )
+
+    assert result.parsed is not None
+    second_call_kwargs = deepseek_provider.client.chat.completions.create.call_args_list[1].kwargs
+    assert "returned a JSON Schema instead of a JSON instance" in second_call_kwargs["messages"][0]["content"]
+
+
+@pytest.mark.asyncio
+async def test_chat_with_schema_does_not_enable_json_mode_for_other_compatible_models(provider):
+    """Generic OpenAI-compatible endpoints should keep the existing request shape."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    provider.client.chat.completions.create.return_value = ChatCompletion(
+        id="schema-id-generic",
+        created=1234567890,
+        model="test-model",
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": 30}'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    await provider.chat([ChatMessage(role="user", content="Tell me about a person")], schema=PersonInfo)
+
+    call_kwargs = provider.client.chat.completions.create.call_args.kwargs
+    assert "response_format" not in call_kwargs
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("json_mode", "base_url", "model", "expected"),
+    [
+        ("force", "http://localhost:8000/v1", "local-model", True),
+        ("off", "https://api.deepseek.com", "deepseek-chat", False),
+    ],
+)
+async def test_chat_with_schema_json_mode_config_override(
+    provider_config, json_mode, base_url, model, expected
+):
+    """Provider config can force or disable JSON mode detection."""
+
+    class PersonInfo(BaseModel):
+        name: str
+        age: int
+
+    provider = OpenAICompatibleProvider({
+        **provider_config,
+        "base_url": base_url,
+        "model": model,
+        "json_mode": json_mode,
+    })
+    provider.client = AsyncMock()
+    provider.client.chat.completions.create.return_value = ChatCompletion(
+        id="schema-id-json-mode",
+        created=1234567890,
+        model=model,
+        choices=[
+            Choice(
+                finish_reason="stop",
+                index=0,
+                message=ChatCompletionMessage(
+                    role="assistant", content='{"name": "Alice", "age": 30}'
+                ),
+            )
+        ],
+        usage={"prompt_tokens": 50, "completion_tokens": 20, "total_tokens": 70},
+        object="chat.completion",
+    )
+
+    await provider.chat([ChatMessage(role="user", content="Tell me about a person")], schema=PersonInfo)
+
+    call_kwargs = provider.client.chat.completions.create.call_args.kwargs
+    assert ("response_format" in call_kwargs) is expected
+
+
+@pytest.mark.asyncio
 async def test_chat_with_schema_json_in_markdown(provider):
     """Test chat with schema parses JSON from markdown code blocks."""
 
@@ -484,7 +663,7 @@ async def test_chat_with_list_schema(provider):
         name: str
 
     class ItemsList(BaseModel):
-        items: List[Item]
+        items: list[Item]
         total: int
 
     mock_response = ChatCompletion(

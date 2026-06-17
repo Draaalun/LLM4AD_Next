@@ -106,6 +106,20 @@ class ProviderConfig(BaseModel):
             desc_zh="请求失败后的最大重试次数", desc_en="Maximum number of retry attempts after a failed request",
         ),
     )
+    json_mode: Literal["auto", "force", "off"] = Field(
+        default="auto",
+        description=(
+            "Controls response_format={type: json_object} for schema-based "
+            "OpenAI-compatible calls. auto enables it for DeepSeek only."
+        ),
+        json_schema_extra=ui(
+            label_zh="JSON 模式",
+            label_en="JSON Mode",
+            desc_zh="结构化输出请求的 JSON 模式：auto 仅对 DeepSeek 启用，force 强制启用，off 禁用",
+            desc_en="JSON mode for structured output: auto enables DeepSeek only, force enables it, off disables it",
+        ),
+    )
+
 
 class TaskSpecificConfig(BaseModel):
     """Configuration for a specific task type (text or code)."""

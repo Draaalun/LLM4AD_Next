@@ -62,6 +62,135 @@ class OpenAICompatibleProvider(BaseProvider):
         self.input_cost_per_million = config.get("input_cost_per_million", 0.0)
         self.output_cost_per_million = config.get("output_cost_per_million", 0.0)
 
+    def _should_use_json_object_mode(self) -> bool:
+        """Return whether schema calls should request JSON object mode."""
+        mode = str(self.config.get("json_mode", "auto")).lower()
+        if mode in {"force", "on", "true", "1"}:
+            return True
+        if mode in {"off", "false", "0"}:
+            return False
+
+        base_url = (self.base_url or "").lower()
+        model = (self.model or "").lower()
+        return "deepseek" in base_url or model.startswith("deepseek")
+
+    @classmethod
+    def _build_schema_instruction(cls, schema_json: dict[str, Any]) -> str:
+        """Build instructions that ask for a JSON instance, not a JSON Schema."""
+        required = schema_json.get("required", [])
+        required_keys = ", ".join(required) if required else "none"
+        field_lines = cls._schema_field_lines(schema_json)
+        example = cls._schema_example(schema_json, schema_json)
+
+        return (
+            "\n\nRespond with a valid JSON object only.\n"
+            "Do not return a JSON Schema or schema description. "
+            "Return a JSON instance containing the requested content.\n"
+            f"Required top-level keys: {required_keys}\n"
+            "Field requirements:\n"
+            f"{field_lines}\n"
+            "Example JSON output (shape only; replace placeholder text with actual content):\n"
+            f"{json.dumps(example, indent=2)}\n"
+            "Do not output keys named properties, required, type, title, $defs, schema, or markdown fences.\n"
+            "Only output the JSON object."
+        )
+
+    @classmethod
+    def _schema_field_lines(cls, schema_json: dict[str, Any]) -> str:
+        properties = schema_json.get("properties", {})
+        required = set(schema_json.get("required", []))
+        if not isinstance(properties, dict) or not properties:
+            return "- Return a JSON object matching the requested structure."
+
+        lines = []
+        for name, details in properties.items():
+            if not isinstance(details, dict):
+                details = {}
+            type_name = cls._schema_type_name(details)
+            required_label = "required" if name in required else "optional"
+            description = details.get("description", "")
+            suffix = f": {description}" if description else ""
+            lines.append(f"- {name} ({type_name}, {required_label}){suffix}")
+        return "\n".join(lines)
+
+    @classmethod
+    def _schema_example(cls, node: dict[str, Any], root: dict[str, Any], field_name: str = "value") -> Any:
+        if "$ref" in node:
+            resolved = cls._resolve_schema_ref(node["$ref"], root)
+            if resolved is not None:
+                return cls._schema_example(resolved, root, field_name)
+
+        variants = node.get("anyOf") or node.get("oneOf")
+        if isinstance(variants, list):
+            for variant in variants:
+                if isinstance(variant, dict) and variant.get("type") != "null":
+                    return cls._schema_example(variant, root, field_name)
+
+        if "properties" in node or node.get("type") == "object":
+            properties = node.get("properties", {})
+            if not isinstance(properties, dict):
+                return {}
+            return {
+                name: cls._schema_example(details if isinstance(details, dict) else {}, root, name)
+                for name, details in properties.items()
+            }
+
+        if node.get("type") == "array":
+            items = node.get("items", {})
+            return [cls._schema_example(items if isinstance(items, dict) else {}, root, field_name)]
+        if node.get("type") == "integer":
+            return 1
+        if node.get("type") == "number":
+            return 1.0
+        if node.get("type") == "boolean":
+            return True
+        return cls._string_example(node, field_name)
+
+    @staticmethod
+    def _resolve_schema_ref(ref: str, root: dict[str, Any]) -> dict[str, Any] | None:
+        if not ref.startswith("#/"):
+            return None
+        current: Any = root
+        for part in ref[2:].split("/"):
+            if not isinstance(current, dict):
+                return None
+            current = current.get(part)
+        return current if isinstance(current, dict) else None
+
+    @classmethod
+    def _schema_type_name(cls, details: dict[str, Any]) -> str:
+        if "$ref" in details:
+            return details["$ref"].rsplit("/", 1)[-1]
+        type_name = details.get("type")
+        if type_name:
+            return str(type_name)
+        variants = details.get("anyOf") or details.get("oneOf")
+        if isinstance(variants, list):
+            names = [
+                cls._schema_type_name(v)
+                for v in variants
+                if isinstance(v, dict) and v.get("type") != "null"
+            ]
+            if names:
+                return " | ".join(names)
+        if "properties" in details:
+            return "object"
+        return "value"
+
+    @staticmethod
+    def _string_example(node: dict[str, Any], field_name: str) -> str:
+        description = node.get("description")
+        if isinstance(description, str) and description.strip():
+            return description.strip()
+        return field_name
+
+    @staticmethod
+    def _looks_like_json_schema_echo(value: Any) -> bool:
+        if not isinstance(value, dict):
+            return False
+        schema_keys = {"properties", "required", "type", "$defs", "definitions"}
+        return "properties" in value and bool(schema_keys.intersection(value))
+
     def _convert_messages(self, messages: list[ChatMessage]) -> list[dict[str, Any]]:
         """Convert internal ChatMessage format to OpenAI format.
 
@@ -170,13 +299,10 @@ class OpenAICompatibleProvider(BaseProvider):
 
         # Add output format instruction to the last user message if schema is provided
         format_instruction = ""
+        schema_json: dict[str, Any] | None = None
         if schema is not None:
             schema_json = schema.model_json_schema()
-            format_instruction = (
-                f"\n\nRespond in JSON format with the following schema:\n"
-                f"{json.dumps(schema_json, indent=2)}\n"
-                f"Only output the JSON, no other text."
-            )
+            format_instruction = self._build_schema_instruction(schema_json)
             # Append format instruction to the last user message
             for msg in reversed(openai_messages):
                 if msg["role"] == "user":
@@ -198,6 +324,8 @@ class OpenAICompatibleProvider(BaseProvider):
         }
         if tools:
             create_kwargs["tools"] = self._convert_tools(tools)
+        if schema is not None and self._should_use_json_object_mode():
+            create_kwargs.setdefault("response_format", {"type": "json_object"})
 
         # If no schema, just call API once without retry logic
         if schema is None:
@@ -257,6 +385,8 @@ class OpenAICompatibleProvider(BaseProvider):
                         content = response.choices[0].message.content or ""
                         # Extract JSON from response (handle potential markdown code blocks)
                         json_str = content.strip()
+                        if not json_str:
+                            raise ValueError("Empty response content from model")
                         if json_str.startswith("```json"):
                             json_str = json_str[7:]
                         elif json_str.startswith("```"):
@@ -265,13 +395,27 @@ class OpenAICompatibleProvider(BaseProvider):
                             json_str = json_str[:-3]
                         json_str = json_str.strip()
 
-                        parsed_result = schema.model_validate_json(json_str)
+                        raw_json = json.loads(json_str)
+                        if self._looks_like_json_schema_echo(raw_json):
+                            raise ValueError(
+                                "Model returned a JSON Schema instead of a JSON instance. "
+                                "Return concrete values for the requested top-level fields."
+                            )
+
+                        parsed_result = schema.model_validate(raw_json)
                     except Exception as e:
                         logger.warning(f"Failed to parse schema (attempt {attempt + 1}/{max_parse_retries}): {e}")
 
                         if attempt < max_parse_retries - 1:
                             # Add error feedback to prompt for retry
-                            error_feedback = f"\n\nJSON parsing error: {e}\nPlease fix the JSON format and respond again."
+                            required = ", ".join(schema_json.get("required", [])) if schema_json else ""
+                            required_suffix = f" Required top-level keys: {required}." if required else ""
+                            error_feedback = (
+                                f"\n\nYour previous response could not be parsed: {e}\n"
+                                "Please respond again with a JSON instance containing concrete values."
+                                f"{required_suffix} Do not return a JSON Schema and do not include keys named "
+                                "properties, required, type, title, $defs, or schema."
+                            )
                             for msg in reversed(openai_messages):
                                 if msg["role"] == "user":
                                     msg["content"] += error_feedback
