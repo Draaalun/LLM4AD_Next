@@ -36,7 +36,7 @@ class VersionControlConfig(BaseModel):
         default=None,
         description="Path to local code repository on disk",
         json_schema_extra=ui(
-            user_required=True, is_path=True,
+            user_required=True,
             label_zh="本地仓库路径", label_en="Local Path",
             desc_zh="本地代码仓库的磁盘路径，用于创建隔离工作空间",
             desc_en="Local code repository path on disk, used to create isolated workspaces",

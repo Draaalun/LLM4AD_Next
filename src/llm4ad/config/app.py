@@ -216,7 +216,7 @@ class LoggingConfig(BaseModel):
     file: str | None = Field(
         default=None, description="Log file path (auto-set by workspace if None)",
         json_schema_extra=ui(
-            hidden=True, is_path=True,
+            hidden=True,
             label_zh="日志文件", label_en="Log File",
             desc_zh="日志文件路径，留空由工作空间自动设置", desc_en="Log file path; auto-set by workspace if left empty",
         ),
@@ -547,7 +547,6 @@ class AppConfig(BaseModel):
     base_dir: str = Field(
         default="./runs", description="Base working directory where task directories are created",
         json_schema_extra=ui(
-            is_path=True,
             label_zh="基础目录", label_en="Base Directory",
             desc_zh="任务运行目录的根路径，所有运行结果将存储在此目录下",
             desc_en="Root path for task run directories; all outputs are stored here",

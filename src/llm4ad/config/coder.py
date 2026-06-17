@@ -97,7 +97,6 @@ class OpenCodeConfig(CoderConfig):
     binary_path: str = Field(
         default="opencode", description="Path to the opencode CLI binary",
         json_schema_extra=ui(
-            is_path=True,
             label_zh="二进制路径", label_en="Binary Path",
             desc_zh="OpenCode CLI 可执行文件的路径", desc_en="Path to the OpenCode CLI executable binary",
         ),

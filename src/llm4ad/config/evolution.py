@@ -400,7 +400,6 @@ class MEoHConfig(EvolutionConfig):
     seed_path: str | None = Field(
         default=None,
         json_schema_extra=ui(
-            is_path=True,
             label_zh="种子路径", label_en="Seed Path",
             desc_zh="初始种子算法文件的路径，用于热启动进化过程",
             desc_en="Path to an initial seed algorithm file for warm-starting the evolution process",

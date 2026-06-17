@@ -39,7 +39,6 @@ class DatasetConfig(BaseModel):
     path: str | None = Field(
         default=None, description="Directory path (for directory mode)",
         json_schema_extra=ui(
-            is_path=True,
             label_zh="目录路径", label_en="Directory Path",
             desc_zh="在 directory 模式下要遍历的目录路径",
             desc_en="Directory path to traverse in directory mode",
@@ -188,7 +187,6 @@ class CustomEvaluatorConfig(EvaluatorConfig):
             label_zh="模块路径", label_en="Module Path",
             desc_zh="自定义评估器的导入路径，格式为 'module.path:ClassName' 或 'path/to/file.py:ClassName'",
             desc_en="Import path for the custom evaluator, format: 'module.path:ClassName' or 'path/to/file.py:ClassName'",
-            is_path=True,
         ),
     )
     metrics: list[str] = Field(
@@ -224,7 +222,6 @@ class ExecutableEvaluatorConfig(EvaluatorConfig):
     executable: str = Field(
         ..., description="Relative path to executable in project_root (e.g. 'build/sorting_benchmark')",
         json_schema_extra=ui(
-            is_path=True,
             label_zh="可执行文件路径", label_en="Executable Path",
             desc_zh="相对于项目根目录的可执行文件路径，例如 'build/sorting_benchmark'",
             desc_en="Path to the executable relative to project root, e.g. 'build/sorting_benchmark'",
