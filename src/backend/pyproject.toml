@@ -32,6 +32,13 @@ dependencies = [
     "qrcode[pil]>=8.0",
 ]
 
+[tool.uv]
+# Drop xgboost's Linux-only NVIDIA NCCL dependency (~400 MB) from the backend
+# image only. It is only needed for multi-GPU/distributed training; the backend's
+# CPU training and inference work without it. Other consumers of llm4ad keep the
+# default (NCCL included), so this override lives here rather than at the repo root.
+override-dependencies = ["nvidia-nccl-cu12; sys_platform == 'never'"]
+
 [tool.uv.sources]
 llm4ad = { path = "../..", editable = true }
 
