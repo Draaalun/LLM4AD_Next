@@ -1,8 +1,8 @@
 # LLM4AD_Next
 
 <p align="center">
-  <strong>LLM for Algorithm Design</strong><br>
-  Automated Algorithm Design powered by Large Language Models and Evolutionary Computation
+  <strong>From problem description to runnable evolutionary algorithm search — in one command.</strong><br>
+  LLM-driven automated algorithm design with evolutionary optimization
 </p>
 
 <p align="center">
@@ -20,11 +20,30 @@
   </a>
 </p>
 
-## Overview
+---
 
-LLM4AD is a modular platform that combines Large Language Models (LLMs) with evolutionary computation to automatically
-design and optimize algorithms. It provides a flexible framework for leveraging AI to explore, generate, and evolve
-algorithm implementations.
+## 🚀 Why LLM4AD_Next?
+
+Traditionally, using Large Language Models for Automated Algorithm Design (LLM4AD) required a tedious, multi-step configuration pipeline. **LLM4AD_Next destroys this entry barrier.**
+
+<div align="center">
+  <img src="docs/en/process.png" alt="LLM4AD vs LLM4AD_Next Process Overview" width="850">
+</div>
+
+
+With **LLM4AD_Next**, after creating your directory, all of these painful steps are fully automated through an interactive conversational terminal. Just run:
+
+```bash
+uv run llm4ad chat
+```
+
+Our built-in AI-powered consultant will interview you, instantly understand your requirements, and automatically generate a ready-to-run pipeline (evaluator, algorithm skeleton, configuration, and debugger) so you can leap straight into producing Useful Algorithms.
+
+## 🎯 Key Features Overview
+
+* 🧠 **LLM-Powered Design** & 🧬 **Evolutionary Optimization** combined to automatically evolve top-performing code.
+* 💬 **Interactive Configuration (`llm4ad chat`)** — Your conversational AI consultant that generates the entire runnable app framework.
+* 🔍 **Evolve-Block Advisor & Recommender** — Point LLM4AD_Next at any repository, and it will scan, score, and recommend exactly *which* blocks of code are most promising to evolve to hit your goals.
 
 ## Quick Start
 
@@ -84,21 +103,6 @@ algorithm implementations.
   </a>
 </div>
 
-## Features
-
-- 🧠 **LLM-Powered Design** - Leverage state-of-the-art language models for algorithm ideation and generation
-- 🧬 **Evolutionary Optimization** - Apply genetic algorithms to improve algorithm performance over generations
-- 💬 **Interactive Configuration** - AI-powered consultant guides you through pipeline setup via conversation, generating
-  a complete runnable application (evaluator, algorithm, config, debug runner)
-- 🔍 **Evolve-Block Advisor** - On-demand feasibility/significance/concerns/suggestions for a user-selected code block
-  versus a stated evolution goal
-- 🎯 **Evolve-Block Recommender** - Point the platform at a repo + a goal and get ranked candidate blocks to evolve, each
-  pre-scored by the advisor
-- 📊 **Flexible Evaluation** - Define custom evaluation metrics and benchmarks with the registry-based evaluator system
-- 🔌 **Multi-Provider Support** - Use OpenAI, Anthropic, or any OpenAI-compatible LLM providers
-- 🚀 **Distributed Computing** - Scale experiments using Ray infrastructure
-- 📝 **YAML Configuration** - Declarative configuration with global settings and environment variable support
-- 💾 **Checkpoint & Resume** - Automatic checkpointing to resume interrupted experiments
 
 ## Run LLM4AD
 
@@ -110,6 +114,8 @@ Use the online demo from [Quick Start](#quick-start), or open it directly:
 No setup, no API key needed — just open the link and start designing algorithms.
 
 ### Option B: Local Installation
+
+Requires Python 3.10+ and [uv](https://github.com/astral-sh/uv) (recommended) or pip.
 
 ```bash
 # Clone the repository
@@ -132,85 +138,9 @@ llm4ad chat
 llm4ad run examples/applications/tsp_benchmark_python/config.yaml
 ```
 
-## Installation
+For optional dependency groups (`infra`, `providers`, `eval`, `dev`, `docs`, `all`) and uv installation, see the [Installation Guide](docs/en/guides/installation.md).
 
-### Requirements
-
-- Python 3.10, 3.11, or 3.12
-- [uv](https://github.com/astral-sh/uv) (recommended) or pip
-
-### Install uv (optional)
-
-```bash
-# macOS / Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Windows (PowerShell)
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-### Install LLM4AD
-
-```bash
-# Clone and install in development mode
-git clone https://github.com/Optima-CityU/LLM4AD_Next.git
-cd LLM4AD_Next
-uv sync
-```
-
-### Optional Dependencies
-
-Install specific groups based on your needs:
-
-| Group       | Description                             |
-|-------------|-----------------------------------------|
-| `infra`     | Distributed computing (Ray, Prometheus) |
-| `providers` | LLM provider integrations               |
-| `eval`      | Evaluation and benchmarking tools       |
-| `dev`       | Development tools (testing, linting)    |
-| `docs`      | Documentation tools                     |
-| `all`       | All optional dependencies               |
-
-```bash
-# Install with specific extras
-uv sync --extra providers --extra infra
-```
-
-## Usage
-
-### Command Line Interface
-
-```bash
-# Show help
-llm4ad --help
-
-# List registered components
-llm4ad list
-
-# Interactive configuration consultant (builds a full application)
-llm4ad chat
-
-# Use a specific provider from global settings
-llm4ad chat --provider my_provider
-
-# Resume a saved session
-llm4ad chat --resume <session_id>
-
-# Run a pipeline
-llm4ad run config.yaml
-
-# Evolve-Block Advisor: analyze a selected block against an evolution goal
-llm4ad advise -g "minimize comparisons" -r ./solver --file algo.py --range 42:87
-llm4ad advise --config advise_config.yaml
-
-# Generate an advisor config template
-llm4ad advise-init -o advise_config.yaml
-
-# Evolve-Block Recommender: propose which block to evolve given a repo + goal
-llm4ad recommend -g "reduce TSP tour length" -r ./solver
-```
-
-### Global Settings
+## Global Settings
 
 Create `~/.llm4ad/settings.yaml` to configure shared providers across all projects:
 
@@ -228,97 +158,7 @@ providers:
 
 Task configs then only need the provider name — credentials and model are resolved from global settings automatically.
 
-### Interactive Chat (Task Builder)
-
-`llm4ad chat` is an interactive assistant that guides you through building a complete LLM4AD application. It runs a
-three-phase pipeline:
-
-1. **Needs Gathering** - Conversational interview to understand your problem
-2. **Building** - Generates evaluator, algorithm skeleton with `EVOLVE` markers, YAML config, and debug runner
-3. **Review** - Presents the generated code for confirmation or modification
-
-For existing projects, the chat can detect and reuse your evaluator, algorithm, config, and dataset — only generating
-what's missing.
-
-### Evolve-Block Advisor
-
-The advisor answers: **"Is THIS block worth evolving for THIS goal?"** It runs a single LLM call on a user-selected
-block and returns structured advice — feasibility, significance, concerns, suggestions, rationale.
-
-```bash
-# Analyze a specific block by file + line range
-llm4ad advise -g "minimize comparisons" -r ./solver --file algo.py --range 42:87
-
-# Repo with exactly one EVOLVE-marked block
-llm4ad advise -g "reduce tour length" -r ./solver
-
-# Raw snippet (no repo)
-llm4ad advise -g "..." --code "$(cat patch.py)"
-```
-
-Python API:
-
-```python
-from llm4ad.advisor import advise_block_sync
-
-advice = advise_block_sync(
-    goal="minimize comparisons on random inputs",
-    repo_path="./solver",
-    file_path="algo.py",
-    line_range=(42, 87),
-    api_key="sk-...",
-    model="gpt-4o",
-)
-print(advice.feasibility, advice.significance)
-```
-
-### Evolve-Block Recommender
-
-When a user arrives with only a repo and a goal — no specific selection yet — the recommender **proposes** which block(
-s) to evolve. It returns three tiers:
-
-- **core**: the single most promising minimal block
-- **expanded**: 0-3 widenings of core (same file, include helpers)
-- **alternatives**: 0-3 independent blocks elsewhere worth evolving
-
-```bash
-# Scan a repo, print JSON to stdout
-llm4ad recommend -g "reduce TSP tour length" -r ./solver
-
-# Human-readable panels
-llm4ad recommend -g "improve policy reward" -r ./lander --pretty
-```
-
-Python API:
-
-```python
-from llm4ad.advisor import recommend_blocks_sync
-
-result = recommend_blocks_sync(
-    goal="reduce TSP tour length",
-    repo_path="./solver",
-    api_key="sk-...",
-    model="gpt-4o",
-)
-print(result.core.file_path, result.core.line_start, result.core.line_end)
-```
-
-### Python API
-
-```python
-import asyncio
-from llm4ad import LLM4AD
-
-
-async def main():
-    llm4ad = LLM4AD("config.yaml")
-    result = await llm4ad.run()
-    if result.best_individual:
-        print(f"Best score: {result.best_individual.score:.4f}")
-
-
-asyncio.run(main())
-```
+For CLI commands, the interactive chat workflow, the Evolve-Block Advisor / Recommender, and the Python API, see the [Documentation](docs/en/index.md).
 
 ## Documentation
 
