@@ -7,6 +7,8 @@ import type {
   IslandGAData,
 } from "@/components/Evolution/TaskDetail/island-ga-mock-data"
 import { EMPTY_DATA } from "@/components/Evolution/TaskDetail/island-ga-mock-data"
+import { buildDemoEvolutionData, isDemoTaskId } from "@/data/demoFixtures"
+import { useDemoState } from "@/hooks/useDemoMode"
 import { taskKeys } from "@/lib/task-queries"
 
 /* ── Raw generated entry from SSE / REST ── */
@@ -132,6 +134,8 @@ export function useEvolutionNodes(
   isLoading: boolean
   feedGenerated: (entry: Record<string, unknown>) => void
 } {
+  const isDemo = isDemoTaskId(taskId)
+  const demoState = useDemoState()
   const isTerminal = taskStatus === "completed" || taskStatus === "failed"
   const isActive = taskStatus === "pending" || taskStatus === "running"
   // Only fetch `generated` history for terminal tasks. Uninitialized tasks show
@@ -148,7 +152,7 @@ export function useEvolutionNodes(
         logType: "generated",
         limit: 0,
       }),
-    enabled: enabled && !!taskId && shouldRestFetch,
+    enabled: enabled && !!taskId && !isDemo && shouldRestFetch,
   })
 
   const restData = useMemo<IslandGAData>(() => {
@@ -216,6 +220,22 @@ export function useEvolutionNodes(
   )
 
   if (!taskId) return { data: EMPTY_DATA, isLoading: false, feedGenerated }
+  if (isDemo) {
+    // Demo phases gate visible generations: running streams nodes one
+    // generation at a time (via setDemoGeneration), completed shows the full
+    // graph, earlier phases hide the canvas.
+    const visibleGen =
+      demoState.phase === "completed"
+        ? 12
+        : demoState.phase === "running"
+          ? demoState.generation
+          : -1
+    return {
+      data: visibleGen >= 0 ? buildDemoEvolutionData(visibleGen) : EMPTY_DATA,
+      isLoading: false,
+      feedGenerated,
+    }
+  }
   if (shouldRestFetch)
     return {
       data: restData,

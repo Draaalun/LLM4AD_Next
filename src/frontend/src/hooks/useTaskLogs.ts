@@ -4,6 +4,8 @@ import { useTranslation } from "react-i18next"
 import type { TaskStatus } from "@/client"
 import { Llm4AdTasksService } from "@/client"
 import type { LogLevel } from "@/components/Evolution/TaskDetail/log-renderers"
+import { DEMO_LOG_LINES, isDemoTaskId } from "@/data/demoFixtures"
+import { useDemoState } from "@/hooks/useDemoMode"
 import { taskKeys } from "@/lib/task-queries"
 import { authFetch } from "@/utils/auth"
 
@@ -50,7 +52,12 @@ export function useTaskLogs(
 ): UseTaskLogsReturn {
   const queryClient = useQueryClient()
   const { t } = useTranslation()
-  const isActive = taskStatus === "pending" || taskStatus === "running"
+  const isDemo = isDemoTaskId(taskId)
+  const demoState = useDemoState()
+  // Demo tasks never go through SSE; treat them as inactive so the streaming
+  // effect below short-circuits.
+  const isActive =
+    !isDemo && (taskStatus === "pending" || taskStatus === "running")
 
   const onResetTaskRef = useRef(options?.onResetTask)
   onResetTaskRef.current = options?.onResetTask
@@ -269,6 +276,31 @@ export function useTaskLogs(
   }, [taskId, isActive, enabled, queryClient, t])
 
   // ---------- Return ----------
+  if (isDemo) {
+    // Walk through the canned log lines as the demo phase advances so the
+    // logs panel feels alive while the user clicks through the tour.
+    const phase = demoState.phase
+    const visibleCount =
+      phase === "completed"
+        ? DEMO_LOG_LINES.length
+        : phase === "running"
+          ? Math.min(DEMO_LOG_LINES.length, 5)
+          : phase === "building"
+            ? 2
+            : 0
+    const entries: LogEntry[] = DEMO_LOG_LINES.slice(0, visibleCount).map(
+      (line, idx) => ({
+        _kind: "log",
+        type: "log",
+        level: "info",
+        message: line,
+        timestamp: new Date(
+          Date.now() - (visibleCount - idx) * 1000,
+        ).toISOString(),
+      }),
+    )
+    return { entries, isLoading: false, error: null }
+  }
   if (isActive) {
     return {
       entries: streamEntries,

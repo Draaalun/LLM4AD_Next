@@ -24,6 +24,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import { DEMO_TASK, isDemoTaskId } from "@/data/demoFixtures"
 import useCustomToast from "@/hooks/useCustomToast"
 import { useEvolution } from "@/hooks/useEvolution"
 import { INPUT_LIMITS } from "@/lib/inputLimits"
@@ -213,7 +214,23 @@ export default function TaskVersionTree() {
 
   const treeQuery = useQuery({
     queryKey: taskKeys.tree(rootId),
-    queryFn: () => Llm4AdTasksService.getTaskTree({ taskId: rootId }),
+    queryFn: (): Promise<TaskTreeResponse> => {
+      if (isDemoTaskId(rootId)) {
+        return Promise.resolve({
+          root: {
+            id: DEMO_TASK.id,
+            name: DEMO_TASK.name,
+            description: DEMO_TASK.description,
+            status: DEMO_TASK.status,
+            created_time: DEMO_TASK.created_time,
+            updated_time: DEMO_TASK.updated_time,
+            project_id: DEMO_TASK.project_id,
+          },
+          children: [],
+        })
+      }
+      return Llm4AdTasksService.getTaskTree({ taskId: rootId })
+    },
     enabled: !!rootId,
   })
 

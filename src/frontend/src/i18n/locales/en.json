@@ -138,6 +138,8 @@
     "overview": "Overview",
     "logout": "Logout",
     "systemManagement": "System Management",
+    "replayTour": "Replay guided tour",
+    "replayTourReset": "All walkthroughs reset — they'll show up again as you visit each page",
     "userManual": "User Manual",
     "liveCode": "WeChat Group QR"
   },
@@ -1180,6 +1182,8 @@
     "next": "Next",
     "finish": "Done",
     "projects": {
+      "demoTitle": "Try the example project first",
+      "demoContent": "Click this read-only example to walk through a full algorithm-design run in seconds. No LLM keys needed.",
       "createProjectTitle": "Create your first project",
       "createProjectContent": "Click the \"New Project\" button to create a project. Projects help you organize and manage your algorithm design tasks.",
       "configProviderTitle": "Configure global LLM providers",
@@ -1211,6 +1215,83 @@
       "actionsTitle": "Task actions",
       "actionsContent": "View task status and the version tree here. You can View params, Adjust params (copies a new version), and Run / Stop / Re-run the task."
     }
+  },
+  "demo": {
+    "badge": "DEMO",
+    "projectName": "✨ Example · TSP Heuristic",
+    "projectDescription": "Read-only example. Walk through it to see how LLM4AD designs an algorithm end-to-end.",
+    "readOnly": "Read-only · No LLM calls",
+    "startTour": "Start guided tour",
+    "banner": "Demo",
+    "exitTitle": "Exit demo"
+  },
+  "demoTour": {
+    "create": {
+      "title": "Step 1 · Create a task",
+      "content": "Click \"New Task\" to follow the full guided experience."
+    },
+    "createSubmit": {
+      "title": "Step 1b · Pick a build mode",
+      "content": "LLM4AD_Next supports a classic Manual mode and the convenient AI build mode. This demo walks through the AI path. Type a task name and click \"Create\" to open a session with the agent."
+    },
+    "taskRow": {
+      "title": "Step 2 · Your task appears in the sidebar",
+      "content": "The task you just created shows up in the left task list. In real projects you'll see every task here — click any row to switch between them."
+    },
+    "send": {
+      "title": "Step 3 · Chat with the AI",
+      "content": "The agent gathers your design requirements through a back-and-forth conversation. We've pre-filled the first turn. Click \"Send\" to start; after a few turns the AI will ask whether to begin building, and sending \"Start build\" kicks the build off."
+    },
+    "building": {
+      "title": "Step 4 · Wait while the build runs",
+      "content": "The left panel is the build pipeline: the progress bar fills as the agent moves through Gathering → Build → Review. Generated files appear in the file list below."
+    },
+    "run": {
+      "title": "Step 5 · Submit and start the auto-design loop",
+      "content": "Build is done. Click \"Submit & Run\" at the bottom of the left panel to kick off the evolution loop — candidate algorithms appear generation by generation."
+    },
+    "canvas": {
+      "title": "Step 6 · Watch the design process unfold",
+      "content": "While the loop runs you can inspect the evolution graph and ask the agent to analyse it. The tree grows as it goes — every node is one algorithm the system designed."
+    },
+    "ide": {
+      "title": "Step 7 · Read the final algorithm",
+      "content": "Click the IDE tab to see the actual code LLM4AD_Next evolved — in a real run this is the artifact you'd take with you and use."
+    },
+    "ideCode": {
+      "title": "Step 8 · Skim the generated code",
+      "content": "This is the algorithm LLM4AD_Next evolved — a greedy nearest-neighbor with 2-opt refinement TSP heuristic. In a real run you can copy it straight into your project, or keep iterating with the AI. Click \"Got it\" when you're ready to wrap up."
+    },
+    "exit": {
+      "title": "You're ready",
+      "content": "Head back to the project list, configure an LLM provider, and create your first real project. The walkthrough is always one click away from your user menu."
+    },
+    "exitDemo": "Exit demo",
+    "skipAhead": "Skip ahead",
+    "gotIt": "Got it",
+    "back": "Back"
+  },
+  "demoBuild": {
+    "chatTitle": "AI Build · Chat",
+    "previewTitle": "Build progress · Files",
+    "filesLabel": "Generated files",
+    "composerHint": "Click Send to let the AI build this for you...",
+    "composerLocked": "Building — chat is paused",
+    "send": "Send",
+    "run": "Run",
+    "progressIdle": "Awaiting your request",
+    "progressBuilding": "Building...",
+    "progressDone": "Build complete",
+    "readyHint": "Ready to run the evolution",
+    "runHint": "Run unlocks once the build is complete",
+    "noFilesYet": "Generated files will appear here once the AI finishes building.",
+    "buildingMessage": "Generating config.yaml, evaluator.py, task.py...",
+    "buildDoneMessage": "Build complete — three files are ready. Review them on the left, then click Submit & Run to kick off the evolution."
+  },
+  "guide": {
+    "replayTour": "Replay the guided tour",
+    "tourReplayReset": "All walkthroughs reset — they'll show up again as you visit each page",
+    "tourReplayStarted": "Walkthrough reset — taking you to the demo project."
   },
   "configForm": {
     "sections": {

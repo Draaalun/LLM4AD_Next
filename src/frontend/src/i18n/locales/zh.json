@@ -138,6 +138,8 @@
     "overview": "概览",
     "logout": "退出登录",
     "systemManagement": "系统管理",
+    "replayTour": "重新看引导",
+    "replayTourReset": "已重置所有引导 — 访问对应页面时会再次出现",
     "userManual": "使用手册",
     "liveCode": "微信群活码"
   },
@@ -1181,6 +1183,8 @@
     "next": "下一步",
     "finish": "完成",
     "projects": {
+      "demoTitle": "先试试示例项目",
+      "demoContent": "点击这个只读的示例项目，几秒钟跟着走完一次完整的算法设计流程。无需配置 LLM，立刻就能上手。",
       "createProjectTitle": "创建你的第一个项目",
       "createProjectContent": "点击「新建项目」按钮即可创建项目。项目用于组织和管理你的算法设计任务。",
       "configProviderTitle": "配置全局模型供应商",
@@ -1212,6 +1216,83 @@
       "actionsTitle": "任务操作区",
       "actionsContent": "在这里查看任务状态与版本树，可「查看参数」「调整参数」（会复制新版本），以及运行 / 停止 / 重新运行任务。"
     }
+  },
+  "demo": {
+    "badge": "示例",
+    "projectName": "✨ 示例项目 · TSP 启发式",
+    "projectDescription": "只读示例。点进来跟着走一遍，看看 LLM4AD 如何端到端设计算法。",
+    "readOnly": "只读 · 不调用任何 LLM",
+    "startTour": "开始体验",
+    "banner": "示例",
+    "exitTitle": "退出示例"
+  },
+  "demoTour": {
+    "create": {
+      "title": "第 1 步 · 新建任务",
+      "content": "点击「新建任务」开始跟随完整的体验流程。"
+    },
+    "createSubmit": {
+      "title": "第 1b 步 · 选择构建方式",
+      "content": "LLM4AD_Next支持传统的「手工构建」和便捷的「AI 构建」。Demo中我们以「AI 构建」为例。填写任务名后，然后点击「创建」开启与智能体的对话。"
+    },
+    "taskRow": {
+      "title": "第 2 步 · 任务出现在左侧列表",
+      "content": "你刚才创建的任务出现在左侧「演化任务列表」里。真实项目中你可以在这里看到所有任务，点击任意一行即可切换。"
+    },
+    "send": {
+      "title": "第 3 步 · 与 AI 对话",
+      "content": "通过多轮对话的方式，智能体将收集您的算法设计需求。在Demo中，我们替您打了第一句话。点击「发送」交流，AI 会问几轮需求然后问你是否开始构建；当你发送「开始构建」时，会自动进入构建阶段。"
+    },
+    "building": {
+      "title": "第 4 步 · 等待算法设计任务构建",
+      "content": "左侧面板就是构建过程：「配置进度」随阶段推进，下面「文件列表」会逐步出现 AI 生成的文件。"
+    },
+    "run": {
+      "title": "第 5 步 · 提交运行，开始自动算法设计",
+      "content": "构建完成。点击左侧底部的「提交运行」启动进化循环 —— 候选算法会一代代出现。"
+    },
+    "canvas": {
+      "title": "第 6 步 · 随时查看的算法设计过程",
+      "content": "算法设计过程中，查看算法的演化情况、让智能体分析演化过程。您可以看到算法树不断生长。每一个节点是一个被设计出来的算法。"
+    },
+    "ide": {
+      "title": "第 7 步 · 查看最终算法",
+      "content": "点击 IDE 标签查看 LLM4AD_Next 进化出来的真实代码 —— 在真实运行中，这就是您能拿走用的产物。"
+    },
+    "ideCode": {
+      "title": "第 8 步 · 读一读生成的代码",
+      "content": "这就是 LLM4AD_Next 进化出来的真实算法 —— 一个贪心最近邻 + 2-opt 局部搜索的 TSP 启发式。在真实运行中你可以直接复制带走，也可以继续和 AI 迭代改进。读完后点「了解」结束体验。"
+    },
+    "exit": {
+      "title": "你已经准备好了",
+      "content": "回到项目列表，配好 LLM 供应商，就可以创建你自己的项目了。这个引导随时能从用户菜单里再次打开。"
+    },
+    "exitDemo": "退出示例",
+    "skipAhead": "跳到下一步",
+    "gotIt": "了解",
+    "back": "上一步"
+  },
+  "demoBuild": {
+    "chatTitle": "AI 构建 · 对话",
+    "previewTitle": "构建进度 · 文件",
+    "filesLabel": "生成的文件",
+    "composerHint": "点击 Send 让 AI 帮你构建...",
+    "composerLocked": "构建中 — 对话暂停",
+    "send": "发送",
+    "run": "运行",
+    "progressIdle": "等待你的请求",
+    "progressBuilding": "构建中...",
+    "progressDone": "构建完成",
+    "readyHint": "已就绪，可以启动进化",
+    "runHint": "构建完成后即可点击 Run",
+    "noFilesYet": "AI 完成构建后，生成的文件会在这里出现",
+    "buildingMessage": "正在生成 config.yaml、evaluator.py、task.py……",
+    "buildDoneMessage": "构建完成，三个文件已生成。请在左侧审阅后点击「提交运行」启动进化。"
+  },
+  "guide": {
+    "replayTour": "重新看引导",
+    "tourReplayReset": "已重置所有引导 — 访问对应页面时会再次出现",
+    "tourReplayStarted": "已重置引导，正在带你回到示例项目"
   },
   "configForm": {
     "sections": {

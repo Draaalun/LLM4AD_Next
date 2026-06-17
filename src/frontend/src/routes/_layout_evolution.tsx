@@ -38,6 +38,7 @@ import ShortcutsHelp from "@/components/Evolution/ShortcutsHelp"
 import TechBackground from "@/components/Evolution/TechBackground"
 import TechCorner from "@/components/Evolution/TechCorner"
 import TechPanel from "@/components/Evolution/TechPanel"
+import DemoEvolutionTour from "@/components/Onboarding/DemoEvolutionTour"
 import { getProjectIcon } from "@/components/Projects/ProjectIcons"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -53,7 +54,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  buildDemoTask,
+  DEMO_PROJECT,
+  DEMO_TASK,
+  isDemoProjectId,
+  isDemoTaskId,
+} from "@/data/demoFixtures"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import {
+  enterDemo,
+  exitDemo,
+  setDemoGeneration,
+  useDemoState,
+} from "@/hooks/useDemoMode"
 import type { SelectedNodeInfo } from "@/hooks/useEvolution"
 import { EvolutionContext } from "@/hooks/useEvolution"
 import { useEvolutionNodes } from "@/hooks/useEvolutionNodes"
@@ -353,10 +367,67 @@ function Layout() {
   const { t } = useTranslation()
   const { projectId } = Route.useSearch()
   const queryClient = useQueryClient()
+  const isDemo = isDemoProjectId(projectId)
+  const demoState = useDemoState()
   const [selectedTask, setSelectedTaskRaw] = useState<TaskResponse | null>(null)
   const [selectedChildTaskId, setSelectedChildTaskId] = useState<string | null>(
     null,
   )
+
+  // Sync demo session: entering /evolution with the demo project id activates
+  // demo mode (covers the case where the user visits the URL directly).
+  // Switching to any non-demo project clears it. Cleanup on unmount also
+  // exits — but only if the same effect run started demo mode, so navigating
+  // demo → real → demo doesn't trigger an extra exit on the second cleanup.
+  useEffect(() => {
+    if (!isDemo) {
+      exitDemo()
+      // Clear any lingering demo task selection so a real project never
+      // briefly renders against the simulated DEMO_TASK while its first list
+      // query is in flight.
+      setSelectedTaskRaw(null)
+      setSelectedChildTaskId(null)
+      return
+    }
+    enterDemo("uninitialized")
+    return () => exitDemo()
+  }, [isDemo])
+
+  // Once the simulated task is created (phase ≠ uninitialized) auto-select it
+  // so the right panes mount; before that we want the user to land on the
+  // "no tasks yet — click New Task" empty state.
+  useEffect(() => {
+    if (!isDemo) return
+    if (demoState.phase === "uninitialized") {
+      setSelectedTaskRaw(null)
+      return
+    }
+    setSelectedTaskRaw(buildDemoTask(demoState.phase))
+    // Invalidate the cached demo task detail so views observing the query
+    // re-render with the new phase-derived status.
+    queryClient.invalidateQueries({ queryKey: taskKeys.detail(DEMO_TASK.id) })
+    queryClient.invalidateQueries({ queryKey: ["getTask", DEMO_TASK.id] })
+  }, [isDemo, demoState.phase, queryClient])
+
+  // Running-phase animation: stream the demo's pre-baked generations one at a
+  // time so the user sees the canvas come alive instead of jumping straight to
+  // the final state. Stops at the last generation; the user advances to the
+  // `completed` phase by clicking "Got it" on the tour tooltip.
+  useEffect(() => {
+    if (!isDemo || demoState.phase !== "running") return
+    const TOTAL_GENS = 12
+    const STEP_MS = 220
+    let gen = 0
+    const id = window.setInterval(() => {
+      gen += 1
+      if (gen > TOTAL_GENS) {
+        window.clearInterval(id)
+        return
+      }
+      setDemoGeneration(gen)
+    }, STEP_MS)
+    return () => window.clearInterval(id)
+  }, [isDemo, demoState.phase])
   // Wrap setSelectedTask: when switching to a *different* root task, clear any
   // explicit child override in the same render batch. This prevents the
   // detail query from firing twice (once for the stale root id, once for the
@@ -375,6 +446,11 @@ function Layout() {
     "evo:leftCollapsed",
     false,
   )
+  // Always show the left task panel in demo mode regardless of the user's
+  // persisted preference — the walkthrough relies on the side-by-side layout.
+  // The persisted preference is preserved for when the user returns to a real
+  // project.
+  const effectiveLeftCollapsed = isDemo ? false : leftCollapsed
   // Default collapse right panel on narrow screens (≤1280px) to give the
   // center workspace breathing room. Persists user override.
   const [rightCollapsed, setRightCollapsed] = usePersistentState(
@@ -616,7 +692,10 @@ function Layout() {
   // Fetch effective task to get its status for hooks
   const { data: effectiveTask } = useQuery({
     queryKey: taskKeys.detail(effectiveTaskId!),
-    queryFn: () => Llm4AdTasksService.getTask({ taskId: effectiveTaskId! }),
+    queryFn: () =>
+      isDemoTaskId(effectiveTaskId)
+        ? Promise.resolve(buildDemoTask(demoState.phase))
+        : Llm4AdTasksService.getTask({ taskId: effectiveTaskId! }),
     enabled: !!effectiveTaskId,
   })
 
@@ -673,7 +752,10 @@ function Layout() {
     isLoading: projectLoading,
   } = useQuery({
     queryKey: ["getProject", projectId],
-    queryFn: () => Llm4AdProjectsService.getProject({ projectId: projectId! }),
+    queryFn: () =>
+      isDemoProjectId(projectId)
+        ? Promise.resolve(DEMO_PROJECT)
+        : Llm4AdProjectsService.getProject({ projectId: projectId! }),
     enabled: !!projectId,
   })
 
@@ -761,7 +843,7 @@ function Layout() {
         setInsightSelectedBestNodeId,
         focusNodeRequest,
         requestFocusNode,
-        leftCollapsed,
+        leftCollapsed: effectiveLeftCollapsed,
         setLeftCollapsed,
         resetTaskData: handleResetTask,
         updateTaskStatus: handleStatusChange,
@@ -806,7 +888,7 @@ function Layout() {
               </span>
             </Link>
             {/* Current task selector: only when left panel collapsed (avoid duplication) */}
-            {leftCollapsed && projectId && (
+            {effectiveLeftCollapsed && projectId && (
               <CollapsedTaskSelector
                 projectId={projectId}
                 projectValid={projectValid}
@@ -859,7 +941,9 @@ function Layout() {
                       sideOffset={8}
                       className="max-w-[340px] space-y-1 px-3 py-2"
                     >
-                      <p className="font-semibold leading-snug">{projectName}</p>
+                      <p className="font-semibold leading-snug">
+                        {projectName}
+                      </p>
                       <p className="text-background/80 leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]">
                         {description}
                       </p>
@@ -871,6 +955,19 @@ function Layout() {
 
           {/* Right: actions */}
           <div className="flex items-center justify-end gap-3 text-xs text-muted-foreground min-w-0">
+            {isDemo && (
+              <Link
+                to="/projects"
+                data-tour="demo-exit"
+                className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
+                  border border-primary/40 bg-primary/10 text-primary text-[11px] font-medium
+                  uppercase tracking-wider hover:bg-primary/20 transition-colors"
+                title={t("demo.exitTitle", { defaultValue: "Exit demo" })}
+              >
+                <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                {t("demo.banner", { defaultValue: "Demo" })}
+              </Link>
+            )}
             <ConnectionStatus />
             <ShortcutsHelp />
             <div className="hidden sm:flex items-center gap-3">
@@ -888,34 +985,37 @@ function Layout() {
           <aside
             className="shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out bg-background/95"
             style={{
-              width: leftCollapsed ? "0px" : `${LEFT_PANEL_WIDTH}px`,
+              width: effectiveLeftCollapsed ? "0px" : `${LEFT_PANEL_WIDTH}px`,
             }}
-            {...(leftCollapsed ? { inert: true } : {})}
+            {...(effectiveLeftCollapsed ? { inert: true } : {})}
           >
             <TechPanel className="h-full flex flex-col w-64">
               <EvolutionTaskList />
             </TechPanel>
           </aside>
 
-          {/* Left collapse toggle */}
-          <button
-            type="button"
-            onClick={() => setLeftCollapsed(!leftCollapsed)}
-            className="group relative z-20 shrink-0 flex items-center justify-center w-6
-              hover:bg-primary/10 transition-colors text-muted-foreground hover:text-primary
-              border-l border-r border-border/40 hover:border-primary/30"
-            title={
-              leftCollapsed
-                ? t("evolution.expandTaskList")
-                : t("evolution.collapseTaskList")
-            }
-          >
-            {leftCollapsed ? (
-              <ChevronRight className="size-4" />
+          {/* Left collapse toggle — hidden in demo mode so the layout stays
+              fixed at side-by-side for the walkthrough. */}
+          {!isDemo && (
+            <button
+              type="button"
+              onClick={() => setLeftCollapsed(!leftCollapsed)}
+              className="group relative z-20 shrink-0 flex items-center justify-center w-6
+                hover:bg-primary/10 transition-colors text-muted-foreground hover:text-primary
+                border-l border-r border-border/40 hover:border-primary/30"
+              title={
+                leftCollapsed
+                  ? t("evolution.expandTaskList")
+                  : t("evolution.collapseTaskList")
+              }
+            >
+              {leftCollapsed ? (
+                <ChevronRight className="size-4" />
             ) : (
               <ChevronLeft className="size-4" />
             )}
           </button>
+          )}
 
           {/* Center - Main Content */}
           <main className="flex-1 min-w-0 relative overflow-hidden flex flex-col">
@@ -985,6 +1085,9 @@ function Layout() {
 
         {/* Floating AI Chat */}
         <AIChatFloating />
+
+        {/* Demo walkthrough — only renders in demo mode */}
+        {isDemo && <DemoEvolutionTour />}
       </div>
     </EvolutionContext.Provider>
   )
