@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from llm4ad.coder.base import BaseCoder
-from llm4ad.config.schema import AppConfig
+from llm4ad.config.schema import AppConfig, CustomEvaluatorConfig
 from llm4ad.evaluator import BaseEvaluator, EvaluationDispatcher
 from llm4ad.infra.provider import BaseProvider
 from llm4ad.infra.repo_analyzer.base import AnalyzedRepository, BaseRepositoryAnalyzer
@@ -236,11 +236,24 @@ class LLM4AD:
         # Initialize evaluator
         evaluator_config = self.config.evaluator
 
+        # Resolve evaluator provider for custom evaluators
+        eval_provider_config = None
+        if isinstance(evaluator_config, CustomEvaluatorConfig):
+            eval_provider_name = evaluator_config.provider
+            if eval_provider_name not in self._providers:
+                raise ValueError(
+                    f"Evaluator provider '{eval_provider_name}' not found in providers configuration"
+                )
+            eval_provider_config = next(
+                p for p in self.config.providers if p.name == eval_provider_name
+            )
+
         # Initilize dispatcher
         self._dispatcher = EvaluationDispatcher(
             config=evaluator_config,
             behavior_storage=self.config.multimodal.behavior_storage,
             config_dir=self._config_dir,
+            provider_config=eval_provider_config,
         )
 
         # Initialize version control if enabled

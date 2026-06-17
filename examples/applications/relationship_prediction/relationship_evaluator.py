@@ -91,12 +91,12 @@ class RelationshipOutcomeEvaluator(LLMJudgeEvaluator):
             "- **40-54分：** 行为描述模糊，缺少具体场景。\n"
             "- **40分以下：** 全是抽象描述，没有画面感。\n\n---\n\n"
             "## 输出格式\n\n返回纯JSON，不要其他内容：\n"
-            "{{\n"
+            '{\n'
             '"outcome_plausibility": N,\n'
             '"alternative_reasoning": N,\n'
             '"trait_specificity": N,\n'
             '"causal_chain": N,\n'
             '"behavioral_concreteness": N,\n'
             '"reasoning": "2-3句评价，指出预测在结局选择上最强和最弱的地方"\n'
-            "}}"
+            '}'
         )

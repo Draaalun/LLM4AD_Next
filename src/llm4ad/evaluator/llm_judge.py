@@ -66,26 +66,38 @@ class LLMJudgeEvaluator(BaseEvaluator):
     judge_temperature: float = 0.2
     judge_max_tokens: int = 4096
 
-    def __init__(self, config: Any = None):
-        """Initialize with optional config for LLM API credentials.
+    def __init__(self, config: Any = None, provider_config: Any = None):
+        """Initialize with optional config and provider for LLM API credentials.
 
         Args:
-            config: Evaluator config object. If it has an ``api_config``
-                attribute (dict with base_url, api_key, model), those
-                values are used for the LLM judge client.
+            config: Evaluator config object.
+            provider_config: Resolved provider configuration (ProviderConfig)
+                with base_url, api_key, and model fields.
         """
         super().__init__()
-        api_config: dict[str, str] = {}
-        if config is not None:
+        base_url = ""
+        api_key = ""
+        model = ""
+
+        if provider_config is not None:
+            base_url = getattr(provider_config, "base_url", "") or ""
+            api_key = getattr(provider_config, "api_key", "") or ""
+            model = getattr(provider_config, "model", "") or ""
+
+        if not (base_url and api_key) and config is not None:
+            api_config: dict[str, str] = {}
             raw = getattr(config, "api_config", None)
             if isinstance(raw, dict):
                 api_config = raw
             elif hasattr(config, "model_extra"):
                 api_config = config.model_extra.get("api_config", {})
+            base_url = base_url or api_config.get("base_url", "")
+            api_key = api_key or api_config.get("api_key", "")
+            model = model or api_config.get("model", "")
 
-        self._base_url = api_config.get("base_url", "")
-        self._api_key = api_config.get("api_key", "")
-        self._model_name = api_config.get("model", "")
+        self._base_url = base_url
+        self._api_key = api_key
+        self._model_name = model
 
         if self._base_url and self._api_key:
             self._client = AsyncOpenAI(
@@ -185,7 +197,20 @@ class LLMJudgeEvaluator(BaseEvaluator):
         if json_start == -1 or json_end == 0:
             raise ValueError("No JSON object found in judge response")
 
-        data = json.loads(response[json_start:json_end])
+        raw = response[json_start:json_end]
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            import re as _re
+
+            cleaned = raw
+            cleaned = cleaned.replace("{{", "{").replace("}}", "}")
+            cleaned = _re.sub(r"//[^\n]*", "", cleaned)
+            cleaned = _re.sub(r",\s*}", "}", cleaned)
+            cleaned = _re.sub(r",\s*]", "]", cleaned)
+            cleaned = _re.sub(r'(?<=[{,])\s*(\w+)\s*:', r' "\1":', cleaned)
+            cleaned = cleaned.replace("'", '"')
+            data = json.loads(cleaned)
         metric_names = [m.name for m in self.metrics]
         missing = [k for k in metric_names if k not in data]
         if missing:

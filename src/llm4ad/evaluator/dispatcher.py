@@ -47,6 +47,7 @@ class EvaluationDispatcher:
         config: EvaluatorConfig,
         behavior_storage: str = "rendered",
         config_dir: str | None = None,
+        provider_config: Any = None,
     ):
         """Initialize the dispatcher with an evaluator instance.
 
@@ -61,12 +62,16 @@ class EvaluationDispatcher:
                 evaluator module specs and dataset configs are resolved
                 against this directory instead of the current working
                 directory.
+            provider_config: Resolved provider configuration for custom
+                evaluators that need LLM access. Passed through to the
+                evaluator constructor.
         """
         self.config: EvaluatorConfig = config
         self._parallel = config.parallel
         self._batch_size = config.batch_size
         self._behavior_storage = behavior_storage
         self._config_dir = config_dir
+        self._provider_config = provider_config
 
         # Concurrency limit for parallel evaluation subprocesses
         effective_workers = config.batch_size or os.cpu_count() or 4
@@ -158,8 +163,8 @@ class EvaluationDispatcher:
 
         Built-in evaluators always receive the config.  For custom
         evaluators, we inspect the constructor: if it accepts a
-        parameter beyond ``self``, the config is passed so the
-        evaluator can access extra YAML fields (e.g. ``api_config``).
+        parameter beyond ``self``, the config and provider_config
+        are passed so the evaluator can access LLM credentials.
         Legacy evaluators with ``def __init__(self):`` keep working.
 
         Returns:
@@ -169,9 +174,12 @@ class EvaluationDispatcher:
             import inspect
 
             sig = inspect.signature(self._eval_cls.__init__)
-            # More than just 'self' means the constructor accepts config
-            if len(sig.parameters) > 1:
-                return self._eval_cls(self.config)
+            params = list(sig.parameters.keys())
+            if len(params) > 1:
+                kwargs: dict[str, Any] = {"config": self.config}
+                if "provider_config" in params and self._provider_config is not None:
+                    kwargs["provider_config"] = self._provider_config
+                return self._eval_cls(**kwargs)
             return self._eval_cls()
         return self._eval_cls(self.config)
 
