@@ -214,7 +214,7 @@ function FloatingChatImpl({
   taskName: string
   readOnly: boolean
 }) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const { activeTab } = useEvolution()
   const queryClient = useQueryClient()
   const stream = useChatTuneStream()
@@ -436,6 +436,7 @@ function FloatingChatImpl({
             provider_id: providerId || undefined,
             model_name: modelName || undefined,
             target_stage: targetStage,
+            language: i18n.language?.startsWith("zh") ? "zh" : "en",
           },
         })
 
@@ -498,6 +499,7 @@ function FloatingChatImpl({
       targetStage,
       connectStream,
       refetchSession,
+      i18n.language,
       t,
     ],
   )

@@ -23,6 +23,7 @@ from llm4ad.consultant.context_limiter import (
 from llm4ad.consultant.prompts import (
     _build_language_instruction,
     build_extraction_prompt,
+    build_language_reminder,
     build_needs_gathering_prompt,
 )
 from llm4ad.infra.provider.base import (
@@ -392,6 +393,35 @@ async def process_needs_gathering_turn(
     )
 
 
+def _inject_language_reminder(
+    chat_messages: list[ChatMessage], language: str | None
+) -> None:
+    """Fold a language reminder into the most recent user message, in place.
+
+    The language requirement lives in the system prompt, but models sometimes
+    mirror the language the user just wrote in. Appending the reminder to the
+    latest user turn gives the directive maximum recency right before
+    generation. ``chat_messages`` is the LLM-only list (separate from the
+    persisted ``phase_messages``), so this does not pollute conversation history,
+    and editing the existing user message keeps role alternation valid.
+
+    Args:
+        chat_messages: Messages about to be sent to the provider.
+        language: Target language code, or None to skip.
+    """
+    reminder = build_language_reminder(language)
+    if not reminder:
+        return
+    for i in range(len(chat_messages) - 1, -1, -1):
+        msg = chat_messages[i]
+        if msg.role == "user" and isinstance(msg.content, str):
+            chat_messages[i] = ChatMessage(
+                role="user",
+                content=msg.content + reminder,
+            )
+            return
+
+
 async def process_needs_gathering_turn_stream(
     ctx: NeedsGatheringContext,
     provider: BaseProvider,
@@ -439,6 +469,7 @@ async def process_needs_gathering_turn_stream(
     chat_messages = [ChatMessage(role="system", content=system_prompt)]
     for msg in messages_for_llm:
         chat_messages.append(ChatMessage(role=msg["role"], content=msg["content"]))
+    _inject_language_reminder(chat_messages, ctx.language)
 
     full_text = ""
     for _ in range(max_tool_rounds):
@@ -756,6 +787,7 @@ async def process_review_turn(
     )]
     for msg in messages_for_llm:
         chat_messages.append(ChatMessage(role=msg["role"], content=msg["content"]))
+    _inject_language_reminder(chat_messages, ctx.language)
 
     stream = await provider.chat_stream(chat_messages)
     full_text = ""
@@ -831,6 +863,7 @@ async def process_review_turn_stream(
     )]
     for msg in messages_for_llm:
         chat_messages.append(ChatMessage(role=msg["role"], content=msg["content"]))
+    _inject_language_reminder(chat_messages, ctx.language)
 
     stream = await provider.chat_stream(chat_messages)
     full_text = ""

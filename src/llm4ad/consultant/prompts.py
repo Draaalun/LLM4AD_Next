@@ -60,8 +60,9 @@ If the user chooses to generate a new one, proceed normally without mentioning \
 the existing evaluator again in this session.
 
 ## Language Rule
-Detect the language of the user's FIRST message and use that language \
-consistently for ALL your responses throughout the entire conversation. \
+Unless a "Language Requirement" section appears later in this prompt (which always \
+takes absolute precedence), detect the language of the user's FIRST message and use \
+that language consistently for ALL your responses throughout the entire conversation. \
 If the user writes in Chinese, reply in Chinese. If in English, reply in English. \
 Do NOT switch languages mid-conversation.
 
@@ -246,8 +247,9 @@ output [CONFIRMED] on its own line.
 
 ## Conversation Rules
 - Be concise; avoid lengthy explanations unless asked
-- Match the user's language: if they write in Chinese, reply in Chinese; \
-if in English, reply in English. Stay consistent throughout.
+- Unless a "Language Requirement" section later in this prompt specifies otherwise \
+(which always takes precedence), match the user's language: if they write in Chinese, \
+reply in Chinese; if in English, reply in English. Stay consistent throughout.
 - When explaining code, focus on the evaluation logic, not boilerplate
 """
 
@@ -258,9 +260,10 @@ Explain the following evaluator code to the user. Focus on:
 3. What input/output format is expected
 4. Any important implementation details
 
-Keep the explanation concise (under 10 sentences). Match the language used \
-in the original problem description below — if it is in Chinese, explain in \
-Chinese; if in English, explain in English.
+Keep the explanation concise (under 10 sentences). Unless a "Language Requirement" \
+section appears later in this prompt (which always takes precedence), match the \
+language used in the original problem description below — if it is in Chinese, \
+explain in Chinese; if in English, explain in English.
 
 ## Evaluator Code:
 ```python
@@ -282,10 +285,15 @@ _LANGUAGE_NAMES = {
 
 _LANGUAGE_INSTRUCTION_TEMPLATE = """\
 
-## Language Requirement
-You MUST respond in {language_name}. All your responses, questions, choices, \
-and explanations must be in {language_name}. Do NOT switch to another language \
-under any circumstances."""
+## Language Requirement (HIGHEST PRIORITY — overrides every other language rule above)
+You MUST write EVERY response in {language_name}, and ONLY {language_name}. \
+This applies to all questions, options, explanations, and any other text you produce. \
+This requirement OVERRIDES any earlier instruction about "matching the user's \
+language", "detecting the conversation language", or "not switching languages \
+mid-conversation". Even if earlier messages in this conversation — including the \
+user's own messages and your previous replies — are in a different language, you \
+MUST still respond in {language_name}: switch to {language_name} now and never \
+switch away from it."""
 
 
 def _build_language_instruction(language: str | None) -> str:
@@ -301,6 +309,34 @@ def _build_language_instruction(language: str | None) -> str:
         return ""
     language_name = _LANGUAGE_NAMES.get(language, language)
     return _LANGUAGE_INSTRUCTION_TEMPLATE.format(language_name=language_name)
+
+
+_LANGUAGE_REMINDER_TEMPLATE = (
+    "\n\n[Language reminder: regardless of the language used in the message "
+    "above, you MUST write your ENTIRE reply — including any questions, options, "
+    "and explanations — in {language_name}, and in no other language.]"
+)
+
+
+def build_language_reminder(language: str | None) -> str:
+    """Build a short language reminder to fold into the latest user turn.
+
+    The system prompt's language requirement is sometimes overridden by the
+    model mirroring the language the user just wrote in (especially for
+    substantive requests). Appending this reminder to the most recent user
+    message gives the directive maximum recency right before generation.
+
+    Args:
+        language: Language code ('zh', 'en', etc.) or None.
+
+    Returns:
+        Reminder string (leading with blank lines), or empty string if no
+        language is specified.
+    """
+    if not language:
+        return ""
+    language_name = _LANGUAGE_NAMES.get(language, language)
+    return _LANGUAGE_REMINDER_TEMPLATE.format(language_name=language_name)
 
 
 def build_needs_gathering_prompt(
