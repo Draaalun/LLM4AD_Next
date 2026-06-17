@@ -16,6 +16,7 @@ import { Llm4AdProjectsService } from "@/client"
 import { PageNumbers } from "@/components/Common/PageNumbers"
 import OnboardingTour from "@/components/Onboarding/OnboardingTour"
 import AddProject from "@/components/Projects/AddProject"
+import DemoProjectCard from "@/components/Projects/DemoProjectCard"
 import ProjectCard from "@/components/Projects/ProjectCard"
 import ProjectListItem from "@/components/Projects/ProjectListItem"
 import { Button } from "@/components/ui/button"
@@ -115,6 +116,17 @@ function ProjectsPage() {
         tourId="projects"
         enabled={!isLoading}
         steps={[
+          {
+            selector: '[data-tour="demo-project-card"]',
+            title: t("tour.projects.demoTitle", {
+              defaultValue: "Try the example project first",
+            }),
+            content: t("tour.projects.demoContent", {
+              defaultValue:
+                "Click this read-only example to walk through a full algorithm-design run in seconds. No LLM keys needed.",
+            }),
+            placement: "bottom",
+          },
           {
             selector: '[data-tour="new-project-btn"]',
             title: t("tour.projects.createProjectTitle"),
@@ -265,36 +277,44 @@ function ProjectsPage() {
 
         {/* Empty state */}
         {!isLoading && items.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <FolderOpen className="size-16 text-muted-foreground/40 mb-4" />
-            <h3 className="text-lg font-medium text-muted-foreground">
-              {search
-                ? t("projects.noSearchResults")
-                : t("projects.emptyTitle")}
-            </h3>
-            <p className="text-sm text-muted-foreground/70 mt-1 mb-6">
-              {search
-                ? t("projects.noSearchResultsDescription", { q: search })
-                : t("projects.emptyDescription")}
-            </p>
-            {search ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setSearchInput("")}
-              >
-                <X className="mr-2 size-4" />
-                {t("common.clear")}
-              </Button>
-            ) : (
-              <AddProject />
+          <div className="space-y-6">
+            {!search && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-5">
+                <DemoProjectCard />
+              </div>
             )}
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <FolderOpen className="size-16 text-muted-foreground/40 mb-4" />
+              <h3 className="text-lg font-medium text-muted-foreground">
+                {search
+                  ? t("projects.noSearchResults")
+                  : t("projects.emptyTitle")}
+              </h3>
+              <p className="text-sm text-muted-foreground/70 mt-1 mb-6">
+                {search
+                  ? t("projects.noSearchResultsDescription", { q: search })
+                  : t("projects.emptyDescription")}
+              </p>
+              {search ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSearchInput("")}
+                >
+                  <X className="mr-2 size-4" />
+                  {t("common.clear")}
+                </Button>
+              ) : (
+                <AddProject />
+              )}
+            </div>
           </div>
         )}
 
         {/* Card grid */}
         {!isLoading && items.length > 0 && viewMode === "card" && (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-5">
+            {page === 0 && !search && <DemoProjectCard />}
             {items.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}

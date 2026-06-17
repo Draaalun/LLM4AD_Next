@@ -16,7 +16,7 @@
     <img src="https://img.shields.io/badge/license-BSD--3--Clause-blue" alt="License">
   </a>
   <a href="https://github.com/Optima-CityU/LLM4AD_Next/actions/workflows/ci.yml">
-    <img src="https://img.shields.io/github/actions/workflow/status/Optima-CityU/LLM4AD_Next/ci" alt="CI">
+    <img src="https://img.shields.io/github/actions/workflow/status/Optima-CityU/LLM4AD_Next/ci.yml" alt="CI">
   </a>
 </p>
 

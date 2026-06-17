@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { useTranslation } from "react-i18next"
+import { getDemoState } from "@/hooks/useDemoMode"
 import { isTourDone, markAllToursDone, markTourDone } from "./tourStorage"
 
 export interface TourStep {
@@ -12,6 +13,11 @@ export interface TourStep {
   content: string
   /** Optional preferred placement; defaults to auto-detect. */
   placement?: "top" | "bottom" | "left" | "right"
+  /**
+   * Optional hook fired when this step becomes active. Used by demo mode to
+   * advance the simulated task phase as the user clicks through the tour.
+   */
+  onEnter?: () => void
 }
 
 interface OnboardingTourProps {
@@ -21,6 +27,12 @@ interface OnboardingTourProps {
   enabled?: boolean
   /** Delay (ms) before searching for the first target. */
   startDelay?: number
+  /**
+   * If true this tour is treated as the demo-mode walkthrough — it runs only
+   * while demo mode is active. All other tours are suppressed during demo mode
+   * to avoid stacking with the demo walkthrough.
+   */
+  isDemoTour?: boolean
 }
 
 interface Rect {
@@ -114,6 +126,7 @@ export default function OnboardingTour({
   steps,
   enabled = true,
   startDelay = 200,
+  isDemoTour = false,
 }: OnboardingTourProps) {
   const { t } = useTranslation()
   const [active, setActive] = useState(false)
@@ -132,11 +145,24 @@ export default function OnboardingTour({
   useEffect(() => {
     if (!enabled) return
     if (isTourDone(tourId)) return
+    // Demo-mode coordination: while demo is active, only the demo tour itself
+    // may run; while demo is inactive, demo-only tours stay dormant.
+    const demoActive = getDemoState().active
+    if (demoActive && !isDemoTour) return
+    if (!demoActive && isDemoTour) return
     const t = window.setTimeout(() => setActive(true), startDelay)
     return () => window.clearTimeout(t)
-  }, [enabled, tourId, startDelay])
+  }, [enabled, tourId, startDelay, isDemoTour])
 
   const currentStep = steps[stepIndex]
+
+  // Notify the active step that it has become current. Wrapped in an effect
+  // (not inline in render) so demo-mode side effects don't fire during render.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-fire on step change
+  useEffect(() => {
+    if (!active || !currentStep) return
+    currentStep.onEnter?.()
+  }, [active, stepIndex])
 
   // Locate the current target element and recompute geometry.
   useLayoutEffect(() => {
@@ -161,11 +187,7 @@ export default function OnboardingTour({
             const r2 = getRect(el)
             setRect(r2)
             setTooltipPos(
-              computeTooltipPosition(
-                r2,
-                currentStep.placement,
-                tooltipHeight,
-              ),
+              computeTooltipPosition(r2, currentStep.placement, tooltipHeight),
             )
           })
         } else {
@@ -215,7 +237,7 @@ export default function OnboardingTour({
     const ro = new ResizeObserver(measure)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [active, stepIndex, tooltipHeight])
+  }, [tooltipHeight])
 
   if (!active || !currentStep || !rect || !tooltipPos) return null
 

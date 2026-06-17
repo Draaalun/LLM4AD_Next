@@ -4,9 +4,12 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 
 import { Llm4AdTasksService } from "@/client"
+import { DEMO_TASK, isDemoTaskId } from "@/data/demoFixtures"
+import { useDemoState } from "@/hooks/useDemoMode"
 import { useEvolution } from "@/hooks/useEvolution"
 
 import ChatTuneView from "./ChatTuneView"
+import DemoBuildView from "./DemoBuildView"
 import InitializedView from "./InitializedView"
 import UninitializedView from "./UninitializedView"
 
@@ -24,15 +27,20 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
     isViewingAiBuildHistory,
     forceManualConfigTaskId,
   } = useEvolution()
+  const demoState = useDemoState()
   const [tuneMode, setTuneMode] = useState<TuneMode>("chat")
   // Reset to AI chat panel whenever the active task changes — otherwise a prior
   // task's "switched to stepper" state leaks into a freshly created AI task.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional reset on taskId change
   useEffect(() => {
     setTuneMode("chat")
   }, [taskId])
   const { data: task, isLoading } = useQuery({
     queryKey: ["getTask", taskId],
-    queryFn: () => Llm4AdTasksService.getTask({ taskId }),
+    queryFn: () =>
+      isDemoTaskId(taskId)
+        ? Promise.resolve(DEMO_TASK)
+        : Llm4AdTasksService.getTask({ taskId }),
     enabled: !!taskId,
   })
 
@@ -50,6 +58,21 @@ export default function TaskDetail({ taskId }: TaskDetailProps) {
         <p className="text-muted-foreground">{t("evolution.cannotLoadTask")}</p>
       </div>
     )
+  }
+
+  // Demo mode dispatch: the simulated task swaps panels as the user clicks
+  // through the tour. uninitialized/configuring/building → fake AI Build panel
+  // (with progress + file animation); running/completed → real result view
+  // backed by fixture data.
+  if (isDemoTaskId(task.id)) {
+    if (
+      demoState.phase === "uninitialized" ||
+      demoState.phase === "configuring" ||
+      demoState.phase === "building"
+    ) {
+      return <DemoBuildView />
+    }
+    return <InitializedView task={task} />
   }
 
   // AI build history → reuse the AI panel. Running/pending tasks are read-only

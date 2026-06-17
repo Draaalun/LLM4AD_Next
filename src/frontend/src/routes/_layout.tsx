@@ -5,12 +5,13 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router"
-import { LogOut, Settings } from "lucide-react"
+import { LogOut, RotateCcw, Settings } from "lucide-react"
 import { useTranslation } from "react-i18next"
 
 import { Footer } from "@/components/Common/Footer"
 import LanguageToggle from "@/components/Common/LanguageToggle"
 import ThemeToggle from "@/components/Common/ThemeToggle"
+import { resetAllTours } from "@/components/Onboarding/tourStorage"
 import AppSidebar from "@/components/Sidebar/AppSidebar"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -27,6 +28,7 @@ import {
   SidebarTrigger,
 } from "@/components/ui/sidebar"
 import useAuth, { isLoggedIn } from "@/hooks/useAuth"
+import useCustomToast from "@/hooks/useCustomToast"
 import { getInitials } from "@/utils"
 
 export const Route = createFileRoute("/_layout")({
@@ -64,8 +66,22 @@ function HeaderUserMenu() {
   const { t } = useTranslation()
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { showSuccessToast } = useCustomToast()
 
   if (!user) return null
+
+  const handleReplayTour = () => {
+    // Reset every tour back to the freshly-registered state — projects /
+    // demo / evolution-create / evolution-task-config / evolution-ai-build /
+    // evolution-results all become "unseen" again. Each one will re-trigger
+    // the next time the user lands on its host page.
+    resetAllTours()
+    showSuccessToast(
+      t("layout.replayTourReset", {
+        defaultValue: "Walkthroughs reset — they'll show up again as you visit each page.",
+      }),
+    )
+  }
 
   return (
     <DropdownMenu>
@@ -98,6 +114,12 @@ function HeaderUserMenu() {
         >
           <Settings className="size-4 mr-2" />
           {t("layout.accountSettings")}
+        </DropdownMenuItem>
+        <DropdownMenuItem className="cursor-pointer" onClick={handleReplayTour}>
+          <RotateCcw className="size-4 mr-2" />
+          {t("layout.replayTour", {
+            defaultValue: "Replay guided tour",
+          })}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem

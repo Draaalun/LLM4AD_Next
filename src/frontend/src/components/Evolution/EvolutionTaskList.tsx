@@ -83,7 +83,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { DEMO_TASK, isDemoProjectId } from "@/data/demoFixtures"
 import useCustomToast from "@/hooks/useCustomToast"
+import { getDemoState, setDemoPhase, useDemoState } from "@/hooks/useDemoMode"
 import { useEvolution } from "@/hooks/useEvolution"
 import { formatDateTime } from "@/lib/utils"
 import { handleError } from "@/utils"
@@ -110,14 +112,30 @@ export function getTasksInfiniteQueryKey(projectId: string) {
 }
 
 export function useInfiniteTasks(projectId: string) {
+  const isDemo = isDemoProjectId(projectId)
+  // The demo task only "exists" once the user has clicked New Task. Subscribe
+  // to the demo phase so the list refreshes the moment the simulation starts.
+  // Real projects keep their original query key intact so external callers
+  // (TaskVersionTree, useCopyBeforeRun) can still setQueryData on it.
+  const demoState = useDemoState()
   return useInfiniteQuery({
-    queryKey: getTasksInfiniteQueryKey(projectId),
-    queryFn: ({ pageParam = 0 }) =>
-      Llm4AdTasksService.listTasks({
+    queryKey: isDemo
+      ? [...getTasksInfiniteQueryKey(projectId), demoState.phase]
+      : getTasksInfiniteQueryKey(projectId),
+    queryFn: ({ pageParam = 0 }) => {
+      if (isDemo) {
+        const taskExists = getDemoState().phase !== "uninitialized"
+        return Promise.resolve({
+          items: taskExists && pageParam === 0 ? [DEMO_TASK] : [],
+          total: taskExists ? 1 : 0,
+        })
+      }
+      return Llm4AdTasksService.listTasks({
         projectId,
         skip: pageParam,
         limit: TASKS_PAGE_SIZE,
-      }),
+      })
+    },
     initialPageParam: 0,
     getNextPageParam: (lastPage, allPages) => {
       const loaded = allPages.reduce((acc, p) => acc + p.items.length, 0)
@@ -191,9 +209,14 @@ export function CreateTaskDialog({
   onCreated: (task: TaskResponse) => void
   variant?: "compact" | "large" | "iconOnly"
 }) {
+  const isDemo = isDemoProjectId(projectId)
   const [isOpen, setIsOpen] = useState(false)
   const [confirmNoTemplateOpen, setConfirmNoTemplateOpen] = useState(false)
-  const [buildMode, setBuildMode] = useState<"ai" | "manual">("manual")
+  // In the demo, default the dialog to AI build so the walkthrough lands on
+  // the path it actually simulates. Real projects keep manual as default.
+  const [buildMode, setBuildMode] = useState<"ai" | "manual">(
+    isDemo ? "ai" : "manual",
+  )
   const queryClient = useQueryClient()
   const { showSuccessToast, showErrorToast } = useCustomToast()
   const { t, i18n } = useTranslation()
@@ -210,7 +233,9 @@ export function CreateTaskDialog({
     resolver: zodResolver(nameSchema),
     mode: "onBlur",
     defaultValues: {
-      name: "",
+      // Pre-fill the task name in the demo so the user can land on a single
+      // click; real projects start blank so the user has to think about it.
+      name: isDemo ? "TSP Heuristic" : "",
       template_name: undefined,
       config_name: undefined,
     },
@@ -269,6 +294,18 @@ export function CreateTaskDialog({
   })
 
   const submitTask = (data: NameFormData) => {
+    // Demo mode: skip the real createTask API. Whichever mode the user picked
+    // (AI build / Manual stepper) we land on the simulated AI Build view —
+    // demo only mocks the AI path. Setting demo phase to "configuring"
+    // triggers DemoBuildView via the layout's phase listener.
+    if (isDemo) {
+      setIsOpen(false)
+      form.reset()
+      setBuildMode("ai")
+      setDemoPhase("configuring")
+      onCreated(DEMO_TASK)
+      return
+    }
     const payload: TaskCreate = {
       name: data.name,
       project_id: projectId,
@@ -285,6 +322,13 @@ export function CreateTaskDialog({
   }
 
   const onSubmit = (data: NameFormData) => {
+    // Demo mode: short-circuit every branch so the user always lands on the
+    // simulated build session regardless of which mode they ticked or whether
+    // they picked a template.
+    if (isDemo) {
+      submitTask(data)
+      return
+    }
     if (isAiMode) {
       submitTask(data)
       return
@@ -303,7 +347,7 @@ export function CreateTaskDialog({
         setIsOpen(open)
         if (!open) {
           form.reset()
-          setBuildMode("manual")
+          setBuildMode(isDemo ? "ai" : "manual")
         }
       }}
     >
@@ -345,7 +389,10 @@ export function CreateTaskDialog({
           </button>
         )}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent
+        data-tour="create-task-dialog"
+        className="sm:max-w-lg"
+      >
         <DialogHeader>
           <DialogTitle>{t("evolution.createTaskTitle")}</DialogTitle>
           <DialogDescription>
@@ -652,6 +699,7 @@ export function CreateTaskDialog({
               </DialogClose>
               <LoadingButton
                 type="submit"
+                data-tour="create-task-submit"
                 loading={mutation.isPending}
                 className="bg-primary/20 text-primary border border-primary/40 hover:bg-primary/30"
               >
@@ -939,6 +987,9 @@ export default function EvolutionTaskList() {
             return (
               <div
                 key={task.id}
+                data-tour={
+                  task.id === DEMO_TASK.id ? "demo-task-row" : undefined
+                }
                 className={`group flex flex-col gap-1 px-3 py-2.5 rounded-md cursor-pointer
                   transition-all duration-200 border
                   ${

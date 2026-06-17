@@ -10,6 +10,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { TaskResponse } from "@/client"
 import { UtilsCodeServerService } from "@/client"
+import OnboardingTour from "@/components/Onboarding/OnboardingTour"
 import { useTheme } from "@/components/theme-provider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -18,9 +19,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { DEMO_BEST_CODE, isDemoTaskId } from "@/data/demoFixtures"
 import { useEvolution } from "@/hooks/useEvolution"
 import { cn } from "@/lib/utils"
-import OnboardingTour from "@/components/Onboarding/OnboardingTour"
 import InsightsSplitView from "./InsightsSplitView"
 import MultiPanelLayout from "./MultiPanelLayout"
 import RenderSplitView from "./RenderSplitView"
@@ -66,10 +67,13 @@ export default function InitializedView({ task }: InitializedViewProps) {
   }
 
   useEffect(() => {
+    // Demo tasks render a static code block in the IDE tab; skip the real
+    // code-server token fetch which would 404 against the live nginx proxy.
+    if (isDemoTaskId(task.id)) return
     if (activeTab === "ide" && ideState === "idle") {
       loadCodeToken()
     }
-  }, [activeTab, ideState, loadCodeToken])
+  }, [activeTab, ideState, loadCodeToken, task.id])
 
   const handleRefreshIDE = () => {
     if (isRefreshing) return
@@ -138,6 +142,7 @@ export default function InitializedView({ task }: InitializedViewProps) {
         </TabsTrigger>
         <TabsTrigger
           value="ide"
+          data-tour="demo-best-summary"
           className="font-bold text-sm gap-1.5 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-[0_0_10px] data-[state=active]:shadow-primary/15"
         >
           <Code className="size-3.5" />
@@ -200,42 +205,62 @@ export default function InitializedView({ task }: InitializedViewProps) {
       </TabsContent>
 
       <TabsContent value="ide" className="flex-1 min-h-0">
-        {ideState === "loading" && (
-          <div className="flex items-center justify-center rounded-lg border border-dashed bg-card/50 p-16">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            <span className="text-muted-foreground">
-              {t("evolution.startingIDE")}
-            </span>
+        {isDemoTaskId(task.id) ? (
+          <div
+            data-tour="demo-ide-code"
+            className="h-full rounded-lg border bg-card/60 backdrop-blur flex flex-col overflow-hidden"
+          >
+            <div className="shrink-0 px-4 py-2.5 border-b border-border/60 flex items-center gap-2 text-xs">
+              <Code className="size-3.5 text-primary" />
+              <span className="font-mono text-foreground">solve.py</span>
+              <span className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">
+                {t("evolution.tabs.ide")}
+              </span>
+            </div>
+            <pre className="flex-1 min-h-0 overflow-auto px-4 py-4 text-xs leading-relaxed font-mono text-foreground/90 bg-background/30">
+              <code>{DEMO_BEST_CODE}</code>
+            </pre>
           </div>
-        )}
-        {ideState === "error" && (
-          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive bg-card/50 p-16">
-            <p className="text-destructive">{ideError}</p>
-            <button
-              type="button"
-              className="text-sm text-primary underline"
-              onClick={() => {
-                setIdeState("idle")
-                handleTabChange("ide")
-              }}
-            >
-              {t("common.retry")}
-            </button>
-          </div>
-        )}
-        {ideState === "success" && (
-          <div className="h-full">
-            <iframe
-              key={iframeKey}
-              id="vscodeFrame"
-              className="w-full h-full border rounded-lg"
-              src={`${import.meta.env.VITE_CODE_SERVER_URL || "/code_ide"}/?folder=/data/project_home/${task.id}/${selectedNodes.length === 1 ? `llm4ad/run/generated/` : ""}`}
-              title={t("evolution.vsCodeTitle")}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-              sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads allow-presentation"
-              loading="lazy"
-            />
-          </div>
+        ) : (
+          <>
+            {ideState === "loading" && (
+              <div className="flex items-center justify-center rounded-lg border border-dashed bg-card/50 p-16">
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                <span className="text-muted-foreground">
+                  {t("evolution.startingIDE")}
+                </span>
+              </div>
+            )}
+            {ideState === "error" && (
+              <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-destructive bg-card/50 p-16">
+                <p className="text-destructive">{ideError}</p>
+                <button
+                  type="button"
+                  className="text-sm text-primary underline"
+                  onClick={() => {
+                    setIdeState("idle")
+                    handleTabChange("ide")
+                  }}
+                >
+                  {t("common.retry")}
+                </button>
+              </div>
+            )}
+            {ideState === "success" && (
+              <div className="h-full">
+                <iframe
+                  key={iframeKey}
+                  id="vscodeFrame"
+                  className="w-full h-full border rounded-lg"
+                  src={`${import.meta.env.VITE_CODE_SERVER_URL || "/code_ide"}/?folder=/data/project_home/${task.id}/${selectedNodes.length === 1 ? `llm4ad/run/generated/` : ""}`}
+                  title={t("evolution.vsCodeTitle")}
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads allow-presentation"
+                  loading="lazy"
+                />
+              </div>
+            )}
+          </>
         )}
       </TabsContent>
     </Tabs>
