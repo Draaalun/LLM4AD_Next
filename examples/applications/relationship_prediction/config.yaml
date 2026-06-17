@@ -166,13 +166,6 @@ evaluator:
   parallel: true
   batch_size: 2
 
-  # --- Evaluator-specific API config ---
-  api_config:
-    base_url: ${LLM_BASE_URL}
-    api_key: ${LLM_API_KEY}
-    model: ${LLM_MODEL}
-  
-
   # --- Dataset Configuration ---
   dataset:
     mode: "directory"

@@ -185,7 +185,19 @@ class LLMJudgeEvaluator(BaseEvaluator):
         if json_start == -1 or json_end == 0:
             raise ValueError("No JSON object found in judge response")
 
-        data = json.loads(response[json_start:json_end])
+        raw = response[json_start:json_end]
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            import re as _re
+
+            cleaned = raw
+            cleaned = _re.sub(r"//[^\n]*", "", cleaned)
+            cleaned = _re.sub(r",\s*}", "}", cleaned)
+            cleaned = _re.sub(r",\s*]", "]", cleaned)
+            cleaned = _re.sub(r'(?<=[{,])\s*(\w+)\s*:', r' "\1":', cleaned)
+            cleaned = cleaned.replace("'", '"')
+            data = json.loads(cleaned)
         metric_names = [m.name for m in self.metrics]
         missing = [k for k in metric_names if k not in data]
         if missing:

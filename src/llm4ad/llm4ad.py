@@ -236,6 +236,26 @@ class LLM4AD:
         # Initialize evaluator
         evaluator_config = self.config.evaluator
 
+        # Auto-inject api_config from provider for custom evaluators
+        from llm4ad.config.schema import CustomEvaluatorConfig
+
+        if (
+            isinstance(evaluator_config, CustomEvaluatorConfig)
+            and not evaluator_config.model_extra.get("api_config")
+        ):
+            fallback_provider = next(
+                (p for p in self.config.providers if p.name == "default"),
+                self.config.providers[0] if self.config.providers else None,
+            )
+            if fallback_provider:
+                cfg_data = evaluator_config.model_dump()
+                cfg_data["api_config"] = {
+                    "base_url": fallback_provider.base_url or "",
+                    "api_key": fallback_provider.api_key,
+                    "model": fallback_provider.model,
+                }
+                evaluator_config = CustomEvaluatorConfig.model_validate(cfg_data)
+
         # Initilize dispatcher
         self._dispatcher = EvaluationDispatcher(
             config=evaluator_config,
