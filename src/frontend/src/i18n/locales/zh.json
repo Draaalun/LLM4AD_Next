@@ -1224,7 +1224,40 @@
     "readOnly": "只读 · 不调用任何 LLM",
     "startTour": "开始体验",
     "banner": "示例",
-    "exitTitle": "退出示例"
+    "exitTitle": "退出示例",
+    "taskList": {
+      "title": "演化任务列表",
+      "empty": "暂无任务，点击下方按钮创建。",
+      "create": "新建任务",
+      "dialogTitle": "创建任务",
+      "dialogDescription": "示例已经替你选好「AI 构建」。点击「创建」继续。",
+      "nameLabel": "任务名称",
+      "modeLabel": "构建方式",
+      "aiBuild": "AI 构建",
+      "manualBuild": "手动配置",
+      "manualDisabled": "示例中只演示 AI 构建路径",
+      "createSubmit": "创建",
+      "taskName": "Demo · 贪心 + 局部搜索"
+    },
+    "rightPanel": {
+      "title": "任务信息",
+      "empty": "创建任务后，这里会显示状态与参数。",
+      "name": "名称",
+      "description": "描述",
+      "parameters": "参数",
+      "noParameters": "—",
+      "flags": "构建方式",
+      "aiBuilt": "AI 构建",
+      "manualBuilt": "手动配置",
+      "readOnlyHint": "只读 — 示例中所有交互按钮已禁用。"
+    },
+    "center": {
+      "emptyTitle": "尚未选择任务",
+      "emptyHint": "点击左侧的「新建任务」按钮开始走查。引导会逐步带你完成每一步。"
+    },
+    "result": {
+      "notReady": "等待构建启动..."
+    }
   },
   "demoTour": {
     "create": {
@@ -1270,7 +1303,8 @@
     "exitDemo": "退出示例",
     "skipAhead": "跳到下一步",
     "gotIt": "了解",
-    "back": "上一步"
+    "back": "上一步",
+    "finishExit": "结束示例"
   },
   "demoBuild": {
     "chatTitle": "AI 构建 · 对话",

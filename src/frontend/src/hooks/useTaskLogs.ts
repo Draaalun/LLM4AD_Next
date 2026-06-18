@@ -4,7 +4,11 @@ import { useTranslation } from "react-i18next"
 import type { TaskStatus } from "@/client"
 import { Llm4AdTasksService } from "@/client"
 import type { LogLevel } from "@/components/Evolution/TaskDetail/log-renderers"
-import { DEMO_LOG_LINES, isDemoTaskId } from "@/data/demoFixtures"
+import {
+  DEMO_LOG_ENTRIES,
+  isDemoTaskId,
+  visibleLogCount,
+} from "@/data/demoFixtures"
 import { useDemoState } from "@/hooks/useDemoMode"
 import { taskKeys } from "@/lib/task-queries"
 import { authFetch } from "@/utils/auth"
@@ -277,28 +281,12 @@ export function useTaskLogs(
 
   // ---------- Return ----------
   if (isDemo) {
-    // Walk through the canned log lines as the demo phase advances so the
-    // logs panel feels alive while the user clicks through the tour.
-    const phase = demoState.phase
-    const visibleCount =
-      phase === "completed"
-        ? DEMO_LOG_LINES.length
-        : phase === "running"
-          ? Math.min(DEMO_LOG_LINES.length, 5)
-          : phase === "building"
-            ? 2
-            : 0
-    const entries: LogEntry[] = DEMO_LOG_LINES.slice(0, visibleCount).map(
-      (line, idx) => ({
-        _kind: "log",
-        type: "log",
-        level: "info",
-        message: line,
-        timestamp: new Date(
-          Date.now() - (visibleCount - idx) * 1000,
-        ).toISOString(),
-      }),
-    )
+    // Slice the demo fixture by phase so the logs "fill up" as the user
+    // clicks through the walkthrough. Each entry already carries the full
+    // {level, module, function, line, ...} shape that log-renderers expects,
+    // so the panel renders identically to a real run.
+    const visibleCount = visibleLogCount(demoState.phase)
+    const entries = DEMO_LOG_ENTRIES.slice(0, visibleCount)
     return { entries, isLoading: false, error: null }
   }
   if (isActive) {
@@ -336,6 +324,7 @@ export function useTaskLogsList(opts: {
 }): UseTaskLogsListResult {
   const { taskId, searchQuery, levelFilter, enabled } = opts
   const levelArr = useMemo(() => [...levelFilter], [levelFilter])
+  const isDemo = isDemoTaskId(taskId)
 
   const query = useInfiniteQuery({
     queryKey: taskKeys.logsList(taskId ?? "", "log", searchQuery, levelArr),
@@ -351,7 +340,9 @@ export function useTaskLogsList(opts: {
     initialPageParam: "" as string,
     getNextPageParam: (lastPage) =>
       lastPage.has_more ? (lastPage.next_cursor ?? undefined) : undefined,
-    enabled: enabled && !!taskId,
+    // Demo short-circuit: never hit the live REST endpoint for the demo
+    // task — its history comes from the fixture via `useTaskLogs` already.
+    enabled: enabled && !!taskId && !isDemo,
     staleTime: 5 * 60_000,
   })
 
@@ -363,6 +354,18 @@ export function useTaskLogsList(opts: {
       normalizeLogEntries((p.entries ?? []) as Record<string, unknown>[]),
     )
   }, [query.data])
+
+  if (isDemo) {
+    // Demo task: return the fixture slice directly, never report loading
+    // or "more pages available".
+    return {
+      entries: DEMO_LOG_ENTRIES,
+      isLoading: false,
+      isFetchingMore: false,
+      hasMore: false,
+      loadMore: () => {},
+    }
+  }
 
   const lastPage = query.data?.pages[query.data.pages.length - 1]
 

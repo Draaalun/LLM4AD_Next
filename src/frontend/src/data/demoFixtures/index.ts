@@ -199,3 +199,6 @@ export const DEMO_AI_BUILD_FILES = [
   { name: "evaluator.py", language: "python" },
   { name: "task.py", language: "python" },
 ]
+
+export { DEMO_FILE_TREE } from "./mockFileTree"
+export { DEMO_LOG_ENTRIES, visibleLogCount } from "./mockLogs"
