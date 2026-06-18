@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { DEMO_PROJECT } from "@/data/demoFixtures"
-import { enterDemo } from "@/hooks/useDemoMode"
 import { getProjectIcon } from "./ProjectIcons"
 
 export default function DemoProjectCard() {
@@ -19,8 +18,9 @@ export default function DemoProjectCard() {
   const Icon = getProjectIcon(DEMO_PROJECT.icon)
 
   const handleEnter = () => {
-    enterDemo("uninitialized")
-    navigate({ to: "/evolution", search: { projectId: DEMO_PROJECT.id } })
+    // The dedicated /demo route owns the demo session lifecycle now —
+    // _layout_demo calls enterDemo on mount.
+    navigate({ to: "/demo" })
   }
 
   return (

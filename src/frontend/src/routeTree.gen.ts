@@ -15,9 +15,11 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RecoverPasswordRouteImport } from './routes/recover-password'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as Layout_evolutionRouteImport } from './routes/_layout_evolution'
+import { Route as Layout_demoRouteImport } from './routes/_layout_demo'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as Layout_evolutionEvolutionRouteImport } from './routes/_layout_evolution/evolution'
+import { Route as Layout_demoDemoRouteImport } from './routes/_layout_demo/demo'
 import { Route as LayoutSettingsRouteImport } from './routes/_layout/settings'
 import { Route as LayoutProjectsRouteImport } from './routes/_layout/projects'
 import { Route as LayoutLlm_roviderRouteImport } from './routes/_layout/llm_rovider'
@@ -57,6 +59,10 @@ const Layout_evolutionRoute = Layout_evolutionRouteImport.update({
   id: '/_layout_evolution',
   getParentRoute: () => rootRouteImport,
 } as any)
+const Layout_demoRoute = Layout_demoRouteImport.update({
+  id: '/_layout_demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LayoutRoute = LayoutRouteImport.update({
   id: '/_layout',
   getParentRoute: () => rootRouteImport,
@@ -72,6 +78,11 @@ const Layout_evolutionEvolutionRoute =
     path: '/evolution',
     getParentRoute: () => Layout_evolutionRoute,
   } as any)
+const Layout_demoDemoRoute = Layout_demoDemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => Layout_demoRoute,
+} as any)
 const LayoutSettingsRoute = LayoutSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -134,6 +145,7 @@ export interface FileRoutesByFullPath {
   '/llm_rovider': typeof LayoutLlm_roviderRoute
   '/projects': typeof LayoutProjectsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/demo': typeof Layout_demoDemoRoute
   '/evolution': typeof Layout_evolutionEvolutionRoute
 }
 export interface FileRoutesByTo {
@@ -152,12 +164,14 @@ export interface FileRoutesByTo {
   '/llm_rovider': typeof LayoutLlm_roviderRoute
   '/projects': typeof LayoutProjectsRoute
   '/settings': typeof LayoutSettingsRoute
+  '/demo': typeof Layout_demoDemoRoute
   '/evolution': typeof Layout_evolutionEvolutionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_layout': typeof LayoutRouteWithChildren
+  '/_layout_demo': typeof Layout_demoRouteWithChildren
   '/_layout_evolution': typeof Layout_evolutionRouteWithChildren
   '/login': typeof LoginRoute
   '/recover-password': typeof RecoverPasswordRoute
@@ -173,6 +187,7 @@ export interface FileRoutesById {
   '/_layout/llm_rovider': typeof LayoutLlm_roviderRoute
   '/_layout/projects': typeof LayoutProjectsRoute
   '/_layout/settings': typeof LayoutSettingsRoute
+  '/_layout_demo/demo': typeof Layout_demoDemoRoute
   '/_layout_evolution/evolution': typeof Layout_evolutionEvolutionRoute
 }
 export interface FileRouteTypes {
@@ -193,6 +208,7 @@ export interface FileRouteTypes {
     | '/llm_rovider'
     | '/projects'
     | '/settings'
+    | '/demo'
     | '/evolution'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -211,11 +227,13 @@ export interface FileRouteTypes {
     | '/llm_rovider'
     | '/projects'
     | '/settings'
+    | '/demo'
     | '/evolution'
   id:
     | '__root__'
     | '/'
     | '/_layout'
+    | '/_layout_demo'
     | '/_layout_evolution'
     | '/login'
     | '/recover-password'
@@ -231,12 +249,14 @@ export interface FileRouteTypes {
     | '/_layout/llm_rovider'
     | '/_layout/projects'
     | '/_layout/settings'
+    | '/_layout_demo/demo'
     | '/_layout_evolution/evolution'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LayoutRoute: typeof LayoutRouteWithChildren
+  Layout_demoRoute: typeof Layout_demoRouteWithChildren
   Layout_evolutionRoute: typeof Layout_evolutionRouteWithChildren
   LoginRoute: typeof LoginRoute
   RecoverPasswordRoute: typeof RecoverPasswordRoute
@@ -289,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof Layout_evolutionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_layout_demo': {
+      id: '/_layout_demo'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof Layout_demoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_layout': {
       id: '/_layout'
       path: ''
@@ -309,6 +336,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/evolution'
       preLoaderRoute: typeof Layout_evolutionEvolutionRouteImport
       parentRoute: typeof Layout_evolutionRoute
+    }
+    '/_layout_demo/demo': {
+      id: '/_layout_demo/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof Layout_demoDemoRouteImport
+      parentRoute: typeof Layout_demoRoute
     }
     '/_layout/settings': {
       id: '/_layout/settings'
@@ -403,6 +437,18 @@ const LayoutRouteChildren: LayoutRouteChildren = {
 const LayoutRouteWithChildren =
   LayoutRoute._addFileChildren(LayoutRouteChildren)
 
+interface Layout_demoRouteChildren {
+  Layout_demoDemoRoute: typeof Layout_demoDemoRoute
+}
+
+const Layout_demoRouteChildren: Layout_demoRouteChildren = {
+  Layout_demoDemoRoute: Layout_demoDemoRoute,
+}
+
+const Layout_demoRouteWithChildren = Layout_demoRoute._addFileChildren(
+  Layout_demoRouteChildren,
+)
+
 interface Layout_evolutionRouteChildren {
   Layout_evolutionEvolutionRoute: typeof Layout_evolutionEvolutionRoute
 }
@@ -417,6 +463,7 @@ const Layout_evolutionRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LayoutRoute: LayoutRouteWithChildren,
+  Layout_demoRoute: Layout_demoRouteWithChildren,
   Layout_evolutionRoute: Layout_evolutionRouteWithChildren,
   LoginRoute: LoginRoute,
   RecoverPasswordRoute: RecoverPasswordRoute,

@@ -1223,7 +1223,40 @@
     "readOnly": "Read-only · No LLM calls",
     "startTour": "Start guided tour",
     "banner": "Demo",
-    "exitTitle": "Exit demo"
+    "exitTitle": "Exit demo",
+    "taskList": {
+      "title": "Task List",
+      "empty": "No tasks yet. Click below to create one.",
+      "create": "New task",
+      "dialogTitle": "Create a task",
+      "dialogDescription": "AI Build mode is pre-selected for the walkthrough. Click Create to continue.",
+      "nameLabel": "Task name",
+      "modeLabel": "Build mode",
+      "aiBuild": "AI Build",
+      "manualBuild": "Manual",
+      "manualDisabled": "Manual mode is disabled in the walkthrough",
+      "createSubmit": "Create",
+      "taskName": "Demo · Greedy + Local Search"
+    },
+    "rightPanel": {
+      "title": "Task Info",
+      "empty": "Create a task to see its status and parameters.",
+      "name": "Name",
+      "description": "Description",
+      "parameters": "Parameters",
+      "noParameters": "—",
+      "flags": "Build Mode",
+      "aiBuilt": "AI Build",
+      "manualBuilt": "Manual Build",
+      "readOnlyHint": "Read-only — interactive controls are disabled in the demo."
+    },
+    "center": {
+      "emptyTitle": "No task selected",
+      "emptyHint": "Click the New task button on the left to start the walkthrough. The tour will guide you through every step."
+    },
+    "result": {
+      "notReady": "Waiting for the build to start..."
+    }
   },
   "demoTour": {
     "create": {
@@ -1269,7 +1302,8 @@
     "exitDemo": "Exit demo",
     "skipAhead": "Skip ahead",
     "gotIt": "Got it",
-    "back": "Back"
+    "back": "Back",
+    "finishExit": "Finish & exit"
   },
   "demoBuild": {
     "chatTitle": "AI Build · Chat",
