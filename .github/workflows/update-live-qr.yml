@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       qr_url:
-        description: "Optional QR page or image URL to use for this run"
+        description: "Optional live QR base URL to use for this run"
         required: false
         type: string
   schedule:
@@ -31,79 +31,30 @@ jobs:
       - name: Download QR image
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import os
-          import sys
-          import urllib.parse
-          import urllib.request
-          from html.parser import HTMLParser
-          from pathlib import Path
+          qr_image_url="${QR_URL%/}"
+          if [ "${qr_image_url##*/}" != "image" ]; then
+            qr_image_url="${qr_image_url}/image"
+          fi
 
-          qr_url = os.environ["QR_URL"]
-          qr_path = Path(os.environ["QR_PATH"])
+          mkdir -p "$(dirname "$QR_PATH")"
+          curl -fsSL --retry 3 --retry-delay 2 "$qr_image_url" -o /tmp/live-qr.png
 
-          class QRImageParser(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.first_src = None
-                  self.qr_src = None
+          mime_type="$(file --mime-type -b /tmp/live-qr.png)"
+          case "$mime_type" in
+            image/png|image/jpeg|image/webp) ;;
+            *)
+              echo "Downloaded content is not an image: $mime_type from $qr_image_url"
+              exit 1
+              ;;
+          esac
 
-              def handle_starttag(self, tag, attrs):
-                  if tag.lower() != "img":
-                      return
-                  attr_map = {name.lower(): value for name, value in attrs}
-                  src = attr_map.get("src")
-                  if not src:
-                      return
-                  if self.first_src is None:
-                      self.first_src = src
-                  if attr_map.get("id", "").lower() == "qr":
-                      self.qr_src = src
+          if [ -f "$QR_PATH" ] && cmp -s /tmp/live-qr.png "$QR_PATH"; then
+            echo "QR image unchanged."
+            exit 0
+          fi
 
-          def fetch(url):
-              request = urllib.request.Request(
-                  url,
-                  headers={"User-Agent": "github-actions-live-qr-updater"},
-              )
-              with urllib.request.urlopen(request, timeout=30) as response:
-                  return (
-                      response.read(),
-                      response.headers.get("content-type", ""),
-                      response.geturl(),
-                  )
-
-          def looks_like_image(data, content_type):
-              content_type = content_type.lower()
-              return (
-                  content_type.startswith("image/")
-                  or data.startswith(b"\x89PNG\r\n\x1a\n")
-                  or data.startswith(b"\xff\xd8\xff")
-                  or (data.startswith(b"RIFF") and data[8:12] == b"WEBP")
-              )
-
-          data, content_type, final_url = fetch(qr_url)
-          if not looks_like_image(data, content_type):
-              parser = QRImageParser()
-              parser.feed(data.decode("utf-8", errors="replace"))
-              image_src = parser.qr_src or parser.first_src
-              if not image_src:
-                  print("QR URL did not return an image and no image src was found.", file=sys.stderr)
-                  sys.exit(1)
-              image_url = urllib.parse.urljoin(final_url, image_src)
-              data, content_type, final_url = fetch(image_url)
-
-          if not looks_like_image(data, content_type):
-              print(f"Downloaded content is not an image: {content_type} from {final_url}", file=sys.stderr)
-              sys.exit(1)
-
-          qr_path.parent.mkdir(parents=True, exist_ok=True)
-          if qr_path.exists() and qr_path.read_bytes() == data:
-              print("QR image unchanged.")
-              sys.exit(0)
-
-          qr_path.write_bytes(data)
-          print(f"Updated {qr_path} from {final_url}.")
-          PY
+          mv /tmp/live-qr.png "$QR_PATH"
+          echo "Updated $QR_PATH from $qr_image_url."
 
       - name: Create pull request
         id: cpr
