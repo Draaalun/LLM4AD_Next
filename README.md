@@ -224,6 +224,16 @@ This project is licensed under the BSD 3-Clause License - see the [LICENSE](LICE
 - [Discussions](https://github.com/Optima-CityU/LLM4AD_Next/discussions)
 - [Issue Tracker](https://github.com/Optima-CityU/LLM4AD_Next/issues)
 
+## Join the Community
+
+Scan the QR code with WeChat to join the LLM4AD_Next community group.
+
+<div align="center">
+  <img src="docs/assets/live-qr.png"
+       alt="LLM4AD_Next WeChat community QR code"
+       width="220">
+</div>
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=Optima-CityU/LLM4AD_Next&type=Date)](https://www.star-history.com/#Optima-CityU/LLM4AD_Next&Date)
