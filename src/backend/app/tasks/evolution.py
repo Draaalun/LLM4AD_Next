@@ -220,6 +220,17 @@ def _finalize_task(celery_task_id: str, status: TaskStatus) -> None:
             logger.info(
                 f"任务 {biz_task_id} 已完成 finalize: status={status.value}, 持久化日志 {log_count} 条"
             )
+
+            # 吊销本任务发放的 LLM 代理 token，避免任务结束后仍可经代理调用大模型。
+            # TTL 也会兜底失效；此处主动吊销以尽早收紧权限。
+            try:
+                from app.services.credential_broker import revoke_task_tokens
+
+                revoked = revoke_task_tokens(biz_task_id)
+                if revoked:
+                    logger.info(f"任务 {biz_task_id} 吊销 {revoked} 个 LLM 代理 token")
+            except Exception:
+                logger.warning("吊销 LLM 代理 token 失败", exc_info=True)
     except Exception as e:
         logger.error(f"_finalize_task 失败，celery_task_id={celery_task_id}: {e}")
 
