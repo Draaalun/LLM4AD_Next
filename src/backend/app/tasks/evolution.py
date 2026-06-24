@@ -230,7 +230,7 @@ def _finalize_task(celery_task_id: str, status: TaskStatus) -> None:
                 if revoked:
                     logger.info(f"任务 {biz_task_id} 吊销 {revoked} 个 LLM 代理 token")
             except Exception:
-                logger.warning("吊销 LLM 代理 token 失败", exc_info=True)
+                logger.error(f"吊销任务 {biz_task_id} 的 LLM 代理 token 失败", exc_info=True)
     except Exception as e:
         logger.error(f"_finalize_task 失败，celery_task_id={celery_task_id}: {e}")
 
@@ -560,13 +560,12 @@ def _relay_container_logs(
         stop_event: 用于外部通知停止读取的事件。
         seen_generated: 已推送的 generated 文件名到修改时间的映射。
     """
-    import docker as docker_lib
+    from app.core.docker import get_docker_client
 
     generated_dir = os.path.join(run_dir, "llm4ad", "run", "generated")
 
     try:
-        client = docker_lib.from_env()
-        container = client.containers.get(container_id)
+        container = get_docker_client().containers.get(container_id)
 
         line_buffer = ""
         pending_entry: dict | None = None
@@ -628,9 +627,6 @@ def _relay_container_logs(
 
         if pending_entry:
             push_log_entry(task_id, pending_entry)
-            msg = pending_entry.get("message", "")
-            if "Successfully written to the Generated directory" in msg:
-                _push_generated_files(task_id, generated_dir, seen_generated)
 
         _push_generated_files(task_id, generated_dir, seen_generated)
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 import httpx
 from fastapi import APIRouter, Request, Response
 from starlette.background import BackgroundTask
-from starlette.responses import StreamingResponse
+from starlette.responses import JSONResponse, StreamingResponse
 
 from app.services import credential_broker
 
@@ -101,20 +101,18 @@ async def proxy_llm(path: str, request: Request) -> Response:
     token = _extract_proxy_token(request)
     creds = credential_broker.resolve_token(token) if token else None
     if creds is None:
-        return Response(
-            content='{"error":"invalid or expired proxy token"}',
+        return JSONResponse(
+            {"error": "invalid or expired proxy token"},
             status_code=401,
-            media_type="application/json",
         )
 
     provider_type = creds.get("type", "openai_compatible")
     base_url = (creds.get("base_url") or "").strip() or _DEFAULT_BASE_URL.get(provider_type, "")
     base_url = base_url.rstrip("/")
     if not base_url:
-        return Response(
-            content='{"error":"upstream base_url unavailable"}',
+        return JSONResponse(
+            {"error": "upstream base_url unavailable"},
             status_code=502,
-            media_type="application/json",
         )
 
     upstream_url = f"{base_url}/{path}" if path else base_url
@@ -143,10 +141,9 @@ async def proxy_llm(path: str, request: Request) -> Response:
         upstream_resp = await client.send(upstream_req, stream=True)
     except httpx.HTTPError as exc:
         await client.aclose()
-        return Response(
-            content=f'{{"error":"upstream request failed: {exc}"}}',
+        return JSONResponse(
+            {"error": f"upstream request failed: {exc}"},
             status_code=502,
-            media_type="application/json",
         )
 
     resp_headers = {

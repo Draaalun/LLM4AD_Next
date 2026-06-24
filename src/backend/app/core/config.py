@@ -263,6 +263,12 @@ class Settings(BaseSettings):
     TASK_MAX_FILE_SIZE_MB: int = 50   # 单文件上传大小上限（MB）
     TASK_MAX_STORAGE_MB: int = 100    # 单任务输入数据总存储上限（MB）
 
+    # ---- 任务运行时其它限制 ----
+    # 容器内依赖安装（uv pip install -r requirements.txt）的超时（秒）
+    TASK_DEP_INSTALL_TIMEOUT: int = 600
+    # 任务实时日志 Redis Stream 的近似最大长度（XADD MAXLEN）。超出后最早的日志会被裁剪
+    TASK_LOGS_MAXLEN: int = 50000
+
     # ---- Code-Server 空闲清理 ----
     CODE_SERVER_IDLE_TIMEOUT_SECONDS: int = 24 * 60 * 60  # 容器空闲超过该时长则停止
     CODE_SERVER_CLEANUP_INTERVAL_SECONDS: int = 10 * 60  # 后台清理任务执行间隔
