@@ -359,6 +359,7 @@
     "collapseTaskList": "Collapse task list",
     "expandPanel": "Expand panel",
     "collapsePanel": "Collapse panel",
+    "moreActions": "More actions",
     "selectTask": "Please select a task",
     "cannotLoadTask": "Unable to load task data",
     "taskStatus": {
