@@ -9,6 +9,7 @@ import json
 import os
 import time
 from datetime import datetime
+from pathlib import Path
 
 import docker
 from docker.errors import NotFound
@@ -26,6 +27,7 @@ from app.core.constants import (
 )
 from app.core.docker import get_docker_client
 from app.core.redis import pop_idle_code_users
+from app.services.container_service import validate_host_project_home
 
 # code-server 启动完成的日志特征
 _SERVICE_READY_MARKER = b"Session server listening on"
@@ -33,6 +35,11 @@ _SERVICE_READY_MARKER = b"Session server listening on"
 _SERVICE_READY_TIMEOUT = 60
 # 轮询日志的间隔（秒）
 _SERVICE_READY_POLL_INTERVAL = 0.5
+
+
+def _code_server_host_path(container_name: str, *parts: str) -> str:
+    """Build a host path under HOST_PROJECT_HOME for code-server mounts."""
+    return str(Path(settings.HOST_PROJECT_HOME) / container_name / Path(*parts))
 
 
 def ensure_user_workspace(container_name: str, user_email: str, dark: bool = True) -> str:
@@ -152,6 +159,8 @@ def get_or_start_container(container_name: str) -> tuple[Container, datetime | N
     Raises:
         HTTPException: Docker 网络不存在（404）。
     """
+    validate_host_project_home()
+
     client = get_docker_client()
     try:
         client.networks.get(DOCKER_NETWORK_NAME)
@@ -186,11 +195,11 @@ def get_or_start_container(container_name: str) -> tuple[Container, datetime | N
         nano_cpus=int(CODE_SERVER_CPU_LIMIT * 1e9),
         volumes={
             # 宿主上用户目录挂载到 VS Code 服务主目录
-            f"{settings.HOST_PROJECT_HOME}{container_name}/": {
+            _code_server_host_path(container_name): {
                 "bind": "/data/project_home/",
                 "mode": "rw",
             },
-            f"{settings.HOST_PROJECT_HOME}{container_name}/.env_code.json": {
+            _code_server_host_path(container_name, ".env_code.json"): {
                 "bind": "/root/.local/share/code-server/User/settings.json",
                 "mode": "rw",
             },
