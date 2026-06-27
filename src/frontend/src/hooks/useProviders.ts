@@ -5,8 +5,10 @@ import {
   Llm4AdProvidersService,
   Llm4AdUserDefaultModelsService,
 } from "@/client"
+import { Llm4AdEmbeddingProvidersService } from "@/client/embeddingProviders"
 
 export const providersQueryKey = ["providers"] as const
+export const embeddingProvidersQueryKey = ["embedding-providers"] as const
 export const userDefaultModelsQueryKey = ["user-default-models"] as const
 
 export const providersQueryOptions = {
@@ -21,6 +23,16 @@ export const userDefaultModelsQueryOptions = {
   staleTime: 5 * 60 * 1000,
 }
 
+export const embeddingProvidersQueryOptions = {
+  queryKey: embeddingProvidersQueryKey,
+  queryFn: () =>
+    Llm4AdEmbeddingProvidersService.listEmbeddingProviders({
+      skip: 0,
+      limit: 100,
+    }),
+  staleTime: 5 * 60 * 1000,
+}
+
 export function useProviders() {
   return useQuery(providersQueryOptions)
 }
@@ -29,10 +41,15 @@ export function useUserDefaultModels() {
   return useQuery(userDefaultModelsQueryOptions)
 }
 
+export function useEmbeddingProviders() {
+  return useQuery(embeddingProvidersQueryOptions)
+}
+
 export function usePrefetchProviders() {
   const queryClient = useQueryClient()
   return useCallback(() => {
     queryClient.prefetchQuery(providersQueryOptions)
+    queryClient.prefetchQuery(embeddingProvidersQueryOptions)
     queryClient.prefetchQuery(userDefaultModelsQueryOptions)
   }, [queryClient])
 }

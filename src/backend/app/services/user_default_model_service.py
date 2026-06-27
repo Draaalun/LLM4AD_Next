@@ -15,7 +15,7 @@ from app import models
 from app.core.config import settings
 from app.schemas.user_default_model import UserDefaultModelResponse
 
-_SLOT_PREFIXES = ("planner", "coder", "report", "other")
+_MODEL_SLOT_PREFIXES = ("planner", "coder", "report", "other")
 
 
 def build_default_init_kwargs(db: Session, user_id: uuid.UUID) -> dict:
@@ -49,7 +49,7 @@ def build_default_init_kwargs(db: Session, user_id: uuid.UUID) -> dict:
         default_model = first
     if not default_model:
         return init_kwargs
-    for prefix in _SLOT_PREFIXES:
+    for prefix in _MODEL_SLOT_PREFIXES:
         init_kwargs[f"{prefix}_provider_id"] = builtin.id
         init_kwargs[f"{prefix}_model_name"] = default_model
     return init_kwargs
@@ -61,7 +61,7 @@ def _enrich_with_provider_names(
     """Build response with provider name fields populated from DB."""
     provider_ids = [
         getattr(config, f"{prefix}_provider_id")
-        for prefix in _SLOT_PREFIXES
+        for prefix in _MODEL_SLOT_PREFIXES
     ]
     unique_ids = {pid for pid in provider_ids if pid is not None}
 
@@ -74,9 +74,15 @@ def _enrich_with_provider_names(
             name_map[row[0]] = row[1]  # type: ignore[index]
 
     data = {c: getattr(config, c) for c in config.__class__.model_fields}
-    for prefix in _SLOT_PREFIXES:
+    for prefix in _MODEL_SLOT_PREFIXES:
         pid = getattr(config, f"{prefix}_provider_id")
         data[f"{prefix}_provider_name"] = name_map.get(pid) if pid else None
+    embedding_provider_id = getattr(config, "embedding_provider_id", None)
+    data["embedding_provider_name"] = None
+    if embedding_provider_id:
+        embedding_provider = db.get(models.EmbeddingProvider, embedding_provider_id)
+        if embedding_provider:
+            data["embedding_provider_name"] = embedding_provider.name
 
     return UserDefaultModelResponse.model_validate(data)
 
@@ -121,6 +127,7 @@ def update_user_default_model(
         "report_provider_id",
         "other_provider_id",
     ]
+    providers_by_id: dict[uuid.UUID, models.LLMProvider] = {}
     for field in provider_id_fields:
         pid = update_data.get(field)
         if pid is not None:
@@ -136,6 +143,33 @@ def update_user_default_model(
                     status_code=403,
                     detail=f"无权使用供应商配置 {pid}",
                 )
+            providers_by_id[pid] = provider
+
+    embedding_provider_id = update_data.get(
+        "embedding_provider_id",
+        getattr(config, "embedding_provider_id", None),
+    )
+    embedding_enabled = update_data.get(
+        "embedding_enabled",
+        getattr(config, "embedding_enabled", False),
+    )
+    if embedding_provider_id is not None:
+        embedding_provider = db.get(models.EmbeddingProvider, embedding_provider_id)
+        if not embedding_provider:
+            raise HTTPException(
+                status_code=404,
+                detail=f"embedding 供应商配置 {embedding_provider_id} 不存在",
+            )
+        if embedding_provider.user_id != user_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f"无权使用 embedding 供应商配置 {embedding_provider_id}",
+            )
+    elif embedding_enabled:
+        raise HTTPException(
+            status_code=400,
+            detail="启用轨迹分析前请先选择 embedding 供应商配置",
+        )
 
     config.sqlmodel_update(update_data)
     config.updated_time = datetime.now(UTC)

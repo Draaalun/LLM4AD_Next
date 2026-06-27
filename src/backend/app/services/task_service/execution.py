@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 from celery.result import AsyncResult
 from fastapi import HTTPException, status
-from llm4ad.config.app import EmbeddingConfig
+from llm4ad.config.app import EmbeddingConfig, TaskSpecificConfig
 from loguru import logger
 from sqlalchemy import or_
 from sqlmodel import Session, select
@@ -122,12 +122,7 @@ def _resolve_providers(
     evaluator_provider = evaluator_config.get("provider", "default")
     evaluator_model = evaluator_config.get("provider_model", "")
 
-    need_defaults = (
-        (not planner_provider or planner_provider == "default")
-        or (not coder_provider or coder_provider == "default")
-        or (not evaluator_provider or evaluator_provider == "default")
-    )
-    defaults = get_user_default_model(db, current_user.id) if need_defaults else None
+    defaults = get_user_default_model(db, current_user.id)
 
     if not planner_provider or planner_provider == "default":
         if defaults and defaults.planner_provider_id and defaults.planner_model_name:
@@ -180,17 +175,9 @@ def _resolve_providers(
     input_args["planner"] = planner_config
     input_args["coder"] = coder_config
     input_args["evaluator"] = evaluator_config
-    # 运行强制使用默认的 embedding 模型（未配置 JINA_API_KEY 时不传 api_key）
-    embedding_kwargs: dict = {
-        "type": "openai_compatible",
-        "base_url": "https://api.jinaai.cn/v1",
-        "model": "jina-embeddings-v4",
-        "dim": 2048,
-        "embedding_func_max_async": 2,
-    }
-    if settings.JINA_API_KEY:
-        embedding_kwargs["api_key"] = settings.JINA_API_KEY
-    input_args["embedding"] = EmbeddingConfig(**embedding_kwargs).model_dump()
+    embedding_config = _build_embedding_config(db, defaults)
+    if embedding_config:
+        input_args["embedding"] = embedding_config
 
     # 启用凭据代理：把下发到容器的真实凭据替换为一次性代理 token + 代理 base_url。
     # 必须覆盖所有进入容器配置的供应商（planner/coder/evaluator）与 embedding，
@@ -198,6 +185,96 @@ def _resolve_providers(
     if settings.LLM_PROXY_ENABLE and task_id is not None:
         _apply_credential_proxy(input_args, current_user, task_id)
     return input_args
+
+
+def _build_embedding_config(db: Session, defaults) -> dict | None:
+    """Build embedding config from the user's selected embedding provider."""
+    if not getattr(defaults, "embedding_enabled", False):
+        return None
+
+    provider_id = getattr(defaults, "embedding_provider_id", None)
+    if not provider_id:
+        return None
+    provider = db.get(models.EmbeddingProvider, provider_id)
+    if not provider:
+        return None
+
+    embedding_type = provider.type.value
+    base_url = provider.base_url
+    if provider.type == models.EmbeddingProviderType.JINA and not base_url:
+        from app.services.embedding_provider_service import JINA_DEFAULT_BASE_URL
+
+        base_url = JINA_DEFAULT_BASE_URL
+
+    if provider.mode == models.EmbeddingMode.SPLIT or provider.type == models.EmbeddingProviderType.LOCAL:
+        text_type = getattr(provider, "text_type", None) or (
+            models.EmbeddingProviderType.OPENAI_COMPATIBLE
+            if provider.type == models.EmbeddingProviderType.LOCAL
+            else provider.type
+        )
+        code_type = getattr(provider, "code_type", None) or (
+            models.EmbeddingProviderType.OPENAI_COMPATIBLE
+            if provider.type == models.EmbeddingProviderType.LOCAL
+            else provider.type
+        )
+        text_base_url = getattr(provider, "text_base_url", None)
+        code_base_url = getattr(provider, "code_base_url", None)
+        if text_type == models.EmbeddingProviderType.JINA and not text_base_url:
+            from app.services.embedding_provider_service import JINA_DEFAULT_BASE_URL
+
+            text_base_url = JINA_DEFAULT_BASE_URL
+        if code_type == models.EmbeddingProviderType.JINA and not code_base_url:
+            from app.services.embedding_provider_service import JINA_DEFAULT_BASE_URL
+
+            code_base_url = JINA_DEFAULT_BASE_URL
+
+        text_provider_type = (
+            "openai_compatible"
+            if text_type == models.EmbeddingProviderType.LOCAL
+            else text_type.value
+        )
+        code_provider_type = (
+            "openai_compatible"
+            if code_type == models.EmbeddingProviderType.LOCAL
+            else code_type.value
+        )
+        return EmbeddingConfig(
+            type="local",
+            dim=provider.dim,
+            timeout=provider.timeout,
+            embedding_func_max_async=provider.embedding_func_max_async,
+            text_config=TaskSpecificConfig(
+                type=text_provider_type,
+                api_key=getattr(provider, "text_api_key", ""),
+                auth_token=getattr(provider, "text_auth_token", ""),
+                base_url=text_base_url or "",
+                model=provider.text_model or provider.model,
+                timeout=provider.timeout,
+                task=provider.text_task or None,
+            ),
+            code_config=TaskSpecificConfig(
+                type=code_provider_type,
+                api_key=getattr(provider, "code_api_key", ""),
+                auth_token=getattr(provider, "code_auth_token", ""),
+                base_url=code_base_url or "",
+                model=provider.code_model or provider.model,
+                timeout=provider.timeout,
+                task=provider.code_task or None,
+            ),
+        ).model_dump()
+
+    return EmbeddingConfig(
+        type=embedding_type,
+        api_key=provider.api_key,
+        auth_token=provider.auth_token,
+        base_url=base_url,
+        model=provider.model,
+        dim=provider.dim,
+        timeout=provider.timeout,
+        embedding_func_max_async=provider.embedding_func_max_async,
+        text_task=provider.text_task or None,
+        code_task=provider.code_task or None,
+    ).model_dump()
 
 
 def _apply_credential_proxy(
@@ -248,7 +325,7 @@ def _apply_credential_proxy(
         provider_cfg["auth_token"] = ""
         provider_cfg["base_url"] = proxy_base
 
-    # 收集所有需脱敏的配置：非 mock 供应商 + 带 api_key 的 embedding（内置 jina）。
+    # 收集所有需脱敏的配置：非 mock 供应商 + 带 api_key 的 embedding。
     # 单点收集、单次遍历，避免遗漏任一处真实 key（漏一处即被恶意脚本读到）。
     to_scrub: list[dict] = [
         cfg for cfg in input_args.get("providers", []) if cfg.get("type") != "mock"
@@ -256,6 +333,11 @@ def _apply_credential_proxy(
     embedding = input_args.get("embedding")
     if isinstance(embedding, dict) and embedding.get("api_key"):
         to_scrub.append(embedding)
+    if isinstance(embedding, dict):
+        for key in ("text_config", "code_config"):
+            cfg = embedding.get(key)
+            if isinstance(cfg, dict) and cfg.get("api_key"):
+                to_scrub.append(cfg)
 
     for cfg in to_scrub:
         _swap(cfg)
@@ -285,6 +367,11 @@ def run_task(
 
     if task.status in (TaskStatus.PENDING, TaskStatus.RUNNING):
         raise HTTPException(status_code=409, detail="任务正在运行中，请勿重复提交")
+
+    if settings.TASK_CONTAINER_ENABLE:
+        from app.services.container_service import validate_task_container_host_path
+
+        validate_task_container_host_path()
 
     # 解析供应商列表及 evolution 中的供应商引用
     input_args = dict(task.input_args) if task.input_args else {}

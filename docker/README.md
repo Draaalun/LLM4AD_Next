@@ -56,7 +56,8 @@ Copy-Item .env.develop.local.example .env
 
 **项目目录**
 
-- `HOST_PROJECT_HOME` / `DOCKER_PROJECT_HOME`：项目工作目录挂载路径（本地调试时两者需保持一致；部署时 `HOST_PROJECT_HOME` 可为服务器上任意已存在且可读写的目录）
+- `HOST_PROJECT_HOME`：宿主机上的项目工作目录，必须使用绝对路径，例如 `/srv/llm4ad/app-data` 或 `D:\data\project_home`，不能使用 `./app-data`。
+- `DOCKER_PROJECT_HOME`：容器内项目工作目录，默认 `/data/project_home/`；Compose 会把 `HOST_PROJECT_HOME` 挂载到该路径。
 
 其余变量（端口、镜像名、SMTP、APT/PyPI 镜像源等）可沿用示例文件中的默认值，完整说明见 `.env.develop.local.example`。
 

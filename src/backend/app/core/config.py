@@ -212,9 +212,6 @@ class Settings(BaseSettings):
         """
         return self.TASK_TIME_LIMIT + 3600
 
-    # ---- 第三方 API 密钥 ----
-    JINA_API_KEY: str = ""
-
     # ---- 内置试用供应商（如 LiteLLM 网关） ----
     BUILTIN_PROVIDER_NAME: str = "builtin-trial"
     BUILTIN_PROVIDER_BASE_URL: str = "" # 为空则跳过 seed，可以包含变量{accessToken}
