@@ -4,8 +4,8 @@ import time
 from abc import ABC, abstractmethod
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
 from loguru import logger
+from pydantic import BaseModel, ConfigDict, Field
 
 from llm4ad.coder.base import BaseCoder
 from llm4ad.config import EvolutionConfig
