@@ -122,6 +122,16 @@ Windows PowerShell：
 
 ## 镜像部署
 
+镜像部署默认读取 `docker/version`：
+
+```bash
+VERSION=latest
+CN_REGISTRY=registry.cn-hangzhou.aliyuncs.com/noah2012
+DOCKER_REGISTRY=docker.io/noah2012
+```
+
+未显式传入 `TAG` 时使用 `VERSION`；未显式传入 `--mirrors` 或 `SWR_REGISTRY` 时使用 `CN_REGISTRY`。
+
 - 启动指定版本（示例：`v1.0.0`）
 ```shell
 TAG=v1.0.0 ./start.sh start
@@ -133,6 +143,13 @@ TAG=v1.0.0 ./start.sh start
 ```
 
 `start` 是默认命令，也可以直接执行 `./start.sh`。启动脚本会先拉取当前版本所需镜像，以及后端运行时动态容器所需镜像，再启动服务。
+
+- 使用指定镜像仓库或加速地址
+```shell
+./start.sh start --mirrors registry.cn-hangzhou.aliyuncs.com/noah2012
+./start.sh start --mirrors docker.io/noah2012
+./start.sh start --mirrors docker.1ms.run/noah2012
+```
 
 - 停止服务和后端动态容器
 ```shell
