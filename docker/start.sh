@@ -21,7 +21,7 @@ usage() {
     '' \
     'Environment variables:' \
     '  TAG                           Image tag to deploy, default: VERSION from docker/version' \
-    '  SWR_REGISTRY                  Image registry namespace, default: CN_REGISTRY from docker/version' \
+    '  SWR_REGISTRY                  Image registry namespace, default: DOCKER_REGISTRY from docker/version' \
     '  VERSION_FILE                  Version config file, default: version' \
     '  COMPOSE_VERSION               Docker Compose version to auto-install, default: v2.32.4' \
     '  EXTRA_BACKEND_RUNTIME_IMAGES  Extra whitespace-separated images to pull'
@@ -84,7 +84,7 @@ load_version_file() {
 
 load_version_file
 TAG="${TAG:-${VERSION:-latest}}"
-SWR_REGISTRY="${MIRRORS:-${SWR_REGISTRY:-${CN_REGISTRY:-registry.cn-hangzhou.aliyuncs.com/noah2012}}}"
+SWR_REGISTRY="${MIRRORS:-${SWR_REGISTRY:-${DOCKER_REGISTRY:-docker.io/noah2012}}}"
 SWR_REGISTRY="${SWR_REGISTRY%/}"
 export TAG
 export SWR_REGISTRY

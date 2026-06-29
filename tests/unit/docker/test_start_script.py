@@ -64,12 +64,14 @@ def read_docker_env(env: dict[str, str]) -> str:
     return Path(env["DOCKER_STUB_LOG"]).read_text(encoding="utf-8")
 
 
-def test_start_uses_default_cn_registry_and_version(fake_docker_env: dict[str, str]) -> None:
+def test_start_uses_default_docker_registry_and_version(
+    fake_docker_env: dict[str, str],
+) -> None:
     result = run_start(["start", "--dry-run"], fake_docker_env)
 
     assert result.returncode == 0, result.stderr
     docker_env = read_docker_env(fake_docker_env)
-    assert "SWR_REGISTRY=registry.cn-hangzhou.aliyuncs.com/noah2012\n" in docker_env
+    assert "SWR_REGISTRY=docker.io/noah2012\n" in docker_env
     assert "TAG=latest\n" in docker_env
 
 

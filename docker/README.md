@@ -130,7 +130,7 @@ CN_REGISTRY=registry.cn-hangzhou.aliyuncs.com/noah2012
 DOCKER_REGISTRY=docker.io/noah2012
 ```
 
-未显式传入 `TAG` 时使用 `VERSION`；未显式传入 `--mirrors` 或 `SWR_REGISTRY` 时使用 `CN_REGISTRY`。
+未显式传入 `TAG` 时使用 `VERSION`；未显式传入 `--mirrors` 或 `SWR_REGISTRY` 时使用 `DOCKER_REGISTRY`。`CN_REGISTRY` 作为国内镜像源地址，可通过 `--mirrors` 显式使用。
 
 - 启动指定版本（示例：`v1.0.0`）
 ```shell
